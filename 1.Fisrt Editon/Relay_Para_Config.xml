@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RELAY_REC_CFG>
+  <RecConfVer>100</RecConfVer>
+  <RecConfCreator>ff</RecConfCreator>
+  <RecConfCreatTime>2013-10-30 15:54:32</RecConfCreatTime>
+  <FacCfg	RelayNumFactor="1" UpOprtTimeFactor="1" DownOprtTimeFactor="1"  JumpTimeFactor="2">
+  </FacCfg>
+  <!--Rec Type Config-->
+  <RelayCfg NumIdx="1">
+    <LifeCfg RelayLifeNum="500000" UpOprtTimeMin="60" UpOprtTimeMax="200" DownOprtTimeMin="60" DownOprtTimeMax="200" JumpTimeMin="10" JumpTimeMax="20">
+  </LifeCfg>
+  </RelayCfg>
+  <RelayCfg NumIdx="2">
+    <LifeCfg RelayLifeNum="200" UpOprtTimeMin="20" UpOprtTimeMax="200" DownOprtTimeMin="21" DownOprtTimeMax="201" JumpTimeMin="22" JumpTimeMax="52">
+  </LifeCfg>
+  </RelayCfg>
+  <RecType>
+  	  <RecTypeIdx>1</RecTypeIdx>
+      <RecTypeName>Event</RecTypeName>
+      <RecPath>/yaffs/REC_EVTLIFE/</RecPath>
+      <RecFileHead>REC_EVTLIFE_</RecFileHead>
+      <RecMaxFileNum>50</RecMaxFileNum>
+      <RecTotalChn>96</RecTotalChn>
+      <RecChnNum>80</RecChnNum>
+      <RecChnBitMask1>0x00</RecChnBitMask1>
+      <RecChnBitMask2>0xFFFF</RecChnBitMask2>
+      <RecChnBitMask3>0xFFFF</RecChnBitMask3>
+      <RecChnBitMask4>0xFFFF</RecChnBitMask4>
+      <RecChnBitMask5>0xFFFF</RecChnBitMask5>
+      <RecChnBitMask6>0xFFFF</RecChnBitMask6>
+      <RecInterval>60000</RecInterval>
+      <RecBeforeNum>0</RecBeforeNum>
+      <RecAfterNum>0</RecAfterNum>
+      <RecToTalNum>10000</RecToTalNum>
+  </RecType>  
+</RELAY_REC_CFG>
