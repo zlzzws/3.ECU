@@ -53,6 +53,12 @@
 #include <linux/watchdog.h>
 #include <linux/sockios.h>
 #include <linux/mii.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
 /**********************************************************************
 *
 *Global Macro Define Section
@@ -204,6 +210,148 @@
 *********************************************************************/
 typedef struct
 {
+    uint8_t BusErr:1;
+    uint8_t VolChErr:1;
+    uint8_t CurrChErr:1;
+    uint8_t TemptureErr:1;
+    uint8_t PowerErr:1;
+    uint8_t Bit6:1;
+    uint8_t Bit7:1;
+    uint8_t DeviceErr:1;
+}FAULT_INFO;
+
+
+typedef struct
+{
+    uint8_t BatOFF:1; //3s pulse
+    uint8_t WarnRSet:1;
+    uint8_t ATOMmode:1;
+    uint8_t Bit4:1;
+    uint8_t Bit5:1;
+    uint8_t Bit6:1;
+    uint8_t Bit7:1;
+    uint8_t Bit8:1;
+
+}CCU_ST;
+
+typedef struct
+{
+    uint8_t TimeValid:1; //1 mean time valid
+    uint8_t BianzuValid:1;
+    uint8_t Bit3:1;
+    uint8_t Bit4:1;
+    uint8_t Bit5:1;
+    uint8_t Bit6:1;
+    uint8_t Bit7:1;
+    uint8_t Bit8:1;
+}VECH_ST;
+
+typedef struct
+{
+    uint8_t ReConect:2; //
+    uint8_t MainContrl:2;
+    uint8_t OverPhase:1;
+    uint8_t DriveEnable1_T903A:1;
+    uint8_t DriveEnable2_T903B:1;
+    uint8_t VCBClose:1;
+}DRIVE_INFO;
+typedef struct
+{
+    uint8_t CarContrl_K1:1;
+    uint8_t CarContrl_K2:1;
+    uint8_t CarContrl_C:1;
+    uint8_t CarContrl_K3:1;
+    uint8_t CarContrl_K4:1;
+    uint8_t CarContrl_N:1;
+    uint8_t CarContrl_B1:1;
+    uint8_t CarContrl_B2:1;
+}HANDLE_INFO1;
+
+typedef struct
+{
+    uint8_t CarContrl_B3:1;
+    uint8_t CarContrl_B4:1;
+    uint8_t CarContrl_B5:1;
+    uint8_t CarContrl_B6:1;
+    uint8_t CarContrl_B7:1;
+    uint8_t CarContrl_EB:1;
+    uint8_t QianPan:1;
+    uint8_t HouPan:1;
+}HANDLE_INFO2;
+typedef struct
+{
+    uint8_t OpenRightDoor_T233:1;
+    uint8_t OpenLefttDoor_T234:1;
+    uint8_t CloseRightDoor_T235:1;
+    uint8_t CloseLeftDoor_T236:1;
+    uint8_t TranformFan1_HighSped:1;  /*just for 3/6che */
+    uint8_t TranformFan1_LowSped:1;  /*just for 3/6che */
+    uint8_t TranformFan2_HighSped:1; /*just for 3/6che */
+    uint8_t TranformFan2_LowSped:1;  /*just for 3/6che */
+}DOOR_FAN;
+
+typedef struct
+{
+    uint8_t MotorColFan1_HighSped:1;  /*2/7che ,or 4/5che*/
+    uint8_t MotorColFan1_LowSped:1;   /*2/7che ,or 4/5che*/
+    uint8_t MotorColFan2_HighSped:1; /*2/7che ,or 4/5che*/
+    uint8_t MotorColFan2_LowSped:1; /*2/7che ,or 4/5che*/
+    uint8_t ConverColFan3_HighSped:1;  /*2/7che ,or 4/5che*/
+    uint8_t ConverColFan3_LowSped:1; /*2/7che ,or 4/5che*/
+    uint8_t res:2;
+
+}CONVERT_FAN;
+
+typedef struct
+{
+    uint8_t PanUpKnob_T221A:1;
+    uint8_t ParkBrakPresButtn_T229A:1;
+    uint8_t CleanBrakeButtn_T226A:1;
+    uint8_t KeepBrakeButtn_T228A:1;
+    uint8_t ParkBrakeFreedButtn_T230A:1;
+    uint8_t FreedRightDoorButtn_T231:1;
+    uint8_t FreedLeftDoorButtn_T232:1;
+    uint8_t ManuVCBButtn_T260A:1;
+}PARK_BUTTON;
+
+typedef struct
+{
+    uint8_t ProtGndContrlValid_T272:1;
+    uint8_t EmergDriveMode_T321A:1;
+    uint8_t ATPPow_T291:1;
+    uint8_t RestButtn_T240A:1;
+    uint8_t EmergRestButtn_T247A:1;
+    uint8_t Res1:1;
+    uint8_t ScaleParkButtn_T255A:1;
+    uint8_t PanDownKnob_T222A:1;
+}RESET_BUTTON;
+
+typedef struct
+{
+    uint8_t NoneAlert_T258A:1;
+    uint8_t BPRSUnRescue_T276:1;
+    uint8_t BPRSRescue_T275:1;
+    uint8_t ForcZeroSpeed_T280:1;
+    uint8_t VechWireContrl_T293:1;
+    uint8_t BatterButtn_T256:1;
+    uint8_t EmergPowOffButtn_T223:1;
+    uint8_t EmergBrakButtn_T252A:1;
+}BATTER_BUTTON;
+
+typedef struct
+{
+    DRIVE_INFO Drive_Info;
+    HANDLE_INFO1 Handle_info1;
+    HANDLE_INFO2 Handle_info2;
+    DOOR_FAN Door_TransformFan;
+    CONVERT_FAN  ConvertFan2Che;
+    CONVERT_FAN  ConvertFan4Che;
+    PARK_BUTTON  ParkButtn;
+    RESET_BUTTON  ResetButtn;
+    BATTER_BUTTON  BatterButtn;
+}VECH_EADS_INFO;
+typedef struct
+{
 	uint32_t BLVDSTOP_U32;/*0xC21104*/
 	uint32_t BLVDSReser_U32[2];/*0x00*/
     uint32_t BLVDSData_U32[61];
@@ -303,13 +451,12 @@ typedef enum _DEBUG_TYPE
 	ADC_VDATE			= 16,   			//ADC电压转换数值打印   
 	ADC_IDATE 			= 17,   			//ADC电流转换数值打印
 	RTU_DEBUG 			= 18,				//Modbus_RTU电流转换数值打印
-	CAN_RD_DEBUG 		= 19,				//从Bram接收CAN数据打印
-	CAN_WR_DEBUG    	= 20,				//接收CAN数据写入Bram打印
-	uart_DEBUG 			= 21,				//Uart收发数据打印
-	uart_TO_TRDP_DEBUG 	= 22,				//Uart与TRDP传输数据打印
-	peri_File_DEBUG 	= 23,				//外设文件数据调试打印
-	FileSave_DEBUG 		= 24,				//外设文件存储调试打印
-	socket_Debug 		= 25				//调试CSR_Drive与A9的Socket通讯	
+	TMS570_BRAM_RD_DEBUG= 19,				//从Bram接收TMS570数据打印
+	TMS570_BRAM_WR_DEBUG= 20,				//将数据写入Bram发送给TMS570打印
+    CAN_RD_DEBUG        = 21,
+    CAN_WR_DEBUG        = 22,
+	FileSave_DEBUG 		= 23,				//外设文件存储调试打印
+	socket_Debug 		= 24				//调试CSR_Drive与A9的Socket通讯
 }DEBUG_TYPE_ENUM;
 
 typedef enum _COMMU_MCU
@@ -395,10 +542,10 @@ typedef struct
 	pthread_t FileSaveThread;
 	pthread_t TRDPThread;
 	pthread_t LedThread;
-	pthread_t DirTarThread;
-	pthread_t RTUThread;
-	pthread_t CANThread;
-	pthread_t UartThread;
+	pthread_t DirTarThread;	
+	pthread_t CAN0Thread;
+    pthread_t CAN1Thread;
+	pthread_t MVBThread;
 	pthread_t TMS570_Bram_Thread;	
 }PTHREAD_INFO;
 
@@ -487,25 +634,18 @@ typedef struct
     uint32_t UART_RESER_SPACE;
 }SPACE_JUDGE_VALUE;
 
-typedef struct
-{
-	uint8_t WakeUpTime;
-	uint8_t volumeGain;
-    uint8_t Life_voice_U8;	
-	BYTE_BIT UartDate_U8[5];//TRDP协议与RS485协议存在转换关系，所以定义BYTE_BIT类型	   
-}UART_VOICE_TPYE;
-
-typedef struct
-{	   
-	uint8_t Life_fingerprint_U8;//指纹模块生命信号	
-	uint8_t CanDate_U8[4];//指纹模块数据	
-}CAN_FingerPrint_TPYE;
-
-typedef enum __devic__type
+typedef enum devic_type
 {
 	CAN_Device = 1,
 	Uart_Device = 2,
 }peripheralDevice;//枚举外设设备类型
+
+
+typedef struct tms570_bram_data
+{
+    uint32_t buffer[60];
+	uint8_t length;
+}TMS570_BRAM_DATA;
 
 /**********************************************************************
 *

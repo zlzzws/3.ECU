@@ -44,8 +44,12 @@
 *********************************************************************/
 #define BRAMERR_NUM 10 /*read 10 time ,the all data is 0*/
 #define MAPERR_NUM 3 /*map 3 time ,if failed */
-
-
+#define CAN0_TYPE 0
+#define CAN1_TYPE 1
+#define CAN0_READ_FRAME_NUM  13
+#define CAN0_WRITE_FRAME_NUM 4
+#define CAN1_READ_FRAME_NUM  10
+#define CAN1_WRITE_FRAME_NUM 3
 /**********************************************************************
 *
 *Global Struct Define Section
@@ -75,16 +79,17 @@ typedef struct
 *Global Prototype Declare Section
 *
 *********************************************************************/
-int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData,uint8_t ChanNum);
-int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_INFO * EADSErrInfop);
-int8_t CANDataReadThreadFunc(CAN_FingerPrint_TPYE *CANSendDate) ;
-int8_t CANDataWriteThreadFunc(CAN_FingerPrint_TPYE *CANRecvDate,BRAM_CMD_PACKET *CmdPact_p);
-int8_t SetTimeFromRTC(BRAM_ADDRS *RDSpcBlk_p,BRAM_ADDRS *WRSpcBlk_p);
-int8_t BramCloseMap(void);
-int8_t Bram_Mapping_Init(EADS_ERROR_INFO * EADSErrInfop,uint8_t EADSType);
-void TMS570_Bram_TopPackDataSetFun(void);
-
-
+int8_t 	BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData);
+int8_t 	BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_INFO * EADSErrInfop);
+int8_t 	SetTimeFromRTC(BRAM_ADDRS *RDSpcBlk_p,BRAM_ADDRS *WRSpcBlk_p);
+int8_t 	BramCloseMap(void);
+int8_t 	Bram_Mapping_Init(EADS_ERROR_INFO * EADSErrInfop,uint8_t EADSType);
+void 	CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uint8_t can_devtype);
+void 	CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype);
+void 	CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype);
+void 	TMS570_Bram_TopPackDataSetFun(void);
+int8_t 	TMS570_Bram_Read_Func(TMS570_BRAM_DATA *bram_data);
+int8_t 	TMS570_Bram_write_Func(TMS570_BRAM_DATA bram_data[]);
 /**********************************************************************
 *
 *Multi-Include-Prevent End Section

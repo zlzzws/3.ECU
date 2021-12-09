@@ -331,7 +331,7 @@ void pdSendDataSet(uint8_t *data,const CHAN_DATA * ChanDatap,const CHAN_STATUS_I
 *REV1.0.0     feng    2020/3/26  Create
 *
 *********************************************************************/
-
+#if 0
 void TrdpSendDataSet(uint8_t *data,CAN_FingerPrint_TPYE *CanData,UART_VOICE_TPYE *UartData, BYTE_BIT ADUErrInfo, BYTE_BIT Voice_Finger_ErrInfo)
 {
 	uint32_t i;
@@ -378,6 +378,7 @@ void TrdpSendDataSet(uint8_t *data,CAN_FingerPrint_TPYE *CanData,UART_VOICE_TPYE
  	}     
  	s_life++; /*100ms ++*/
 }
+#endif
 /**********************************************************************
 *Name			:   void pdSend(uint32_t comId,uint8_t *PdData,uint32_t size)
 *Function       :   set trdp pdSend function
@@ -1606,7 +1607,7 @@ int8_t pdRecDataPro(uint8_t PdData[],CHAN_STATUS_INFO * ChanInfop,CHAN_LG_INFO *
 *REV1.0.0     ZLZ    2020/9/10  Create
 *
 *********************************************************************/
-
+#if 0
 int8_t TrdpRecvDataPro(uint8_t PdData[],CAN_FingerPrint_TPYE *Can_RecvDate,UART_VOICE_TPYE *Uart_RecvDate)
 {
     uint8_t i,ret;
@@ -1656,6 +1657,7 @@ int8_t TrdpRecvDataPro(uint8_t PdData[],CAN_FingerPrint_TPYE *Can_RecvDate,UART_
         printf("Recv_Lcu_Time.Second:%d\n",Recv_Lcu_Time.Second_U8);
     }
 }
+#endif
 /*add this the bin +200KB*/
 /**********************************************************************
 *Name			:   pdRecv(uint32_t comId, uint8_t RecData[],uint32_t size)

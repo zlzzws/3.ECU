@@ -2673,3 +2673,51 @@ int8_t DirFileTar(RECORD_XML * RrdXml_p)
     return err;
 
 }
+
+/*!
+ * Function:文件记录功能
+ * @param Device_Type_enum -设备类型
+ * @param device_FP -文件流（二级指针）
+ * @param databuf -记录的数据
+ * @param datalength -数据长度
+ * @param REC_TYPE -xml中的REC_TYPE
+ * @param Record_Num_U32 -记录帧数
+ */
+void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
+                 uint32_t Record_Num_U32) 
+{
+    struct timeval A_Time_ST,A_TimeEnd_ST;
+    DRIVE_FILE_DATA Record_Data={0};
+    uint8_t i = 0;        
+    int8_t ret_fd = 0;
+    if(TIME_DEBUG  == g_DebugType_EU)
+    {
+        gettimeofday(&A_Time_ST,NULL);
+    } 
+    if(Record_Num_U32 >= REC_TYPE->RecToTalNum)
+    {                
+        printf("s_FrameSaveNum_U32:%d\n",Record_Num_U32);
+        fflush(*device_FP);
+        ret_fd = fileno(*device_FP);
+        fsync(ret_fd);
+        fclose(*device_FP);
+        *device_FP = NULL;
+        peripheralFileCreate(Device_Type_enum,device_FP,REC_TYPE,&g_TrainInfo_ST,&g_EADSErrInfo_ST);                  
+    }
+	else if(0 == (Record_Num_U32 % Peri_FILE_SYNC_NUM ))//每50次记录刷新缓存,理论是5s
+    {
+		fflush(*device_FP);
+        ret_fd = fileno(*device_FP);
+        fsync(ret_fd);
+	}
+    memcpy(&Record_Data,databuf,datalength);
+    peripheralDataSave(*device_FP,&Record_Data);
+       
+    //保存数组至记录文件中    
+    if(TIME_DEBUG  == g_DebugType_EU)
+    {
+            gettimeofday(&A_TimeEnd_ST,NULL);
+            printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
+            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
+    }
+} 

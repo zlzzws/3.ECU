@@ -488,8 +488,8 @@ int8_t	pdRecv(uint32_t comId, uint8_t *RecData,uint32_t size);
 int8_t 	pdRecDataPro(uint8_t PdData[],CHAN_STATUS_INFO * ChanInfop,CHAN_LG_INFO * ChanLgInfop,VECH_EADS_INFO * VechEADSInfop);
 void 	pdSendDataSet(uint8_t *data,const CHAN_DATA * ChanDatap,const CHAN_STATUS_INFO * ChanInfop,const EADS_ERROR_INFO  EADSErrInfoST,
 	               const CHAN_LG_INFO LgInfoST,const CHAN_DIGITAL_INFO ChanDigitalInfo_ST);
-void 	TrdpSendDataSet(uint8_t *data,CAN_FingerPrint_TPYE *CanData,UART_VOICE_TPYE *UartData, BYTE_BIT ADUErrInfo, BYTE_BIT Voice_Finger_ErrInfo);
-int8_t 	TrdpRecvDataPro(uint8_t PdData[],CAN_FingerPrint_TPYE *Can_RecvDate,UART_VOICE_TPYE *Uart_RecvDate);
+//void 	TrdpSendDataSet(uint8_t *data,CAN_FingerPrint_TPYE *CanData,UART_VOICE_TPYE *UartData, BYTE_BIT ADUErrInfo, BYTE_BIT Voice_Finger_ErrInfo);
+//int8_t 	TrdpRecvDataPro(uint8_t PdData[],CAN_FingerPrint_TPYE *Can_RecvDate,UART_VOICE_TPYE *Uart_RecvDate);
 /******************************************************************************
  *    Multi-Include-Prevent End Section
  ******************************************************************************/  

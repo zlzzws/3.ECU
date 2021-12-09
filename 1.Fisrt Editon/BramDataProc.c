@@ -97,8 +97,7 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
     static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};//Attention:此处我将BRAM_BOARD_NUM从5改为10，评估影响  
     BRAM_PACKET_DATA *BramPacketData_ST_p;
     BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-    PacketLength = (BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF;    
-
+    PacketLength = (BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF;
 	if(PacketLength != 0)
     {
         memcpy(Outbuff,&BramPacketData_ST_p -> BLVDSData_U32,PacketLength);           
@@ -117,21 +116,17 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
     return ErrorCode;
 }
 /**********************************************************************
-*Name           :  BramRDMAX10ADCData(uint32_t BlockAddr,uint32_t BlockFlagAddr,
-*                   uint8_t ChanNum,uint32_t *ReadDataBuf)
-*Function       :   Read the MAX ADC data
-*Para           :   uint32_t BlockAddre , BRAM_A9_RD_A_BLVDS_BLOCK0
-*               :   uint32_t BlockFlagAddr BRAM_A9_RD_A_BLVDS_FlagBLOCK0
-*               :   uint8_t ChanNum  :the Block number
-*               :   uint8_t U32Length : LCU_BOARD_LENGTH
-*               :   uint32_t *ReadDataBuf,
+*Name           :   BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
+*Function       :   Read the Bram data from the specified addr
+*Para           :   BRAM_ADDRS *BramAddrs_p
+*                   uint32_t *ReadData
 *Return         :   int8_t 0,success;else false.
 *Version        :   REV1.0.0       
 *Author         :   feng
 *History:
 *REV1.0.0     feng    2018/05/07  Create
 *********************************************************************/
-int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData,uint8_t ChanNum)
+int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
 {
     uint32_t ReadDataBuf[64] = {0};    
     int8_t Error = 0;
@@ -144,7 +139,7 @@ int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData,uint8_t ChanNum)
         snprintf(loginfo, sizeof(loginfo)-1,"BramReadWithChek error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-    Error = ExtraBoardData(ReadDataBuf,ReadData,ChanNum);   
+    Error = ExtraBoardData(ReadDataBuf,ReadData,BramAddrs_p->ChanNum_U8);   
     return Error;
 }
 
@@ -570,7 +565,7 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
     s_Bram_A_BLVDSBlckAddr_ST.ChanNum_U8 = ADU_BOARD_ID;
     if(0 == g_LinuxDebug)//for zynq linux Running
     {
-        ReadErr = BoardDataRead(&s_Bram_A_BLVDSBlckAddr_ST,&g_BrdRdBufData_ST.Board0_Data_U32[ReadNum_U8][0],ADU_BOARD_ID);
+        ReadErr = BoardDataRead(&s_Bram_A_BLVDSBlckAddr_ST,&g_BrdRdBufData_ST.Board0_Data_U32[ReadNum_U8][0]);
         if(CODE_ERR == ReadErr) 
         {
             s_ADUDataErrNum++;  
@@ -604,6 +599,200 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
 }
 
 /**
+ * @description: 初始化CAN0数据帧ID及帧长度信息
+ * @param:       void
+ * @return:      void
+ * @author:      zlz
+ */
+void CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uint8_t can_devtype)
+{
+    switch (can_devtype)
+    {
+        case CAN0_TYPE: 
+        /*CAN0-BMS-A9 READ*/
+        candata_RD[0].can_id    = 0x1800D0F4 | CAN_EFF_FLAG;
+        candata_RD[0].can_dlc   = 8;
+        candata_RD[1].can_id    = 0x1801D0F4 | CAN_EFF_FLAG;
+        candata_RD[1].can_dlc   = 8;
+        candata_RD[2].can_id    = 0x1802D0F4 | CAN_EFF_FLAG;
+        candata_RD[2].can_dlc   = 8;
+        candata_RD[3].can_id    = 0x1803D0F4 | CAN_EFF_FLAG;
+        candata_RD[3].can_dlc   = 8;
+        /*CAN0-DCDC-A9 READ*/
+        candata_RD[4].can_id    = 0x16F4C000 | CAN_EFF_FLAG;
+        candata_RD[4].can_dlc   = 8;
+        candata_RD[5].can_id    = 0x16F4C001 | CAN_EFF_FLAG;
+        candata_RD[5].can_dlc   = 8;
+        /*CAN0-FC-A9 READ*/
+        candata_RD[6].can_id    = 0x18FF3012 | CAN_EFF_FLAG;
+        candata_RD[6].can_dlc   = 8;
+        candata_RD[7].can_id    = 0x18FF3112 | CAN_EFF_FLAG;
+        candata_RD[7].can_dlc   = 8;
+        candata_RD[8].can_id    = 0x18FF3212 | CAN_EFF_FLAG;
+        candata_RD[8].can_dlc   = 8;
+        candata_RD[9].can_id    = 0x18FF3312 | CAN_EFF_FLAG;
+        candata_RD[9].can_dlc   = 8;
+        candata_RD[10].can_id   = 0x18FF6012 | CAN_EFF_FLAG;
+        candata_RD[10].can_dlc  = 8;
+        candata_RD[11].can_id   = 0x18FF7012 | CAN_EFF_FLAG;
+        candata_RD[11].can_dlc  = 8;
+        candata_RD[12].can_id   = 0x18FF7112 | CAN_EFF_FLAG;
+        candata_RD[12].can_dlc  = 8;
+        /*CAN0-BMS-A9 WRITE*/
+        candata_WR[0].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
+        candata_WR[0].can_dlc   = 8;
+        /*CAN0-DCDC-A9 WRITE*/
+        candata_WR[1].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
+        candata_WR[1].can_dlc   = 8;
+        /*CAN0-FC-A9 WRITE*/
+        candata_WR[2].can_id    = 0x18FF0B27 | CAN_EFF_FLAG;
+        candata_WR[2].can_dlc   = 8;
+        candata_WR[3].can_id    = 0x18FF0A27 | CAN_EFF_FLAG;
+        candata_WR[3].can_dlc   = 8;
+        break;
+        case CAN1_TYPE:
+        /*CAN1-变频器-A9 READ*/        
+        candata_RD[0].can_id    = 0x15003000 | CAN_EFF_FLAG;
+        candata_RD[0].can_dlc   = 8;
+        candata_RD[1].can_id    = 0x15003001 | CAN_EFF_FLAG;
+        candata_RD[1].can_dlc   = 8;
+        candata_RD[2].can_id    = 0x15003002 | CAN_EFF_FLAG;
+        candata_RD[2].can_dlc   = 8;
+        /*CAN1-扩展模块-A9 READ*/ 
+        candata_RD[3].can_id    = 0x19003000 | CAN_EFF_FLAG;
+        candata_RD[3].can_dlc   = 8;
+        candata_RD[4].can_id    = 0x19003001 | CAN_EFF_FLAG;
+        candata_RD[4].can_dlc   = 8;
+        candata_RD[5].can_id    = 0x19003002 | CAN_EFF_FLAG;
+        candata_RD[5].can_dlc   = 8;
+        candata_RD[6].can_id    = 0x19003003 | CAN_EFF_FLAG;
+        candata_RD[6].can_dlc   = 8;
+        candata_RD[7].can_id    = 0x19003004 | CAN_EFF_FLAG;
+        candata_RD[7].can_dlc   = 8;
+        candata_RD[8].can_id    = 0x19003005 | CAN_EFF_FLAG;
+        candata_RD[8].can_dlc   = 8;
+        candata_RD[9].can_id    = 0x19003006 | CAN_EFF_FLAG;
+        candata_RD[9].can_dlc   = 8;
+        /*CAN1-A9-变频器 Write*/
+        candata_WR[0].can_id    = 0x15004000 | CAN_EFF_FLAG;
+        candata_WR[0].can_dlc   = 8;
+        candata_WR[1].can_id    = 0x15004001 | CAN_EFF_FLAG;
+        candata_WR[1].can_dlc   = 8;
+        /*CAN1-A9-扩展单元 Write*/
+        candata_WR[2].can_id    = 0x19004000 | CAN_EFF_FLAG;
+        candata_WR[2].can_dlc   = 8;
+        break;
+        default:
+            printf("invalid can_devtype!\n");
+            break;
+    }
+}
+
+/**
+ * @description: CAN发送数据前,将TMS570通过Bram反馈的数据进行处理
+ * @param:       struct can_frame *candata_wr
+ *               TMS570_BRAM_DATA *bramdata_rd   
+ *               uint8_t can_devtype
+ * @return:      void
+ * @author:      zlz
+ */
+void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
+{
+    uint8_t i,j;
+    uint8_t tempdata[240]={0};
+
+    switch (can_devtype)
+    {
+        case CAN0_TYPE:
+            memcpy(tempdata,bramdata_rd[1].buffer,240);
+            for(i=0;i<8;i++)
+            {
+                candata_wr[0].data[i] = tempdata[i];
+            }
+            memcpy(tempdata,bramdata_rd[2].buffer,240);
+            for(i=0;i<8;i++)
+            {
+                candata_wr[1].data[i] = tempdata[i];
+            }
+            memcpy(tempdata,bramdata_rd[3].buffer,240);
+            for(j=0;j<2;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    candata_wr[j+2].data[i] = tempdata[i+j*8];
+                }
+            }
+            break;
+        case CAN1_TYPE:
+            memcpy(tempdata,bramdata_rd[4].buffer,240);
+            for(j=0;j<3;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    candata_wr[j].data[i] = tempdata[i+j*8];
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+/**
+ * @description: 接收CAN数据后进行数据处理
+ * @param:       struct can_frame *candata_rd
+ *               TMS570_BRAM_DATA *bramdata_wr   
+ *               uint8_t can_devtype
+ * @return:      void
+ * @author:      zlz
+ */
+void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype)
+{
+    uint8_t i,j;
+    uint8_t tempdata[240]={0};
+
+    switch (can_devtype)
+    {
+        case CAN0_TYPE:
+            for(j=0;j<4;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    tempdata[i+j*8] = candata_rd[j].data[i] ;
+                }
+            }
+            memcpy(bramdata_wr[1].buffer,tempdata,240);
+            for(j=0;j<2;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    tempdata[i+j*8] = candata_rd[j+4].data[i];
+                }
+            }
+            memcpy(bramdata_wr[2].buffer,tempdata,240);
+            for(j=0;j<7;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    tempdata[i+j*8] = candata_rd[j+6].data[i];
+                }
+            }
+            memcpy(bramdata_wr[3].buffer,tempdata,240);
+            break;
+        case CAN1_TYPE:
+            for(j=0;j<10;j++)
+            {
+                for (i=0;i<8;i++)
+                {
+                    tempdata[i+j*8] = candata_rd[j].data[i];
+                }
+            }
+            memcpy(bramdata_wr[4].buffer,tempdata,240);
+            break;
+        default:
+            break;
+    }
+}
+/**
  * @description: 初始化TMS570交互的Bram通道包头数据(包含CAN及MVB数据)
  * @param:       void
  * @return:      void
@@ -618,19 +807,19 @@ void TMS570_Bram_TopPackDataSetFun(void)
     /*CAN-BMS A9->570*/
     CmdPact_WR_ST[1].protocol_version =0x11c2;
 	CmdPact_WR_ST[1].ChanNum_U8 = 9;
-    CmdPact_WR_ST[1].PacktLength_U32 = 15;
+    CmdPact_WR_ST[1].PacktLength_U32 = 13;
     /*CAN-DCDC A9->570*/
     CmdPact_WR_ST[2].protocol_version =0x11c2;
 	CmdPact_WR_ST[2].ChanNum_U8 = 10;
-    CmdPact_WR_ST[2].PacktLength_U32 = 8;
+    CmdPact_WR_ST[2].PacktLength_U32 = 9;
     /*CAN-FC A9->570*/
     CmdPact_WR_ST[3].protocol_version =0x11c2;
 	CmdPact_WR_ST[3].ChanNum_U8 = 11;
-    CmdPact_WR_ST[3].PacktLength_U32 = 18;
+    CmdPact_WR_ST[3].PacktLength_U32 = 19;
     /*CAN-扩展模块 A9->570*/
     CmdPact_WR_ST[4].protocol_version =0x11c2;
 	CmdPact_WR_ST[4].ChanNum_U8 = 12;
-    CmdPact_WR_ST[4].PacktLength_U32 = 8;
+    CmdPact_WR_ST[4].PacktLength_U32 = 25;
     /*MVB 570->A9*/
     CmdPact_RD_ST[0].ChanNum_U8 = 8;
     CmdPact_RD_ST[0].PacktLength_U32 = 48;
@@ -645,124 +834,96 @@ void TMS570_Bram_TopPackDataSetFun(void)
     CmdPact_RD_ST[3].PacktLength_U32 = 8;
     /*CAN-扩展模块 570->A9*/
     CmdPact_RD_ST[4].ChanNum_U8 = 10;
-    CmdPact_RD_ST[4].PacktLength_U32 = 8;
+    CmdPact_RD_ST[4].PacktLength_U32 = 10;
 }
 
 /**
  * @description: 从Bram指定区域读TMS570数据
- * @param {uint8_t} ReadNum_U8 
- * @return {*}
- * @author: zlz
- */
-int8_t TMS570_Bram_ReadThreadFunc(CAN_FingerPrint_TPYE *CANReadDate) 
+ * @param:      TMS570_BRAM_DATA *bram_data
+ * @return:     ReadErr
+ * @author:     zlz
+ */ 
+int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
 {
 
-    int8_t ReadErr = 0,i;
-    char loginfo[LOG_INFO_LENG] = {0};
-    uint32_t ReadDate[CANDATE_LENGTH_U32-BRAM_PCKT_TOP_LNGTH_U32] = {0};
-    uint8_t CANDataErrFlag = 0;
-    uint8_t CANDataErrNum  = 0;
-    
-    //指除CRC外其他数据长度，按照32位计算
-    s_bram_RD_TMS_SPC_Blck_ST.DataU32Length = CANDATE_LENGTH_U32;
-    s_bram_RD_TMS_SPC_Blck_ST.ChanNum_U8 = CAN_CHAN;
-    if(BRAM_DEBUG == g_DebugType_EU)
+    int8_t ReadErr = 0,i,j;
+    char loginfo[LOG_INFO_LENG] = {0};    
+    uint8_t DataErrFlag = 0;
+    uint8_t DataErrNum  = 0;
+    for(i=0;i<5;i++)
     {
-        printf("Read CAN Bram:\n");
+        
+        s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length = CmdPact_RD_ST[i].PacktLength_U32;
+        s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 = CmdPact_RD_ST[i].ChanNum_U8;
 
-    }
-    if(0 == g_LinuxDebug)
-    {
-        ReadErr = BoardDataRead(&s_bram_RD_TMS_SPC_Blck_ST,ReadDate,s_bram_RD_TMS_SPC_Blck_ST.ChanNum_U8);
-        if(CODE_ERR == ReadErr) 
+        if(0 == g_LinuxDebug)
         {
-            CANDataErrNum++;  
-            if(CANDataErrNum > BRAMERR_NUM) 
+  
+            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,bram_data[i].buffer);
+            if(CODE_ERR == ReadErr) 
             {
-                if(0 == CANDataErrFlag)
-                {                    
-                    CANDataErrFlag = 1;
-                    printf("CAN data read from TMS570 is Err.\n");
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN data read from TMS570 is Err.");
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                DataErrNum++;  
+                if(DataErrNum > BRAMERR_NUM) 
+                {
+                    if(0 == DataErrFlag)
+                    {                    
+                        DataErrFlag = 1;
+                        printf("The [%d] frame Bramdata read from TMS570 is Err.\n",i);
+                        snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 is Err.",i);
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                    }
+                    DataErrNum = 0;
                 }
-                CANDataErrNum = 0;
             }
-        }
-        else if(CODE_OK == ReadErr) 
-        {
-            CANDataErrNum = 0;
-            if(1 == CANDataErrFlag)
+            if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
             {
-                CANDataErrFlag = 0;
-                printf("CAN data read from TMS570 return to normal.\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN data read from TMS570 rerurn to normal.");
-                WRITELOGFILE(LOG_ERROR_1,loginfo);   
-            }                 
-            CANReadDate ->Life_fingerprint_U8 = (uint8_t)((ReadDate[1]>>16) & 0XFF);
-            CANReadDate ->CanDate_U8[0] = (uint8_t)(ReadDate[0] & 0XFF);
-            CANReadDate ->CanDate_U8[1] = (uint8_t)((ReadDate[0] >>8) & 0XFF);
-            CANReadDate ->CanDate_U8[2] = (uint8_t)((ReadDate[0] >>16) & 0XFF);
-            CANReadDate ->CanDate_U8[3] = (uint8_t)((ReadDate[0] >>24) & 0XFF);
+                for(j=0;j<bram_data[i].length;j++)
+                    printf("TMS570:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
+            } 
         }
-        if(g_DebugType_EU == CAN_RD_DEBUG)
-        {
-            
-            printf("CANReadDate ->Life_fingerprint_U8:%x\n", CANReadDate ->Life_fingerprint_U8);
-            for(i=0;i<4;i++)
-            {
-                printf("CANReadDate ->CanDate_U8[%d]:%x\n", i,CANReadDate ->CanDate_U8[i]);
-            }
-        } 
     }
     return ReadErr;
 }
 
 /**
  * @description: 向Bram指定区域写CAN数据
- * @param        {uint8_t} ReadNum_U8  写数据区数量
+ * @param        TMS570_BRAM_DATA *bram_data
  * @return       {uint8_t} WriteErr   写数据返回值
  * @author: zlz
  */
-int8_t CANDataWriteThreadFunc(CAN_FingerPrint_TPYE *CANRecvDate,BRAM_CMD_PACKET *CmdPact_p) 
+int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data) 
 {
 
-    int8_t WriteErr = 0;
+    int8_t WriteErr = 0,i,j;
     char loginfo[LOG_INFO_LENG] = {0};
-    uint8_t CANDataErrFlag = 0;
-    uint8_t CANDataErrNum  = 0;
-    uint32_t WriteDate[CANDATE_LENGTH_U32-BRAM_PCKT_TOP_LNGTH_U32] = {0} ;  
-    static uint16_t CAN_Life = 0;  
-    BRAM_PACKET_TOP TopPackST = {0};
-    if(CAN_WR_DEBUG == g_DebugType_EU)
+    uint8_t DataErrFlag = 0;
+    uint8_t DataErrNum  = 0;     
+    static uint16_t Life_signal = 0;  
+    BRAM_PACKET_TOP TopPackST[5] = {0};
+    for(i+0;i<5;i++)
     {
-        printf("Write CAN from Bram\n");
+        //填充帧头
+        TopPackST[i].BLVDSTOP_U32 = CmdPact_WR_ST[i].protocol_version;
+        TopPackST[i].BLVDSReser_U32[1] = Life_signal;
+        //数据长度、通道数填充
+        s_bram_WR_TMS_SPC_Blck_ST.DataU32Length = CmdPact_WR_ST[i].PacktLength_U32;
+        s_bram_WR_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_WR_ST[i].ChanNum_U8;
 
+        if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+        {
+            for(j=0;j<bram_data[i].length;j++)
+                printf("TMS570:Write to Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);
+        }    
+        if(0 == g_LinuxDebug)
+        {
+            WriteErr = BramWriteWithChek(&s_bram_WR_TMS_SPC_Blck_ST,bram_data->buffer,TopPackST[i]);
+            if(WriteErr == CODE_ERR)
+            {
+                printf("The [%d] frame Bramdata write to TMS570 error!\n",i);					 
+            }
+        }        
     }
-    //填充帧头
-    TopPackST.BLVDSTOP_U32 = CmdPact_p->protocol_version;
-    TopPackST.BLVDSReser_U32[1] = CAN_Life;
-    //数据长度、通道数填充
-    s_bram_WR_TMS_SPC_Blck_ST.DataU32Length = CmdPact_p-> PacktLength_U32;
-    s_bram_WR_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_p -> ChanNum_U8 ;
-    //CAN数据区填充          
-    WriteDate[0] = ((CANRecvDate ->CanDate_U8[0] | (CANRecvDate ->CanDate_U8[1] <<8) | (CANRecvDate ->CanDate_U8[2] <<16)) &0XFFFFFF) ;
-    WriteDate[1] = (CANRecvDate -> Life_fingerprint_U8 << 16);
-    if(CAN_WR_DEBUG == g_DebugType_EU)
-    {
-        printf("WriteDate[0]:%08x\n",WriteDate[0]);
-        printf("WriteDate[1]:%08x\n",WriteDate[1]);
-    }    
-    if(0 == g_LinuxDebug)
-    {
-       WriteErr = BramWriteWithChek(&s_bram_WR_TMS_SPC_Blck_ST,WriteDate,TopPackST);
-	    if(WriteErr == CODE_ERR)
-		 {
-			 printf("BramWriteWithChek error\n");					 
-		 }
-    }
-    CAN_Life++;
+    Life_signal++;
     return WriteErr;
-
 }
 

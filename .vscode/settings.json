@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "basedefine.h": "c",
+        "socket.h": "c"
+    }
+}

@@ -18,17 +18,13 @@
 *
 *********************************************************************/
 #include "BaseDefine.h"
-#include "DataHandle.h"
 #include "Socket.h"
 #include "BramDataProc.h"
-#include "ADCDataProc.h"
 #include "ModbusSer.h"
 #include "GPIOControl.h"
 #include "FileSave.h"
-#include "trdp_idu.h"
 #include "ModbusClientRtu.h"
 #include "Rs232Fuctcl.h"
-#include <sys/select.h>
 #include "xml.h"
 /**********************************************************************
 *
@@ -99,11 +95,12 @@ BYTE_BIT g_VoiceFinger_ErrInfo = {0};
 *Local Struct Define Section
 *
 *********************************************************************/
-static CAN_FingerPrint_TPYE s_CanSendDate_ST = {0};
-static CAN_FingerPrint_TPYE s_CanRecvDate_ST = {0};
-static UART_VOICE_TPYE s_UartSendDate_ST = {0};
-static UART_VOICE_TPYE s_UartRecvDate_ST = {0};
-
+static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
+static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
+struct can_frame s_can0_frame_RD_st[16] = {0};
+struct can_frame s_can0_frame_WR_st[16] = {0};
+struct can_frame s_can1_frame_RD_st[8] = {0};
+struct can_frame s_can1_frame_WR_st[8] = {0};
 /**********************************************************************
 *
 *Local Prototype Declare Section
@@ -111,9 +108,7 @@ static UART_VOICE_TPYE s_UartRecvDate_ST = {0};
 *********************************************************************/
 void    FuncUsage(void);
 void    ArgJudge(void);
-void   *DataReadThreadFunc(void *arg); 
 void   *RealWaveThreadFunc(void *arg);
-void   *TRDPThreadFunc(void *arg);
 void   *ModbusThreadFunc(void *arg);
 int8_t  PowDownFun(void);
 void   *FileSaveThreaFunc(void *arg);
@@ -121,11 +116,10 @@ void   *LEDWachDogPthreadFunc (void *arg);
 void   *DirTarThreadFunc(void *arg);
 int8_t  ThreadInit(PTHREAD_INFO * pthread_ST_p);
 int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p);
-void    FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
-                 uint32_t Record_Num_U32);
-void    *RTUThreadFunc(void *arg);
+void    *MVBThreadFunc(void *arg);
 void    *TMS570_Bram_ThreadFunc(void *arg) ; 
-void    *UartThreadFunc(void *arg);
+void    *CAN0ThreadFunc(void *arg);
+void    *CAN1ThreadFunc(void *arg);
 
 
 /**********************************************************************
@@ -362,8 +356,9 @@ void ArgJudge(void)
     {
         g_LinuxDebug = 0;
     }
-}   
- 
+}
+
+
 /**********************************************************************
 *Name           :    ThreadInit  
 *Function       :    Create the all  thread
@@ -487,22 +482,31 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create DirTarThreaFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
-    
-    res = pthread_create(&pthread_ST_p -> RTUThread, NULL, RTUThreadFunc, NULL);
+    #endif
+    res = pthread_create(&pthread_ST_p -> MVBThread, NULL, MVBThreadFunc, NULL);
     if (res != 0) 
     { 
-        perror("create RTUThreaFunc failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create RTUThreaFunc failed");
+        perror("create MVBThreaFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create MVBThreaFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
-    res = pthread_create(&pthread_ST_p -> UartThread, NULL,UartThreadFunc, NULL);
+    
+    res = pthread_create(&pthread_ST_p -> CAN0Thread, NULL,CAN0ThreadFunc, NULL);
     if (res != 0) 
     { 
-        perror("create UartThreadFunc failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create UartThreadFunc failed");
+        perror("create CAN0ThreadFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create CAN0ThreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);     
     }
-    #endif
+
+    res = pthread_create(&pthread_ST_p -> CAN1Thread, NULL,CAN1ThreadFunc, NULL);
+    if (res != 0)
+    {
+        perror("create CAN1ThreadFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create CAN1ThreadFunc failed");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }
+    
     res = pthread_create(&pthread_ST_p -> TMS570_Bram_Thread, NULL,TMS570_Bram_ThreadFunc, NULL); 
     if (res != 0) 
     { 
@@ -513,11 +517,11 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     /*pthread_detach(pthread_ST_p -> DirTarThread);
     pthread_detach(pthread_ST_p -> RealWaveThread);
     pthread_detach(pthread_ST_p -> TRDPThread);
-    pthread_detach(pthread_ST_p -> ModbusThread);
-    pthread_detach(pthread_ST_p -> RTUThread);    
-    pthread_detach(pthread_ST_p -> UartThread);*/
-    pthread_detach(pthread_ST_p -> TMS570_Bram_Thread);
-    
+    pthread_detach(pthread_ST_p -> ModbusThread);*/       
+    pthread_detach(pthread_ST_p -> MVBThread);
+    pthread_detach(pthread_ST_p -> CAN0Thread);
+    pthread_detach(pthread_ST_p -> CAN1Thread);
+    pthread_detach(pthread_ST_p -> TMS570_Bram_Thread);    
 }
 
 /**********************************************************************
@@ -668,66 +672,6 @@ int8_t PowDownFun(void)
         
     }
 }
-/**********************************************************************
-*Name           :    DataReadThreaFunc  
-*Function       :    read the BLVDS data from Bram with 4K frequence
-*Para           :  
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*
-*History:
-*REV1.0.0     feng    2020/1/6  Create
-*********************************************************************/
-#if 0
-void *DataReadThreadFunc(void *arg) 
-{ 
-    
-    struct timeval A_Time_ST,A_TimeEnd_ST;
-    uint8_t i = 0;
-    uint8_t BLVDSReadNum = 0;
-    int SemValue = 0;	
-    while(g_LifeFlag > 0)
-    {
-        if(g_DebugType_EU == TIME_DEBUG)
-        {
-            gettimeofday(&A_Time_ST,NULL);
-        }        
-        threadDelay(0,g_ADReadSleep_U32);//10ms
-        pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
-        BLVDSDataReadThreadFunc(BLVDSReadNum,g_EADSType_U8,&g_EADSErrInfo_ST);
-        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        BLVDSReadNum++; 
-        if(BLVDSReadNum >= g_ProcNum_U8) //to avoid once g_ProNum_U8 is 0, the if is never true
-        {                
-            BLVDSReadNum = 0;
-            if(g_DebugType_EU == DEVC_DEBUG)
-            {
-                printf("ReadThreaFunc finish \n");
-            }
-            if(g_DebugType_EU == SEM_DEBUG)
-            {
-                sem_getvalue(&g_ReadBrd_sem,&SemValue);
-                printf("before g_ReadBrd_sem post %x\n",SemValue);               
-            }
-            sem_post(&g_ReadBrd_sem);
-            if(g_DebugType_EU == SEM_DEBUG)
-            {
-                sem_getvalue(&g_ReadBrd_sem,&SemValue);
-                printf("g_ReadBrd_sem post %x\n",SemValue);               
-            }
-        }
-       if(g_DebugType_EU == TIME_DEBUG)
-        {            
-            gettimeofday(&A_TimeEnd_ST,NULL);            
-            printf("ReadBrd  Thread Time %u\n", ((uint32_t)A_TimeEnd_ST.tv_usec -(uint32_t) A_Time_ST.tv_usec));
-            printf("ReadBrd  Thread  usec:%u \n", (uint32_t)A_Time_ST.tv_usec);
-        }
-    }
-    printf("exit DataRead thread\n");
-    pthread_exit(NULL);
-    
-}
-#endif
 /**********************************************************************
 *Name           :    RealWaveThreadFunc  
 *Function       :    communicate with CSR_drive real wave display
@@ -908,7 +852,7 @@ void *RealWaveThreadFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/1/6  Create
 *********************************************************************/
-
+#if 0
 void *ModbusThreadFunc(void *arg)
 {
     
@@ -1157,6 +1101,7 @@ void *ModbusThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Modbus close\n");
 }
+
 /**********************************************************************
 *Name           :  FileSaveThreaFunc
 *Function       :  the thread for Event ,RealFlt,RealOprt,OprtNum File save.
@@ -1297,55 +1242,7 @@ void *FileSaveThreaFunc(void *arg)
     printf("exit File Write thread\n");
     pthread_exit(NULL);    
 }
-
-/*!
- * Function:文件记录功能
- * @param Device_Type_enum -设备类型
- * @param device_FP -文件流（二级指针）
- * @param databuf -记录的数据
- * @param datalength -数据长度
- * @param REC_TYPE -xml中的REC_TYPE
- * @param Record_Num_U32 -记录帧数
- */
-void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
-                 uint32_t Record_Num_U32) 
-{
-    struct timeval A_Time_ST,A_TimeEnd_ST;
-    DRIVE_FILE_DATA Record_Data={0};
-    uint8_t i = 0;        
-    int8_t ret_fd = 0;
-    if(TIME_DEBUG  == g_DebugType_EU)
-    {
-        gettimeofday(&A_Time_ST,NULL);
-    } 
-    if(Record_Num_U32 >= REC_TYPE->RecToTalNum)
-    {                
-        printf("s_FrameSaveNum_U32:%d\n",Record_Num_U32);
-        fflush(*device_FP);
-        ret_fd = fileno(*device_FP);
-        fsync(ret_fd);
-        fclose(*device_FP);
-        *device_FP = NULL;
-        peripheralFileCreate(Device_Type_enum,device_FP,REC_TYPE,&g_TrainInfo_ST,&g_EADSErrInfo_ST);                  
-    }
-	else if(0 == (Record_Num_U32 % Peri_FILE_SYNC_NUM ))//每50次记录刷新缓存,理论是5s
-    {
-		fflush(*device_FP);
-        ret_fd = fileno(*device_FP);
-        fsync(ret_fd);
-	}
-    memcpy(&Record_Data,databuf,datalength);
-    peripheralDataSave(*device_FP,&Record_Data);
-       
-    //保存数组至记录文件中    
-    if(TIME_DEBUG  == g_DebugType_EU)
-    {
-            gettimeofday(&A_TimeEnd_ST,NULL);
-            printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
-            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
-    }
-} 
-
+#endif
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
 *Function       :    tar the Event ,RealFlt,RealOprt directory which create before today
@@ -1376,86 +1273,7 @@ void *DirTarThreadFunc(void *arg)
     WRITELOGFILE(LOG_INFO_1,loginfo);
     pthread_exit(NULL);
 }
-
-/**********************************************************************
-*Name           :   void *TRDPThreadFunc(void *arg)
-*Function       :   TRDP thread 
-*Para           :   
-*Return         :   
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*
-*History:
-*REV1.0.0     feng    2020/3/26  Create
-*REV1.0.1     feng    2020/6/16  1.use trdp data rec and send
-                                 2. filt the chan data for trdp send  
-                                 3.when pdrec is ok,then proce the rec data.
-*********************************************************************/
-void *TRDPThreadFunc(void *arg)
-{        
-    uint8_t TRDPSendData[TRDP_SEND_DATA_SIZE] = {0};
-    uint8_t TRDPRecData[TRDP_REC_DATA_SIZE] = {0};
-    static uint8_t s_TrdpSendTime = 0;
-    static uint8_t s_TrdpRecTime = 0;
-	uint8_t StartNum = 0;    
-    int8_t RetErr = 0;
-    char loginfo[LOG_INFO_LENG] = {0};
-    usleep(g_TRDPUsec_U32);
-    while ((0 != trdp_start()) && (StartNum < TRDPTRY_NUM))    
-    {
-        /*start failed*/
-        printf("trdp_start failed \n");
-        snprintf(loginfo, sizeof(loginfo)-1, "trdp_start failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-		StartNum++;	
-		trdp_stop();
-		sleep(1);
-    }
-	if(StartNum >= TRDPTRY_NUM)
-	{
-        /*start failed*/
-	   printf("retry trdp_start failed\n");
-	   snprintf(loginfo, sizeof(loginfo)-1, "retry trdp_start failed");
-	   WRITELOGFILE(LOG_ERROR_1,loginfo);
-	   pthread_exit(NULL);
-	}
-	else
-	{
-        printf("trdp_start\n");
-        snprintf(loginfo, sizeof(loginfo)-1, "trdp_start");
-        WRITELOGFILE(LOG_INFO_1,loginfo);
-	}
-    while(g_LifeFlag > 0)
-    {
-       
-        usleep(g_TRDPUsec_U32); /*10ms*/
-        s_TrdpRecTime++;
-        s_TrdpSendTime++;
-        if(s_TrdpRecTime >= 10)
-        {
-            s_TrdpRecTime = 0;
-            RetErr = pdRecv(LCU_COM_ID,TRDPRecData,TRDP_REC_DATA_SIZE);
-            if(CODE_OK == RetErr)
-            {
-                TrdpRecvDataPro(TRDPRecData,&s_CanRecvDate_ST,&s_UartRecvDate_ST); 
-            }
-        }
-        if(s_TrdpSendTime >= 10) 
-        {
-            s_TrdpSendTime = 0;        
-            TrdpSendDataSet(TRDPSendData,&s_CanSendDate_ST,&s_UartSendDate_ST,g_ADU_ErrInfo,g_VoiceFinger_ErrInfo);
-            if(TRDP_DEBUG == g_DebugType_EU)
-                {
-                    printf("pdSend EADS_COM_ID %d,\n",ADU_COM_ID);
-                }
-            pdSend(ADU_COM_ID,TRDPSendData,TRDP_SEND_DATA_SIZE);
-        }      
-    }
-    trdp_stop();
-    printf("TRDP has Quit\n");
-    pthread_exit(NULL);
-}
-
+#if 0
 /**********************************************************************
 *Name           :    LEDWachDogPthreadFunc  
 *Function       :    Blink the led, life led and error led
@@ -1466,7 +1284,7 @@ void *TRDPThreadFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/7/1  Create
 *********************************************************************/
-void * LEDWachDogPthreadFunc (void *arg)
+void *LEDWachDogPthreadFunc (void *arg)
 {
     uint32_t led_period;
     int8_t lifeledfd;
@@ -1700,51 +1518,6 @@ void * LEDWachDogPthreadFunc (void *arg)
     printf("LEDWachDogPthreadFunc Quit\n");
     pthread_exit(NULL);
 }
-
-
-/**********************************************************************
-*Name           :    RTUPthreadFunc  
-*Function       :    Modbus_RTU Function
-*Para           :  
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*
-*History:
-*REV1.0.0     feng    2020/7/1  Create
-*********************************************************************/
-#if 0
-
-void *RTUThreadFunc(void *arg)
-{
-    
-    uint8_t Rtu_i = 0;
-    GPIO_RS485Open();//打开MIO:50并设置为输出
-    GPIO_RS485EnOpen();//打开MIO:50的VALUE，方便后续设置输出值
-    RtuInit(g_RTUBaud_U32);//modbus_RTU模式初始化
-    while(g_LifeFlag > 0)
-    {
-        RtuReadRegister_DMU(g_rtu_ReadData,g_DMU_Senor_num);
-        memcpy(&SmartSensor_ST,g_rtu_ReadData,UT_REGISTERS_NB_SENSOR *2);
-        if(g_DebugType_EU == RTU_DEBUG)
-        {
-                printf("SmartSensor_ST\n");
-                printf("Minute_U8 %d\n", SmartSensor_ST.Minute_U8);
-                printf("Second_U8 %d\n", SmartSensor_ST.Second_U8);
-                printf("AC_Current_1_U16 %d\n", SmartSensor_ST.AC_Current_U16[0]);
-                printf("AC_Current_2_U16 %d\n", SmartSensor_ST.AC_Current_U16[1]);
-                printf("AC_Current_3_U16 %d\n", SmartSensor_ST.AC_Current_U16[2]);
-                printf("AC_Current_4_U16 %d\n", SmartSensor_ST.AC_Current_U16[3]);
-                printf("AC_Current_5_U16 %d\n", SmartSensor_ST.AC_Current_U16[4]);
-                printf("AC_Current_6_U16 %d\n", SmartSensor_ST.AC_Current_U16[5]);
-
-        }
-        usleep(40000);//延时40ms        
-    }
-    modbus_free(g_ModbusCtx);
-    pthread_exit(NULL);
-   
-}
-
 #endif
 /**********************************************************************
 *Name           :   CAN_DataReadThreaFunc  
@@ -1765,111 +1538,162 @@ void *TMS570_Bram_ThreadFunc(void *arg)
     TMS570_Bram_TopPackDataSetFun();
     
     while(g_LifeFlag > 0)
-    {    
-        
+    {        
         //从Bram指定地址读数据,处理后通过TRDP发送        
-        CANDataReadThreadFunc(&s_CanSendDate_ST);
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st);
         //延时100ms
         usleep(100000);
         //通过TRDP接收的数据，处理后向Bram指定地址写数据        
-        CANDataWriteThreadFunc(&s_CanRecvDate_ST,&CmdPact_p);
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st);
         //整合收发数据
-        memset(CAN_Record_Date,0,16);
-        memcpy(CAN_Record_Date,&s_CanSendDate_ST,5);
-        memcpy(&CAN_Record_Date[5],&s_CanRecvDate_ST,5);
+        /*
         Can_RecordNum++;
         //文件记录
         FileSaveFunc(CAN_Device,&g_FileFd_ST.CANFile_fd,CAN_Record_Date,16,&g_Rec_XML_ST.Rec_CAN_ST,Can_RecordNum);
         if(Can_RecordNum >=g_Rec_XML_ST.Rec_CAN_ST.RecToTalNum)
         {
             Can_RecordNum = 0 ; 
-        }
-        
-    }
-    
-    printf("exit Can date transmit Function!\n");
+        }*/        
+    }    
+    printf("exit TMS570_Bram_Thread Function!\n");//TODO:考虑每个线程退出时记录在日志中
     pthread_exit(NULL);
 }
 
-/*!
- *Description:UART数据读写及处理
- * @param arg
- * @return
- */
-void *UartThreadFunc(void *arg)
+/**********************************************************************
+*Name           :   CAN0ThreadFunc  
+*Function       :   read/write the CAN0 data
+*Para           :  
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*direction      :   从CAN0外设读取CAN数据
+*History:
+*REV1.0.0       :   zlz    2021/12/4  Create
+*********************************************************************/
+void *CAN0ThreadFunc(void *arg)
 {
-    uint8_t ret = 0,set_ret = 0;
-    uint8_t Uart_Blocktimes = 0;
-    char loginfo[LOG_INFO_LENG] = {0};
-    fd_set rfds;
-    struct timeval tv ={1,0};
-    int uart0_fd;
-    int recv_datelen_b8 = 32;
-    int send_datelen_b8 = 32;
-    uint8_t uart0_recv[32]={0};
-    uint8_t uart0_send[32]={0};
-    uint8_t Uart_Record_Data[16]={0};
-    static uint32_t Uart_RecordNum = 0;
-    GPIO_RS485Open();//打开MIO:50并设置为输出
-    GPIO_RS485EnOpen();//打开MIO:50的VALUE，方便后续设置输出值
-    uart0_fd = UART_Open("/dev/ttyPS1");
-    set_ret = UART_Set(uart0_fd,115200,0,8,1,'N');
-   //系统生命信号正常且UART设置成功才进行数据收发
-    while(g_LifeFlag > 0 && set_ret)
+    uint8_t i,j;
+    int socket_can0,nbytes;
+    struct sockaddr_can addr_can0;
+    struct ifreq ifr_can0;
+    struct timeval tv;
+
+    /*创建套接字并与 can0 绑定*/
+    socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
+    strcpy(ifr_can0.ifr_name, "can0" );
+    ioctl(socket_can0, SIOCGIFINDEX, &ifr_can0); //指定 can0 设备
+    addr_can0.can_family = AF_CAN;
+    addr_can0.can_ifindex = ifr_can0.ifr_ifindex;
+    bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));    
+    /*设置过滤规则*/
+    ioctl(socket_can0,SIOCGSTAMP,&tv);
+    setsockopt(socket_can0, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+    /*初始化报文帧数据*/
+    CAN_FrameInit(s_can0_frame_RD_st,s_can0_frame_WR_st,CAN0_TYPE);
+    //TODO:针对读写错误及生命信号停止都应有一些判断过程
+    while(1)
     {
-        //处理TRDP接收的数据，通过Uart发送
-        RecvDate_Trdp2Uart_pro(&s_UartRecvDate_ST,uart0_send);
-        //控制DE RE高电平，使能发送、禁止接收
-        GPIO_RS484EnWrite(1);
-        //Uart发送数据给语音模块
-        UART_Send(uart0_fd,uart0_send,send_datelen_b8);
-        //延时3ms,等带数据发送完成
-        usleep(3000);
-        //控制DE RE低电平，使能接收、禁止发送
-        GPIO_RS484EnWrite(0);
-        //发-收延时(可配置) 设置为200ms
-        usleep(g_UartUsec_U32);
-        //设置select函数监视uart0，若超过10*100ms不可读，则返回0。
-        FD_ZERO(&rfds);
-        FD_SET(uart0_fd,&rfds);
-        ret = select(uart0_fd+1,&rfds,NULL,NULL,&tv);
-        if(ret>0)
+        CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
+        for(i=0;i<CAN0_WRITE_FRAME_NUM;i++)
         {
-            //语音模块未回复次数清零
-            Uart_Blocktimes =0;
-            //接收数据
-            ret=UART_Recv(uart0_fd,uart0_recv,recv_datelen_b8);
-            if(ret)
+            nbytes = write(socket_can0,&s_can0_frame_WR_st[i], sizeof(s_can0_frame_WR_st[i]));
+            if(nbytes != sizeof(sizeof(s_can0_frame_WR_st[i])))
             {
-                //处理Uart接收的数据，通过TRDP发送
-                ret = SendDate_Uart2Trdp_pro(&s_UartSendDate_ST,uart0_recv);
+                printf("Send Error frame[%d]!\n",i);
+                break; //发送错误，退出
+            }
+        }       
+        usleep(50000);
+        for(i=0;i<CAN0_READ_FRAME_NUM;i++)
+        {
+            nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));
+            if(nbytes != sizeof(sizeof(s_can0_frame_RD_st[i])))
+            {
+                printf("Receive Error frame[%d]!\n",i);             
+            }
+        }        
+        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
+        if(g_DebugType_EU == CAN_RD_DEBUG)
+        {
+            for (i = 1; i < 5; i++)
+            {
+                for (j = 0; j < 25; j++)
+                    printf("A9->570 BramData[%d][%%]:0x%8u\n",i,j,s_tms570_bram_WR_data_st[i].buffer[j]);
             }
         }
-        else//判断接收语言模块数据失败
-        {
-                Uart_Blocktimes++;
-                if(Uart_Blocktimes>=10)
-                {
-                    printf("Voice Device did't send back data!\n");
-                    snprintf(loginfo, sizeof(loginfo)-1, "Voice Device did't send back data!");
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    Uart_Blocktimes = 0;
-                    g_VoiceFinger_ErrInfo.Bit1 = 1;
-                }
-        }
-        //收发数据整合
-        memset(Uart_Record_Data,0,16);
-        memcpy(Uart_Record_Data,&s_UartRecvDate_ST,6);
-        memcpy(&Uart_Record_Data[6],&s_UartSendDate_ST.Life_voice_U8,6);
-        memcpy(&Uart_Record_Data[12],&g_VoiceFinger_ErrInfo,1);
-        Uart_RecordNum++;
-        //文件记录
-        FileSaveFunc(Uart_Device,&g_FileFd_ST.UARTFile_fd,Uart_Record_Data,16,&g_Rec_XML_ST.Rec_Uart_ST,Uart_RecordNum);
-        if(Uart_RecordNum >=g_Rec_XML_ST.Rec_Uart_ST.RecToTalNum)//30000次
-        {
-            Uart_RecordNum = 0 ;
-        }
+        usleep(50000);
     }
-     printf("UartThreadFunc exit!\n");
-     pthread_exit(NULL);
+    close(socket_can0);
+    return 0;
+}
+/**********************************************************************
+*Name           :   CAN1ThreadFunc  
+*Function       :   read/write the CAN1 data
+*Para           :  
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*direction      :   从CAN1外设读取CAN数据
+*History:
+*REV1.0.0       :   zlz    2021/12/4  Create
+*********************************************************************/
+void *CAN1ThreadFunc(void *arg)
+{
+    uint8_t i;
+    int socket_can1,nbytes;
+    struct sockaddr_can addr_can1;
+    struct ifreq ifr_can1;
+    struct timeval tv;
+    /*创建套接字并与 can1 绑定*/
+    socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
+    strcpy(ifr_can1.ifr_name, "can1" );
+    ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1); //指定 can0 设备
+    addr_can1.can_family = AF_CAN;
+    addr_can1.can_ifindex = ifr_can1.ifr_ifindex;
+    bind(socket_can1, (struct sockaddr *)&addr_can1, sizeof(addr_can1));    
+    /*设置过滤规则*/ 
+    //TODO:修改过滤规则
+    ioctl(socket_can1,SIOCGSTAMP,&tv);//打上时间戳
+    setsockopt(socket_can1, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+    /*初始化报文帧数据*/
+    CAN_FrameInit(s_can1_frame_RD_st,s_can1_frame_WR_st,CAN1_TYPE);
+   
+    while(1)
+    {
+        CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
+        for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
+        {
+            nbytes = write(socket_can1,&s_can1_frame_WR_st[i], sizeof(s_can1_frame_WR_st[i]));
+            if(nbytes != sizeof(s_can1_frame_WR_st[i]))
+            {
+                printf("Send Error frame[0]!\n");
+                break; //发送错误，退出
+            }
+        }       
+        usleep(5000);//TODO:目前250khz速率是否满足时序要求，需要测试确认
+        for(i=0;i<CAN1_READ_FRAME_NUM;i++)
+        {
+            nbytes = read(socket_can1,&s_can1_frame_RD_st[i],sizeof(s_can1_frame_RD_st[i]));
+            if(nbytes != sizeof(s_can1_frame_RD_st[i]))
+            {
+                printf("Receive Error frame[%d]!\n",i);             
+            }
+        }        
+        CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
+        usleep(5000);
+    }
+    close(socket_can1);
+    return 0;
+}
+/**********************************************************************
+*Name           :   MVBThreadFunc  
+*Function       :   read/write the MVB data from BRAM
+*Para           :  
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*direction      :   从BRAM指定区域读写MVB数据
+*History:
+*REV1.0.0       :   zlz    2021/12/4  Create
+*********************************************************************/
+void *MVBThreadFunc(void *arg)
+{
+    
 }

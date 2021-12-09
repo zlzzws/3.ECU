@@ -35,10 +35,8 @@
 #include <sys/vfs.h>  
 #include "ModifConfig.h"
 #include "Crc.h"
-#include "ADCDataProc.h"
 #include "xml.h"
 #include "DircMng.h"
-#include "trdp_idu.h"
 /**********************************************************************
 *
 *Global Macro Define Section
@@ -146,9 +144,8 @@ int8_t EventDataSaveForRelayTest(FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t 
 			const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,const CHAN_STATUS_INFO  ChanInfop);
 int8_t EventRelayLifeSave(FILE_FD * file_p,uint8_t EADSType,const CHAN_STATUS_INFO ChanInfop);
 int8_t EventLifeFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);
-int8_t peripheralFileCreate(peripheralDevice Device_Type_enum,FILE **device_FP,RECORD_TYPE_CFG *Rcdtype,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO *EADSErrInfo_ST);
-int8_t peripheralDataSave(FILE *device_FS,DRIVE_FILE_DATA *datebuf);
-
+void   FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
+                 uint32_t Record_Num_U32);
 
 /**********************************************************************
 *

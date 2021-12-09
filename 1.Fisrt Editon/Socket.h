@@ -32,9 +32,6 @@
 *********************************************************************/
 #include "BaseDefine.h"
 #include "Crc.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-
 /**********************************************************************
 *
 *Global Macro Define Section

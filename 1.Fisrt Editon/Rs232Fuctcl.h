@@ -58,8 +58,6 @@ void    UART_Close(int fd);
 int     UART_Set(int fd,int speed,int flow_ctrl,int databits,int stopbits,int parity);
 int     UART_Recv(int fd, uint8_t *recv_buf,int date_len);
 int     UART_Send(int fd, uint8_t *send_buf,int date_len);
-void    RecvDate_Trdp2Uart_pro(UART_VOICE_TPYE *UartRecvDate,uint8_t *outbuf);
-uint8_t SendDate_Uart2Trdp_pro(UART_VOICE_TPYE *UartSendDate,uint8_t *inbuf);
 
 /**********************************************************************
 *
