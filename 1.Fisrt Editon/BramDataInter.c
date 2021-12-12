@@ -91,8 +91,7 @@ int8_t BramReadDataWithCRC(uint32_t * Inbuff)
     PacketLength = PacketLength >> 2;
    //如果数据长度大于包头12字节长度
     if(PacketLength >= BRAM_PCKT_TOP_LNGTH_U32)
-    {   
-
+    {
         TempCrcValue_U32 = Crc32CalU32Bit(Inbuff,PacketLength);
         PackeCrcValue_U32 = (BramPacketData_ST_p -> BLVDSData_U32[PacketLength - BRAM_PCKT_TOP_LNGTH_U32]);
          /*use crc as life extradate时会判断*/
@@ -293,9 +292,9 @@ int8_t BramBlockWRFlagWait(BRAM_ADDRS *BramAddrs_p)
     struct timeval TimeStar,TimeEnd;
     uint8_t ChanNum = 0;
     ChanNum = BramAddrs_p -> ChanNum_U8;
-    WRFlagInt = ChanNum / 8;
-    WRFlagBit = ChanNum % 8;    
-    ChanFlagAddr = BramAddrs_p -> BramBlckFlgAddr + WRFlagInt;
+    WRFlagInt = ChanNum / 8;//字节
+    WRFlagBit = ChanNum % 8;//位
+    ChanFlagAddr = BramAddrs_p -> BramBlckFlgAddr + WRFlagInt;//会进行对齐4K取余数，作为页偏移附加到虚拟映射地址
      /*Wait the 570 write flag clear*/ 
     WaitFlagClerNum = 500;
     for(i = 0;i < WaitFlagClerNum;i++)
@@ -428,9 +427,7 @@ int8_t BramBlockWriteOpti(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     {
         printf("Write ChanAddress %x BaseAddr %x\n",ChanAddress,(uint32_t)BramAddrs_p -> MapBlckAddr_p);
     }
-
-   // /*read the 570 feed back data 16Byte*/
- 
+    // /*read the 570 feed back data 16Byte*/ 
 	WrLength = BramAddrs_p -> DataU32Length + BRAM_PCKT_CRC_LNGTH_U32;
     BramPackWriteU32(ChanAddress,BramAddrs_p -> MapBlckAddr_p,Inbuf,WrLength);
     if(BRAM_DEBUG == g_DebugType_EU)
@@ -466,7 +463,8 @@ int8_t BramBlockWrite(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     ErrorRet = BramBlockWRFlagWait(BramAddrs_p);
     if( ErrorRet == -1)
     {
-        printf("waiting WRflag clear error\n");
+        //FIXME:后续这句打印应该恢复
+        //printf("waiting WRflag clear error\n");
         return ErrorRet; 
     }
 
@@ -591,8 +589,8 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 	Framelen = BramAddrs_p -> DataU32Length << 2;   //8位数据长度 == 32位数据长度*4
 	Temp32Value += (Framelen << 24);                //将数据长度写入Byte[3]-bit[7:0]位置
 	BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;//将包头Byte[3]-Byte[0]写入BramPacketData_ST_p -> BLVDSTOP_U32
-	BramPacketData_ST_p -> BLVDSReser_U32[0] = TopPackST.BLVDSReser_U32[0];
-    BramPacketData_ST_p -> BLVDSReser_U32[1] = TopPackST.BLVDSReser_U32[1];//已包含生命信号-Byte[9]-Byte[8]
+	BramPacketData_ST_p -> BLVDSReser_U32[0] = TopPackST.BLVDSReser_U32[0];//已包含生命信号-Byte[4]-Byte[5]
+    BramPacketData_ST_p -> BLVDSReser_U32[1] = TopPackST.BLVDSReser_U32[1];
 	//DataU32Length*4包含了包头12字节，cpy数据时需要去掉包头长度
 	DataLen = Framelen - BRAM_PACKET_TOP_LENGTH_U8; 
 	memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,DataLen); 
@@ -635,9 +633,8 @@ int8_t BramWriteWithChek(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TO
 
 	uint32_t WriteDataBuf[64] = {0};
 	int8_t ErrorCode = 0;
-	//设置要发送的数据，存放在writeDateBuf缓存中
-	BramWrDataSet(BramAddrs_p,Inbuf,TopPackST,WriteDataBuf);
-    //执行发送：等待标志位-发送-读取FPGA中TMS570返回的CRC标志位
+
+	BramWrDataSet(BramAddrs_p,Inbuf,TopPackST,WriteDataBuf);    
     BramBlockWrite(BramAddrs_p,WriteDataBuf);
     if(s_bram_WriteCRCErrNum_U8 > 0)
     {

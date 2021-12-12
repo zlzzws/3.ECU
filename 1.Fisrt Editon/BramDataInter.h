@@ -47,12 +47,12 @@
 *********************************************************************/
 typedef struct 
 {
-	uint8_t * MapBlckAddr_p;
-	uint8_t * MapBlckFlgAddr_p;
-	uint8_t  DataU32Length; //include the top
-	uint8_t  ChanNum_U8;
-	uint32_t BramBlckAddr;
-	uint32_t BramBlckFlgAddr;	
+	uint8_t 	*MapBlckAddr_p;
+	uint8_t 	*MapBlckFlgAddr_p;
+	uint8_t  	DataU32Length; //include the top
+	uint8_t  	ChanNum_U8;
+	uint32_t 	BramBlckAddr;
+	uint32_t 	BramBlckFlgAddr;	
 }BRAM_ADDRS;
 
 

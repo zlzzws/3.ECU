@@ -643,7 +643,7 @@ typedef enum devic_type
 
 typedef struct tms570_bram_data
 {
-    uint32_t buffer[60];
+    uint32_t buffer[60];//数据区不包含CRC32的4个字节
 	uint8_t length;
 }TMS570_BRAM_DATA;
 

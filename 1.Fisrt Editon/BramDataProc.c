@@ -642,7 +642,7 @@ void CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uin
         candata_WR[0].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
         candata_WR[0].can_dlc   = 8;
         /*CAN0-DCDC-A9 WRITE*/
-        candata_WR[1].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
+        candata_WR[1].can_id    = 0x16F4C002 | CAN_EFF_FLAG;
         candata_WR[1].can_dlc   = 8;
         /*CAN0-FC-A9 WRITE*/
         candata_WR[2].can_id    = 0x18FF0B27 | CAN_EFF_FLAG;
@@ -687,7 +687,6 @@ void CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uin
             break;
     }
 }
-
 /**
  * @description: CAN发送数据前,将TMS570通过Bram反馈的数据进行处理
  * @param:       struct can_frame *candata_wr
@@ -704,16 +703,33 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
     switch (can_devtype)
     {
         case CAN0_TYPE:
+            memset(tempdata,0,240);
             memcpy(tempdata,bramdata_rd[1].buffer,240);
             for(i=0;i<8;i++)
             {
                 candata_wr[0].data[i] = tempdata[i];
             }
+            if(g_DebugType_EU == CAN_WR_DEBUG)
+            {               
+                printf("candata_wr[0]:0X");
+                for (i = 0; i < 8; i++)
+                    printf("[%x]",candata_wr[0].data[i]);
+                printf("\n");                               
+            }
+            memset(tempdata,0,240);
             memcpy(tempdata,bramdata_rd[2].buffer,240);
             for(i=0;i<8;i++)
             {
                 candata_wr[1].data[i] = tempdata[i];
             }
+            if(g_DebugType_EU == CAN_WR_DEBUG)
+            {               
+                printf("candata_wr[1]:0X");
+                for (i = 0; i < 8; i++)
+                    printf("[%x]",candata_wr[1].data[i]);
+                printf("\n");                               
+            }
+            memset(tempdata,0,240);
             memcpy(tempdata,bramdata_rd[3].buffer,240);
             for(j=0;j<2;j++)
             {
@@ -722,8 +738,20 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
                     candata_wr[j+2].data[i] = tempdata[i+j*8];
                 }
             }
+            if(g_DebugType_EU == CAN_WR_DEBUG)
+            {               
+                printf("candata_wr[2]:0X");
+                for (i = 0; i < 8; i++)
+                    printf("[%x]",candata_wr[2].data[i]);
+                printf("\n"); 
+                printf("candata_wr[3]:0X");
+                for (i = 0; i < 8; i++)
+                    printf("[%x]",candata_wr[3].data[i]);
+                printf("\n");                               
+            }
             break;
         case CAN1_TYPE:
+            memset(tempdata,0,240);
             memcpy(tempdata,bramdata_rd[4].buffer,240);
             for(j=0;j<3;j++)
             {
@@ -731,6 +759,16 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
                 {
                     candata_wr[j].data[i] = tempdata[i+j*8];
                 }
+            }
+            if(g_DebugType_EU == CAN_WR_DEBUG)
+            {               
+                for(j=0;j<3;j++)
+                {
+                    printf("candata_wr[%d]:0X",j);
+                    for (i = 0; i < 8; i++)
+                    printf("[%x]",candata_wr[j].data[i]);
+                    printf("\n");
+                }                                              
             }
             break;
         default:
@@ -753,14 +791,22 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     switch (can_devtype)
     {
         case CAN0_TYPE:
+            memset(tempdata,0,240);
             for(j=0;j<4;j++)
             {
                 for (i=0;i<8;i++)
                 {
                     tempdata[i+j*8] = candata_rd[j].data[i] ;
                 }
-            }
+            }            
             memcpy(bramdata_wr[1].buffer,tempdata,240);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                for (i = 0; i < 25; i++)
+                    printf("Bramdate_wr[1][%d]:%08x\n",i,bramdata_wr[1].buffer[i]);                               
+            }
+
+            memset(tempdata,0,240);
             for(j=0;j<2;j++)
             {
                 for (i=0;i<8;i++)
@@ -769,6 +815,13 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                 }
             }
             memcpy(bramdata_wr[2].buffer,tempdata,240);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                for (i = 0; i < 25; i++)
+                    printf("Bramdate_wr[2][%d]:%08x\n",i,bramdata_wr[2].buffer[i]);                               
+            }
+
+            memset(tempdata,0,240);
             for(j=0;j<7;j++)
             {
                 for (i=0;i<8;i++)
@@ -777,8 +830,15 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                 }
             }
             memcpy(bramdata_wr[3].buffer,tempdata,240);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                for (i = 0; i < 25; i++)
+                    printf("Bramdate_wr[3][%d]:%08x\n",i,bramdata_wr[3].buffer[i]);                               
+            }
             break;
+
         case CAN1_TYPE:
+            memset(tempdata,0,240);
             for(j=0;j<10;j++)
             {
                 for (i=0;i<8;i++)
@@ -787,6 +847,11 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                 }
             }
             memcpy(bramdata_wr[4].buffer,tempdata,240);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                for (i = 0; i < 25; i++)
+                    printf("Bramdate_wr[4][%d]:%08x\n",i,bramdata_wr[4].buffer[i]);                              
+            }
             break;
         default:
             break;
@@ -800,41 +865,42 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
  */
 void TMS570_Bram_TopPackDataSetFun(void)
 {
+    //Attention:数据区长度不包含CRC32，PacktLength需要在总长度上-1
     /*MVB A9->570*/
     CmdPact_WR_ST[0].protocol_version =0x11c2;
 	CmdPact_WR_ST[0].ChanNum_U8 = 8;
-    CmdPact_WR_ST[0].PacktLength_U32 = 17;
+    CmdPact_WR_ST[0].PacktLength_U32 = 16;
     /*CAN-BMS A9->570*/
     CmdPact_WR_ST[1].protocol_version =0x11c2;
 	CmdPact_WR_ST[1].ChanNum_U8 = 9;
-    CmdPact_WR_ST[1].PacktLength_U32 = 13;
+    CmdPact_WR_ST[1].PacktLength_U32 = 12;
     /*CAN-DCDC A9->570*/
     CmdPact_WR_ST[2].protocol_version =0x11c2;
 	CmdPact_WR_ST[2].ChanNum_U8 = 10;
-    CmdPact_WR_ST[2].PacktLength_U32 = 9;
+    CmdPact_WR_ST[2].PacktLength_U32 = 8;
     /*CAN-FC A9->570*/
     CmdPact_WR_ST[3].protocol_version =0x11c2;
 	CmdPact_WR_ST[3].ChanNum_U8 = 11;
-    CmdPact_WR_ST[3].PacktLength_U32 = 19;
+    CmdPact_WR_ST[3].PacktLength_U32 = 18;
     /*CAN-扩展模块 A9->570*/
     CmdPact_WR_ST[4].protocol_version =0x11c2;
 	CmdPact_WR_ST[4].ChanNum_U8 = 12;
-    CmdPact_WR_ST[4].PacktLength_U32 = 25;
+    CmdPact_WR_ST[4].PacktLength_U32 = 24;    
     /*MVB 570->A9*/
     CmdPact_RD_ST[0].ChanNum_U8 = 8;
-    CmdPact_RD_ST[0].PacktLength_U32 = 48;
+    CmdPact_RD_ST[0].PacktLength_U32 = 47;
     /*CAN-BMS 570->A9*/
     CmdPact_RD_ST[1].ChanNum_U8 = 9;
-    CmdPact_RD_ST[1].PacktLength_U32 = 7;
+    CmdPact_RD_ST[1].PacktLength_U32 = 6;
     /*CAN-DCDC 570->A9*/
     CmdPact_RD_ST[2].ChanNum_U8 = 10;
-    CmdPact_RD_ST[2].PacktLength_U32 = 7;
+    CmdPact_RD_ST[2].PacktLength_U32 = 6;
     /*CAN-FC 570->A9*/
     CmdPact_RD_ST[3].ChanNum_U8 = 10;
-    CmdPact_RD_ST[3].PacktLength_U32 = 8;
+    CmdPact_RD_ST[3].PacktLength_U32 = 7;
     /*CAN-扩展模块 570->A9*/
     CmdPact_RD_ST[4].ChanNum_U8 = 10;
-    CmdPact_RD_ST[4].PacktLength_U32 = 10;
+    CmdPact_RD_ST[4].PacktLength_U32 = 9;
 }
 
 /**
@@ -847,19 +913,20 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
 {
 
     int8_t ReadErr = 0,i,j;
-    char loginfo[LOG_INFO_LENG] = {0};    
+    char loginfo[LOG_INFO_LENG] = {0};
+    uint32_t tempdatabuffer[64] = {64};    
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
     for(i=0;i<5;i++)
-    {
-        
+    {       
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length = CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 = CmdPact_RD_ST[i].ChanNum_U8;
 
         if(0 == g_LinuxDebug)
-        {
-  
-            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,bram_data[i].buffer);
+        {  
+            memset(tempdatabuffer,0,256);
+            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,tempdatabuffer);
+            memcpy(bram_data[i].buffer,&tempdatabuffer[12],240);
             if(CODE_ERR == ReadErr) 
             {
                 DataErrNum++;  
@@ -893,8 +960,8 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
  */
 int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data) 
 {
-
-    int8_t WriteErr = 0,i,j;
+    int8_t i,j;
+    static int8_t WriteErr = 0;
     char loginfo[LOG_INFO_LENG] = {0};
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;     
@@ -904,7 +971,7 @@ int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data)
     {
         //填充帧头
         TopPackST[i].BLVDSTOP_U32 = CmdPact_WR_ST[i].protocol_version;
-        TopPackST[i].BLVDSReser_U32[1] = Life_signal;
+        TopPackST[i].BLVDSReser_U32[0] = Life_signal;
         //数据长度、通道数填充
         s_bram_WR_TMS_SPC_Blck_ST.DataU32Length = CmdPact_WR_ST[i].PacktLength_U32;
         s_bram_WR_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_WR_ST[i].ChanNum_U8;

@@ -1,0 +1,299 @@
+make.exe all --print-data-base --no-builtin-variables --no-builtin-rules --question
+make.exe: *** No rule to make target 'all'.  Stop.
+ 
+# GNU Make 4.2.1
+# Built for x86_64-w64-mingw32
+# Copyright (C) 1988-2016 Free Software Foundation, Inc.
+# License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# Make data base, printed on Sun Dec 12 13:03:41 2021
+
+# Variables
+
+# 'override' directive
+GNUMAKEFLAGS := 
+# automatic
+<D = $(patsubst %/,%,$(patsubst %\,%,$(dir $<)))
+# automatic
+?F = $(notdir $?)
+# default
+.SHELLFLAGS := -c
+# makefile
+MAKEFLAGS = pqrR
+# environment
+VSCODE_LOG_NATIVE = false
+# automatic
+?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
+# automatic
+@D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
+# environment
+HOMEDRIVE = C:
+# automatic
+@F = $(notdir $@)
+# automatic
+^D = $(patsubst %/,%,$(patsubst %\,%,$(dir $^)))
+# makefile
+CURDIR := d:/wsl2-Ubuntu/2.source/3.ECU
+# default
+SHELL := sh.exe
+# environment
+CLION = D:\Program Files\JetBrains\CLion 2021.2.3\bin;
+# environment
+OA_PLUGIN_PATH = D:\Program Files\cadence_SPB16.6\Share\oaPlugIns
+# environment
+WINDIR = C:\WINDOWS
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en","availableLanguages":{},"_languagePackSupport":true}
+# environment
+ONEDRIVE = C:\Users\13397\OneDrive
+# environment
+PATHEXT = .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+# makefile
+MAKEFILE_LIST := 
+# environment
+FPS_BROWSER_USER_PROFILE_STRING = Default
+# environment
+TMP = C:\Users\13397\AppData\Local\Temp
+# environment
+VSCODE_VERBOSE_LOGGING = true
+# environment
+PROGRAMW6432 = C:\Program Files
+# environment
+PROGRAMDATA = C:\ProgramData
+# environment
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-ee2d66be-cc45-4c27-a9f2-ef61acccfb12-sock
+# environment
+CDSROOT = D:\Program Files\cadence_SPB16.6
+# environment
+VSCODE_CWD = D:\Program Files\Microsoft VS Code
+# environment
+CDS_LIC_ONLY = 1
+# environment
+IDF_GITHUB_ASSETS = dl.espressif.com/github_assets
+# default
+MAKE_HOST := x86_64-w64-mingw32
+# environment
+PATH = D:\ProgramFiles_x86\VMware\bin\;C:\Program Files (x86)\Common Files\NetSarang;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\mingw64\bin;C:\Program Files\CMake\bin;D:\ProgramFiles_x86\kendryte-toolchain\bin;C:\Program Files\Git\cmd;D:\Program Files\Polyspace\R2021a\runtime\win64;D:\Program Files\Polyspace\R2021a\bin;D:\Program Files\Polyspace\R2021a\polyspace\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;D:\Program Files\Microsoft VS Code\Code.exe;D:\Program Files\cadence_SPB16.6\openaccess\bin\win32\opt;D:\Program Files\cadence_SPB16.6\tools\capture;D:\Program Files\cadence_SPB16.6\tools\pspice;D:\Program Files\cadence_SPB16.6\tools\specctra\bin;D:\Program Files\cadence_SPB16.6\tools\fet\bin;D:\Program Files\cadence_SPB16.6\tools\libutil\bin;D:\Program Files\cadence_SPB16.6\tools\bin;D:\Program Files\cadence_SPB16.6\tools\pcb\bin;C:\Users\13397\AppData\Local\Programs\Python\Python38\Scripts\;C:\Users\13397\AppData\Local\Programs\Python\Python38\;C:\Users\13397\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Bandizip\;D:\Program Files\JetBrains\CLion 2021.2.3\bin;;C:\Program Files (x86)\GnuWin32\bin;D:\Program Files\Microsoft VS Code\bin;
+# environment
+COMMONPROGRAMW6432 = C:\Program Files\Common Files
+# environment
+CONCEPT_INST_DIR = D:\Program Files\cadence_SPB16.6
+# environment
+PROCESSOR_ARCHITECTURE = AMD64
+# environment
+USERPROFILE = C:\Users\13397
+# environment
+ALLUSERSPROFILE = C:\ProgramData
+# environment
+VSCODE_LOG_STACK = false
+# environment
+NUMBER_OF_PROCESSORS = 6
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# default
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync
+# automatic
+%F = $(notdir $%)
+# environment
+ZWCADPATH = D:\Program Files\ZWSOFT\ZWCAD 2022\ZWCAD.EXE
+# environment
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_1172_DWOVZYKRUEUGNHOH
+# environment
+VSCODE_PIPE_LOGGING = true
+# environment
+CHDL_LIB_INST_DIR = D:\Program Files\cadence_SPB16.6
+# environment
+COMPUTERNAME = LAPTOP-2S2J2SV9
+# environment
+PROGRAMFILES = C:\Program Files
+# default
+.LOADED := 
+# environment
+DRIVERDATA = C:\Windows\System32\Drivers\DriverData
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = undefined
+# environment
+USERNAME = 13397
+# environment
+PUBLIC = C:\Users\Public
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/services/extensions/node/extensionHostProcess
+# environment
+HOME = D:\Users\13397\AppData\Roaming\cadence_data
+# environment
+VSCODE_CODE_CACHE_PATH = C:\Users\13397\AppData\Roaming\Code\CachedData\7db1a2b88f7557e0a43fec75b6ba7e50b3e9f77e
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+# environment
+COMMONPROGRAMFILES = C:\Program Files\Common Files
+# environment
+LOGONSERVER = \\LAPTOP-2S2J2SV9
+# environment
+CDS_LIC_FILE = 5280@LAPTOP-2S2J2SV9
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# environment
+USERDOMAIN = LAPTOP-2S2J2SV9
+# environment
+MAKELEVEL := 0
+# default
+MAKE = $(MAKE_COMMAND)
+# default
+MAKECMDGOALS := all
+# default
+MAKE_VERSION := 4.2.1
+# makefile
+.DEFAULT_GOAL := 
+# environment
+PROGRAMFILES(X86) = C:\Program Files (x86)
+# automatic
+%D = $(patsubst %/,%,$(patsubst %\,%,$(dir $%)))
+# environment
+LOCALAPPDATA = C:\Users\13397\AppData\Local
+# environment
+PSMODULEPATH = C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+# default
+MAKE_COMMAND := make.exe
+# default
+.VARIABLES := 
+# automatic
+*F = $(notdir $*)
+# environment
+PROCESSOR_IDENTIFIER = AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD
+# environment
+OS = Windows_NT
+# environment
+VSCODE_IPC_HOOK = \\.\pipe\1c72812d604b4ef8d145114c3fbc4cef-1.63.0-main-sock
+# environment
+HOMEPATH = \Users\13397
+# environment
+COMMONPROGRAMFILES(X86) = C:\Program Files (x86)\Common Files
+# environment
+PROMPT = $P$G
+# environment
+MFLAGS = -pqrR
+# automatic
+*D = $(patsubst %/,%,$(patsubst %\,%,$(dir $*)))
+# environment
+SYSTEMROOT = C:\WINDOWS
+# automatic
++D = $(patsubst %/,%,$(patsubst %\,%,$(dir $+)))
+# automatic
++F = $(notdir $+)
+# environment
+APPDATA = C:\Users\13397\AppData\Roaming
+# environment
+TEMP = C:\Users\13397\AppData\Local\Temp
+# environment
+COMSPEC = C:\WINDOWS\system32\cmd.exe
+# default
+MAKEFILES := 
+# environment
+IDF_TOOLS_PATH = C:\Users\13397\.espressif
+# automatic
+<F = $(notdir $<)
+# environment
+LC_ALL = C
+# automatic
+^F = $(notdir $^)
+# default
+SUFFIXES := 
+# environment
+SYSTEMDRIVE = C:
+# environment
+SESSIONNAME = Console
+# environment
+PROCESSOR_REVISION = 6001
+# environment
+MOZ_PLUGIN_PATH = D:\ProgramFiles_x86\Foxit Software\Foxit PDF Reader\plugins\
+# default
+.RECIPEPREFIX := 
+# environment
+LANG = C
+# environment
+PROCESSOR_LEVEL = 23
+# environment
+FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
+# environment
+VSCODE_PID = 1172
+# environment
+USERDOMAIN_ROAMINGPROFILE = LAPTOP-2S2J2SV9
+# variable set hash-table stats:
+# Load=104/1024=10%, Rehash=0, Collisions=15/122=12%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# . (key d:/wsl2-Ubuntu/2.source/3.ECU, mtime 1638679316): 5 files, no impossibilities.
+
+# 5 files, no impossibilities in 1 directories.
+
+# Implicit Rules
+
+# No implicit rules.
+
+# Files
+
+# Not a target:
+all:
+#  Command line target.
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has not been updated.
+
+# Not a target:
+Makefile:
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Failed to be updated.
+
+# Not a target:
+makefile:
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Failed to be updated.
+
+# Not a target:
+makefile.mak:
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Failed to be updated.
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+GNUmakefile:
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Failed to be updated.
+
+# files hash-table stats:
+# Load=7/1024=1%, Rehash=0, Collisions=0/16=0%
+# VPATH Search Paths
+
+# No 'vpath' search paths.
+
+# No general ('VPATH' variable) search path.
+
+# strcache buffers: 1 (0) / strings = 12 / storage = 99 B / avg = 8 B
+# current buf: size = 8162 B / used = 99 B / count = 12 / avg = 8 B
+
+# strcache performance: lookups = 14 / hit rate = 14%
+# hash-table stats:
+# Load=12/8192=0%, Rehash=0, Collisions=1/14=7%
+# Finished Make data base on Sun Dec 12 13:03:41 2021
+
+ 

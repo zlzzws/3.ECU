@@ -181,15 +181,14 @@ int main(int argc, char *argv[])
         WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);
         LogFileSync();
     }    
-    g_LifeFlag = 1;                                                     //生命信号标志位  
-    g_EADSType_U8 = 0;                                                  //暂时强制type为1，避免程序出现错误  
-    g_Version_ST.EADS_RunVer_U16 = EADS_VERSION_PTU;                    //EADS软件版本，可通过PTU查看
+    g_LifeFlag = 1;                                                         //生命信号标志位  
+    g_EADSType_U8 = 0;                                                      //暂时强制type为1，避免程序出现错误  
+    g_Version_ST.EADS_RunVer_U16 = EADS_VERSION_PTU;                        //EADS软件版本，可通过PTU查看
     g_ProcNum_U8 = 4;  
-    g_DebugType_EU =  (DEBUG_TYPE_ENUM)strtoul(argv[1], NULL, 10);      //Debug类型    
-    g_FltSaveSlepNum_U32 = (uint32_t)strtoul(argv[2], NULL, 10);        //文件存储延时
-    g_PowDebug = (uint16_t)strtoul(argv[3], NULL, 10);                  //电源选项，涉及到掉电监测
-    g_TRDPUsec_U32 = (uint32_t)strtoul(argv[4], NULL, 10);              //TRDP延时    
-    g_LinuxDebug = (uint16_t)strtoul(argv[5], NULL, 10);                //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_DebugType_EU =        (DEBUG_TYPE_ENUM)strtoul(argv[1], NULL, 10);    //Debug类型    
+    g_FltSaveSlepNum_U32 =  (uint32_t)strtoul(argv[2], NULL, 10);           //文件存储延时
+    g_PowDebug =            (uint16_t)strtoul(argv[3], NULL, 10);           //电源选项，涉及到掉电监测    
+    g_LinuxDebug =          (uint16_t)strtoul(argv[4], NULL, 10);           //软件运行环境:0:ZYNQ 1:Ubuntu
     
     ArgJudge();//对输入参数的合法性进行判断，超过量程的数据会进行修正
 
@@ -212,10 +211,7 @@ int main(int argc, char *argv[])
     /**拨码开关-I2C功能*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
     i2c_read(i2cbus_fd,0X20,0,&BOXID,1);
-    printf("BOXID is %x\n",BOXID);
-    i2c_read(i2cbus_fd,0X24,0,&SLOTID,1);
-    printf("SLOTID is %x\n",SLOTID);
-    
+    printf("BOXID is %x\n",BOXID);    
     printf("DataProcPowerOn!\n");
     //DataProcPowerOn(&g_ChanStatuInfo_ST,&g_ChanCalib0VData_ST,&g_ChanCalib110VData_ST,g_ProcNum_U8,g_EADSType_U8);    
     FileCreatePowOn(&g_FileFd_ST,&g_Rec_XML_ST,&g_LifeRec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);       
@@ -1531,32 +1527,24 @@ void *LEDWachDogPthreadFunc (void *arg)
 *********************************************************************/
 void *TMS570_Bram_ThreadFunc(void *arg) 
 {
+    //#if 0
     uint8_t ret = 0;   
     static uint32_t Can_RecordNum = 0;//文件存储条数计数
     uint8_t CAN_Record_Date[16] = {0};    
-
+    //帧文件头参数填充
     TMS570_Bram_TopPackDataSetFun();
     
     while(g_LifeFlag > 0)
     {        
-        //从Bram指定地址读数据,处理后通过TRDP发送        
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st);
-        //延时100ms
+        //从Bram指定地址读取数据        
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st);        
         usleep(100000);
-        //通过TRDP接收的数据，处理后向Bram指定地址写数据        
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st);
-        //整合收发数据
-        /*
-        Can_RecordNum++;
-        //文件记录
-        FileSaveFunc(CAN_Device,&g_FileFd_ST.CANFile_fd,CAN_Record_Date,16,&g_Rec_XML_ST.Rec_CAN_ST,Can_RecordNum);
-        if(Can_RecordNum >=g_Rec_XML_ST.Rec_CAN_ST.RecToTalNum)
-        {
-            Can_RecordNum = 0 ; 
-        }*/        
+        //向Bram指定地址写入数据        
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st);      
     }    
     printf("exit TMS570_Bram_Thread Function!\n");//TODO:考虑每个线程退出时记录在日志中
     pthread_exit(NULL);
+    //#endif
 }
 
 /**********************************************************************
@@ -1572,11 +1560,13 @@ void *TMS570_Bram_ThreadFunc(void *arg)
 void *CAN0ThreadFunc(void *arg)
 {
     uint8_t i,j;
+    static errnum_wr=0,errnum_rd=0;
     int socket_can0,nbytes;
     struct sockaddr_can addr_can0;
     struct ifreq ifr_can0;
     struct timeval tv;
-
+    char loginfo[LOG_INFO_LENG]={0};
+    //Attention 帧的时序与设定的100ms不符!
     /*创建套接字并与 can0 绑定*/
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
     strcpy(ifr_can0.ifr_name, "can0" );
@@ -1584,42 +1574,74 @@ void *CAN0ThreadFunc(void *arg)
     addr_can0.can_family = AF_CAN;
     addr_can0.can_ifindex = ifr_can0.ifr_ifindex;
     bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));    
-    /*设置过滤规则*/
+    /*TODO设置过滤规则*/
     ioctl(socket_can0,SIOCGSTAMP,&tv);
-    setsockopt(socket_can0, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+    //setsockopt(socket_can0, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
     /*初始化报文帧数据*/
     CAN_FrameInit(s_can0_frame_RD_st,s_can0_frame_WR_st,CAN0_TYPE);
     //TODO:针对读写错误及生命信号停止都应有一些判断过程
     while(1)
-    {
+    {        
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
         for(i=0;i<CAN0_WRITE_FRAME_NUM;i++)
         {
             nbytes = write(socket_can0,&s_can0_frame_WR_st[i], sizeof(s_can0_frame_WR_st[i]));
-            if(nbytes != sizeof(sizeof(s_can0_frame_WR_st[i])))
+            if(nbytes != sizeof(s_can0_frame_WR_st[i]))
+            {                
+                printf("CAN 0 Send frame[%u] Error!\n",s_can0_frame_WR_st[i].can_id);
+                errnum_wr++;
+                if(errnum_wr >=10)
+                {
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 Send frame[%u] Error!",s_can0_frame_WR_st[i].can_id);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    errnum_wr = 0;
+                }
+                
+            }
+            else
             {
-                printf("Send Error frame[%d]!\n",i);
-                break; //发送错误，退出
+                errnum_wr =0;
             }
         }       
         usleep(50000);
         for(i=0;i<CAN0_READ_FRAME_NUM;i++)
         {
             nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));
-            if(nbytes != sizeof(sizeof(s_can0_frame_RD_st[i])))
-            {
-                printf("Receive Error frame[%d]!\n",i);             
+            if(nbytes != sizeof(s_can0_frame_RD_st[i]))
+            {                
+                printf("CAN0 Receive Error frame[%d]!\n",i);
+                memset(s_can0_frame_RD_st[i].data,0,8);
+                errnum_rd++;
+                if(errnum_rd >=10)
+                {
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame[%u] Error!",s_can0_frame_RD_st[i].can_id);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    errnum_rd = 0;
+                }                            
             }
-        }        
-        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
+            else
+            {
+                errnum_rd = 0;
+            }
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                printf("A9 Read CAN0 ID:0x%x:",s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
+                for (j = 0; j < 8; j++)
+                    printf("[%x]",s_can0_frame_RD_st[i].data[j]);
+                printf("\n");               
+            }
+        }               
+        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);          
+        #if 0
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {
-            for (i = 1; i < 5; i++)
+            for (i = 1; i < 4; i++)
             {
                 for (j = 0; j < 25; j++)
-                    printf("A9->570 BramData[%d][%%]:0x%8u\n",i,j,s_tms570_bram_WR_data_st[i].buffer[j]);
+                    printf("A9->570 BramData[%d][%d]:0x%08x\n",i,j,s_tms570_bram_WR_data_st[i].buffer[j]);
             }
         }
+        #endif
         usleep(50000);
     }
     close(socket_can0);
@@ -1637,11 +1659,14 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {
-    uint8_t i;
+    #if 0
+    uint8_t i,j;
+    static uint8_t errnum_wr=0,errnum_rd=0;
     int socket_can1,nbytes;
     struct sockaddr_can addr_can1;
     struct ifreq ifr_can1;
     struct timeval tv;
+    char   loginfo[LOG_INFO_LENG]={0};
     /*创建套接字并与 can1 绑定*/
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
     strcpy(ifr_can1.ifr_name, "can1" );
@@ -1652,36 +1677,77 @@ void *CAN1ThreadFunc(void *arg)
     /*设置过滤规则*/ 
     //TODO:修改过滤规则
     ioctl(socket_can1,SIOCGSTAMP,&tv);//打上时间戳
-    setsockopt(socket_can1, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+    //setsockopt(socket_can1, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
     /*初始化报文帧数据*/
     CAN_FrameInit(s_can1_frame_RD_st,s_can1_frame_WR_st,CAN1_TYPE);
    
     while(1)
     {
-        CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
+        CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_st[4],CAN1_TYPE);
         for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
         {
             nbytes = write(socket_can1,&s_can1_frame_WR_st[i], sizeof(s_can1_frame_WR_st[i]));
             if(nbytes != sizeof(s_can1_frame_WR_st[i]))
+            {                
+                printf("CAN 1 Send frame[%u] Error!\n",s_can1_frame_WR_st[i].can_id);
+                errnum_wr++;
+                if(errnum_wr >=10)
+                {
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 1 Send frame[%u] Error!",s_can1_frame_WR_st[i].can_id);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    errnum_wr = 0;
+                }
+                
+            }
+            else
             {
-                printf("Send Error frame[0]!\n");
-                break; //发送错误，退出
+                errnum_wr =0;
             }
         }       
-        usleep(5000);//TODO:目前250khz速率是否满足时序要求，需要测试确认
+        usleep(50000);
         for(i=0;i<CAN1_READ_FRAME_NUM;i++)
         {
             nbytes = read(socket_can1,&s_can1_frame_RD_st[i],sizeof(s_can1_frame_RD_st[i]));
             if(nbytes != sizeof(s_can1_frame_RD_st[i]))
-            {
-                printf("Receive Error frame[%d]!\n",i);             
+            {                
+                printf("CAN1 Receive Error frame[%d]!\n",i);
+                memset(s_can1_frame_RD_st[i].data,0,8);
+                errnum_rd++;
+                if(errnum_rd >=10)
+                {
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 1 receive frame[%u] Error!",s_can1_frame_RD_st[i].can_id);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    errnum_rd = 0;
+                }                            
             }
-        }        
-        CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
-        usleep(5000);
+            else
+            {
+                errnum_rd = 0;
+            }
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {               
+                printf("A9 Read CAN1 ID:0x%x:",s_can1_frame_RD_st[i].can_id & 0x1FFFFFFF);
+                for (j = 0; j < 8; j++)
+                    printf("[%x]",s_can1_frame_RD_st[i].data[j]);
+                printf("\n");               
+            }
+        }               
+        CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_st[4],CAN1_TYPE);          
+        #if 0
+        if(g_DebugType_EU == CAN_RD_DEBUG)
+        {
+            for (i = 1; i < 4; i++)
+            {
+                for (j = 0; j < 25; j++)
+                    printf("A9->570 BramData[%d][%d]:0x%08x\n",i,j,s_tms570_bram_WR_data_st[i].buffer[j]);
+            }
+        }
+        #endif
+        usleep(50000);
     }
     close(socket_can1);
     return 0;
+   #endif
 }
 /**********************************************************************
 *Name           :   MVBThreadFunc  
