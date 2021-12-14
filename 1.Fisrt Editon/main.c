@@ -79,11 +79,8 @@ uint16_t g_RTUBaud_U32 = 0;
 uint32_t g_RTUUsec_U32 = 0;
 RTU_SENSOR  SmartSensor_ST = {0};
 modbus_t *g_ModbusCtx = NULL;
-// UartThreadFun 
-uint32_t g_UartUsec_U32 = 0;
-//TRDP使用，包含ADU及语音指纹模块的故障位
-BYTE_BIT g_ADU_ErrInfo = {0};
-BYTE_BIT g_VoiceFinger_ErrInfo = {0};
+
+
 /**********************************************************************
 *
 *Local Macro Define Section
@@ -97,9 +94,11 @@ BYTE_BIT g_VoiceFinger_ErrInfo = {0};
 *********************************************************************/
 static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
 static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
+static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
 struct can_frame s_can0_frame_RD_st[16] = {0};
-struct can_frame s_can0_frame_WR_st[16] = {0};
-struct can_frame s_can1_frame_RD_st[8] = {0};
+struct can_frame s_can0_frame_WR_st[8] = {0};
+struct can_frame s_can1_frame_RD_st[16] = {0};
 struct can_frame s_can1_frame_WR_st[8] = {0};
 /**********************************************************************
 *
@@ -1694,21 +1693,21 @@ void *CAN1ThreadFunc(void *arg)
     struct timeval tv={0},tv_select={0,5000};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
-    //Attention 帧的时序与设定的100ms不符!
+    //Attention 测试时序
     /*创建套接字并与 can0 绑定*/
-    socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
+    socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can0" );
-    ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1); //指定 can0 设备
+    ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1);
     addr_can1.can_family = AF_CAN;
     addr_can1.can_ifindex = ifr_can1.ifr_ifindex;
     bind(socket_can1, (struct sockaddr *)&addr_can1, sizeof(addr_can1));    
-    /*TODO设置过滤规则*/
+    /*打上时间戳*/
     ioctl(socket_can1,SIOCGSTAMP,&tv);    
     /*初始化报文帧数据*/
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);
     /*设置读取数据的过滤规则*/
     setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
-    //TODO:针对读写错误及生命信号停止都应有一些判断过程
+    
     while(1)
     {        
         CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
@@ -1724,8 +1723,7 @@ void *CAN1ThreadFunc(void *arg)
                     snprintf(loginfo, sizeof(loginfo)-1, "CAN1 Send frame[%u] Error!",s_can0_frame_WR_st[i].can_id);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
                     errnum_wr = 0;
-                }
-                
+                }                
             }
             else
             {
@@ -1806,5 +1804,15 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {
-    
+    uint8_t ret = 0; 
+
+    while(g_LifeFlag > 0)
+    {              
+        MVB_Bram_Read_Func(&s_tms570_bram_RD_data_st[0]);       
+        usleep(100000);               
+        MVB_Bram_Write_Func(&s_tms570_bram_WR_data_st[0]);    
+    }
+
+    printf("exit MVBThreadFunc Function!\n");
+    pthread_exit(NULL);   
 }

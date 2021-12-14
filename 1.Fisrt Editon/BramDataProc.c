@@ -942,7 +942,7 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
 }
 
 /**
- * @description: 向Bram指定区域写CAN数据
+ * @description: 向Bram指定区域写TMS570数据
  * @param        TMS570_BRAM_DATA *bram_data
  * @return       {uint8_t} WriteErr   写数据返回值
  * @author: zlz
@@ -982,4 +982,93 @@ int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data)
     Life_signal++;
     return WriteErr;
 }
+/**
+ * @description: 从Bram指定区域读MVB数据
+ * @param:      TMS570_BRAM_DATA *bram_data
+ * @return:     ReadErr
+ * @author:     zlz
+ */ 
+int8_t MVB_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
+{
 
+    int8_t ReadErr = 0,i,j;
+    char loginfo[LOG_INFO_LENG] = {0};
+    uint32_t tempdatabuffer[64] = {64};    
+    uint8_t DataErrFlag = 0;
+    uint8_t DataErrNum  = 0;
+    for(i=0;i<5;i++)
+    {       
+        s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length = CmdPact_RD_ST[i].PacktLength_U32;
+        s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 = CmdPact_RD_ST[i].ChanNum_U8;
+
+        if(0 == g_LinuxDebug)
+        {  
+            memset(tempdatabuffer,0,256);
+            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,tempdatabuffer);
+            memcpy(bram_data[i].buffer,&tempdatabuffer[12],240);
+            if(CODE_ERR == ReadErr) 
+            {
+                DataErrNum++;  
+                if(DataErrNum > BRAMERR_NUM) 
+                {
+                    if(0 == DataErrFlag)
+                    {                    
+                        DataErrFlag = 1;
+                        printf("The [%d] frame Bramdata read from TMS570 is Err.\n",i);
+                        snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 is Err.",i);
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                    }
+                    DataErrNum = 0;
+                }
+            }
+            if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+            {
+                for(j=0;j<bram_data[i].length;j++)
+                    printf("TMS570:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
+            } 
+        }
+    }
+    return ReadErr;
+}
+
+/**
+ * @description: 向Bram指定区域写MVB数据
+ * @param        TMS570_BRAM_DATA *bram_data
+ * @return       {uint8_t} WriteErr   写数据返回值
+ * @author: zlz
+ */
+int8_t MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data) 
+{
+    int8_t i,j;
+    static int8_t WriteErr = 0;
+    char loginfo[LOG_INFO_LENG] = {0};
+    uint8_t DataErrFlag = 0;
+    uint8_t DataErrNum  = 0;     
+    static uint16_t Life_signal = 0;  
+    BRAM_PACKET_TOP TopPackST[5] = {0};
+    for(i+0;i<5;i++)
+    {
+        //填充帧头
+        TopPackST[i].BLVDSTOP_U32 = CmdPact_WR_ST[i].protocol_version;
+        TopPackST[i].BLVDSReser_U32[0] = Life_signal;
+        //数据长度、通道数填充
+        s_bram_WR_TMS_SPC_Blck_ST.DataU32Length = CmdPact_WR_ST[i].PacktLength_U32;
+        s_bram_WR_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_WR_ST[i].ChanNum_U8;
+
+        if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+        {
+            for(j=0;j<bram_data[i].length;j++)
+                printf("TMS570:Write to Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);
+        }    
+        if(0 == g_LinuxDebug)
+        {
+            WriteErr = BramWriteWithChek(&s_bram_WR_TMS_SPC_Blck_ST,bram_data->buffer,TopPackST[i]);
+            if(WriteErr == CODE_ERR)
+            {
+                printf("The [%d] frame Bramdata write to TMS570 error!\n",i);					 
+            }
+        }        
+    }
+    Life_signal++;
+    return WriteErr;
+}
