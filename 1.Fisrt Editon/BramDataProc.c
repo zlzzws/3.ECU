@@ -689,76 +689,41 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
 }
 /**
  * @description: CAN发送数据前,将TMS570通过Bram反馈的数据进行处理
- * @param:       struct can_frame *candata_wr
- *               TMS570_BRAM_DATA *bramdata_rd   
- *               uint8_t can_devtype
+ * @param:       struct can_frame *candata_wr --要发送的CAN数据
+ *               TMS570_BRAM_DATA *bramdata_rd  --从570读取的Bram数据 
+ *               uint8_t can_devtype            -- CAN0 or CAN1
  * @return:      void
  * @author:      zlz
  */
 void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
 {
-    uint8_t i,j;
-    uint8_t tempdata[240]={0};
+    uint8_t i,j;    
+    /**uint8_t testbuff[24]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                            0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
+                            0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0};**/
 
     switch (can_devtype)
     {
         case CAN0_TYPE:
-            memset(tempdata,0,240);
-            memcpy(tempdata,bramdata_rd[1].buffer,240);
-            for(i=0;i<8;i++)
-            {
-                candata_wr[0].data[i] = tempdata[i];
-            }
+            memcpy(candata_wr[0].data,bramdata_rd[1].buffer,8);
+            memcpy(candata_wr[1].data,bramdata_rd[2].buffer,8);
+            memcpy(candata_wr[2].data,bramdata_rd[3].buffer,8);
+            memcpy(candata_wr[3].data,&bramdata_rd[3].buffer[2],8);
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
-                printf("candata_wr[0]:0X");
-                for (i = 0; i < 8; i++)
-                    printf("[%x]",candata_wr[0].data[i]);
-                printf("\n");                               
-            }
-            memset(tempdata,0,240);
-            memcpy(tempdata,bramdata_rd[2].buffer,240);
-            for(i=0;i<8;i++)
-            {
-                candata_wr[1].data[i] = tempdata[i];
-            }
-            if(g_DebugType_EU == CAN_WR_DEBUG)
-            {               
-                printf("candata_wr[1]:0X");
-                for (i = 0; i < 8; i++)
-                    printf("[%x]",candata_wr[1].data[i]);
-                printf("\n");                               
-            }
-            memset(tempdata,0,240);
-            memcpy(tempdata,bramdata_rd[3].buffer,240);
-            for(j=0;j<2;j++)
-            {
-                for (i=0;i<8;i++)
+                for(j=0;j<4;j++)
                 {
-                    candata_wr[j+2].data[i] = tempdata[i+j*8];
-                }
-            }
-            if(g_DebugType_EU == CAN_WR_DEBUG)
-            {               
-                printf("candata_wr[2]:0X");
-                for (i = 0; i < 8; i++)
-                    printf("[%x]",candata_wr[2].data[i]);
-                printf("\n"); 
-                printf("candata_wr[3]:0X");
-                for (i = 0; i < 8; i++)
-                    printf("[%x]",candata_wr[3].data[i]);
-                printf("\n");                               
+                    printf("candata_wr[%d]:0X",j);
+                    for (i=0;i<8;i++)
+                        printf("[%x]",candata_wr[j].data[i]);
+                    printf("\n");                   
+                }                               
             }
             break;
-        case CAN1_TYPE:
-            memset(tempdata,0,240);
-            memcpy(tempdata,bramdata_rd[4].buffer,240);
+        case CAN1_TYPE:                        
             for(j=0;j<3;j++)
-            {
-                for (i=0;i<8;i++)
-                {
-                    candata_wr[j].data[i] = tempdata[i+j*8];
-                }
+            {               
+                memcpy(candata_wr[j].data,&bramdata_rd[4].buffer[j*2],8);               
             }
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
@@ -766,7 +731,7 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
                 {
                     printf("candata_wr[%d]:0X",j);
                     for (i = 0; i < 8; i++)
-                    printf("[%x]",candata_wr[j].data[i]);
+                        printf("[%x]",candata_wr[j].data[i]);
                     printf("\n");
                 }                                              
             }
@@ -777,94 +742,109 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
 }
 /**
  * @description: 接收CAN数据后进行数据处理
- * @param:       struct can_frame *candata_rd
- *               TMS570_BRAM_DATA *bramdata_wr   
- *               uint8_t can_devtype
+ * @param:       struct can_frame *candata_rd   --从CAN口获取的CAN数据
+ *               TMS570_BRAM_DATA *bramdata_wr  --A9发送给570的BRAM数据 
+ *               uint8_t can_devtype   --CAN0 or CAN1
+ *               uint8_t can_frame_num --CAN帧数量
  * @return:      void
  * @author:      zlz
  */
-void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype)
+void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype,uint8_t can_frame_num)
 {
     uint8_t i,j;
     uint8_t tempdata[240]={0};
 
-    switch (can_devtype)
-    {
-        case CAN0_TYPE:
-            memset(tempdata,0,240);
-            for(j=0;j<4;j++)
+    if(can_devtype == CAN0_TYPE)
+    {    
+        for(i=0;i<can_frame_num;i++)
+        {
+            switch (candata_rd[i].can_id & 0x1FFFFFFF)
             {
-                for (i=0;i<8;i++)
-                {
-                    if(g_DebugType_EU == CAN_RD_DEBUG)
-                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
-                    tempdata[i+j*8] = candata_rd[j].data[i];
-                    
-                }
-            }            
-            memcpy(bramdata_wr[1].buffer,tempdata,240);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                for (i = 0; i < 25; i++)
-                    printf("Bramdate_wr[1][%d]:%08x\n",i,bramdata_wr[1].buffer[i]);                               
+                case 0x1800D0F4 :
+                    memcpy(&bramdata_wr[1].buffer[0],candata_rd[i].data,8);
+                    break;
+                case 0x1801D0F4 :
+                    memcpy(&bramdata_wr[1].buffer[2],candata_rd[i].data,8);
+                    break;
+                case 0x1802D0F4 :
+                    memcpy(&bramdata_wr[1].buffer[4],candata_rd[i].data,8);
+                    break;                    
+                case 0x1803D0F4 :
+                    memcpy(&bramdata_wr[1].buffer[6],candata_rd[i].data,8);
+                    break;
+                case 0x16F4C000 :
+                    memcpy(&bramdata_wr[2].buffer[0],candata_rd[i].data,8);
+                    break;
+                case 0x16F4C001 :
+                    memcpy(&bramdata_wr[2].buffer[2],candata_rd[i].data,8);
+                    break;
+                case 0x18FF3012 :
+                    memcpy(&bramdata_wr[3].buffer[0],candata_rd[i].data,8);
+                    break;
+                case 0x18FF3112 :
+                    memcpy(&bramdata_wr[3].buffer[2],candata_rd[i].data,8);
+                    break;
+                case 0x18FF3212 :
+                    memcpy(&bramdata_wr[3].buffer[4],candata_rd[i].data,8);
+                    break;
+                case 0x18FF3312 :
+                    memcpy(&bramdata_wr[3].buffer[6],candata_rd[i].data,8);
+                    break;
+                case 0x18FF6012 :
+                    memcpy(&bramdata_wr[3].buffer[8],candata_rd[i].data,8);
+                    break;
+                case 0x18FF7012 :
+                    memcpy(&bramdata_wr[3].buffer[10],candata_rd[i].data,8);
+                    break;
+                case 0x18FF7112 :
+                    memcpy(&bramdata_wr[3].buffer[12],candata_rd[i].data,8);
+                    break;
+                default:
+                    break;              
             }
-
-            memset(tempdata,0,240);
-            for(j=0;j<2;j++)
-            {
-                for (i=0;i<8;i++)
-                {
-                    if(g_DebugType_EU == CAN_RD_DEBUG)
-                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
-                    tempdata[i+j*8] = candata_rd[j+4].data[i];
-                }
-            }
-            memcpy(bramdata_wr[2].buffer,tempdata,240);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                for (i = 0; i < 25; i++)
-                    printf("Bramdate_wr[2][%d]:%08x\n",i,bramdata_wr[2].buffer[i]);                               
-            }
-
-            memset(tempdata,0,240);
-            for(j=0;j<7;j++)
-            {
-                for (i=0;i<8;i++)
-                {
-                    if(g_DebugType_EU == CAN_RD_DEBUG)
-                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
-                    tempdata[i+j*8] = candata_rd[j+6].data[i];
-                }
-            }
-            memcpy(bramdata_wr[3].buffer,tempdata,240);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                for (i = 0; i < 25; i++)
-                    printf("Bramdate_wr[3][%d]:%08x\n",i,bramdata_wr[3].buffer[i]);                               
-            }
-            break;
-
-        case CAN1_TYPE:
-            memset(tempdata,0,240);
-            for(j=0;j<10;j++)
-            {
-                for (i=0;i<8;i++)
-                {
-                    if(g_DebugType_EU == CAN_RD_DEBUG)
-                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
-                    tempdata[i+j*8] = candata_rd[j].data[i];
-                }
-            }
-            memcpy(bramdata_wr[4].buffer,tempdata,240);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                for (i = 0; i < 25; i++)
-                    printf("Bramdate_wr[4][%d]:%08x\n",i,bramdata_wr[4].buffer[i]);                              
-            }
-            break;
-        default:
-            break;
+        }
     }
+    else if(can_devtype == CAN1_TYPE)
+    {        
+        for(i=0;i<can_frame_num;i++)
+        {
+            switch (candata_rd[i].can_id & 0x1FFFFFFF)
+            {   
+                case 0x15003000 :
+                    memcpy(&bramdata_wr[4].buffer[0],candata_rd[i].data,8);
+                    break;
+                case 0x15003001 :
+                    memcpy(&bramdata_wr[4].buffer[2],candata_rd[i].data,8);
+                    break;
+                case 0x15003002 :
+                    memcpy(&bramdata_wr[4].buffer[4],candata_rd[i].data,8);
+                    break;
+                case 0x19003000 :
+                    memcpy(&bramdata_wr[4].buffer[6],candata_rd[i].data,8);
+                    break;
+                case 0x19003001 :
+                    memcpy(&bramdata_wr[4].buffer[8],candata_rd[i].data,8);
+                    break;
+                case 0x19003002 :
+                    memcpy(&bramdata_wr[4].buffer[10],candata_rd[i].data,8);
+                    break;
+                case 0x19003003 :
+                    memcpy(&bramdata_wr[4].buffer[12],candata_rd[i].data,8);
+                    break;
+                case 0x19003004 :
+                    memcpy(&bramdata_wr[4].buffer[14],candata_rd[i].data,8);
+                    break;
+                case 0x19003005 :
+                    memcpy(&bramdata_wr[4].buffer[16],candata_rd[i].data,8);
+                    break;
+                case 0x19003006 :
+                    memcpy(&bramdata_wr[4].buffer[18],candata_rd[i].data,8);
+                    break;
+                default:
+                    break;    
+            }
+        }            
+    }    
 }
 /**
  * @description: 初始化TMS570交互的Bram通道包头数据(包含CAN及MVB数据)
