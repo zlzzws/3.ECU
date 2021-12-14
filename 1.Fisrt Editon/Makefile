@@ -1,5 +1,5 @@
 
-MODBUS_LIB =/usr/local/lib/feng_lib/
+MODBUS_LIB =/usr/local/lib/
 CROSS_COMPILE=arm-xilinx-linux-gnueabi-
 TARGET       := Demo_Run
 SOURCE       := ./*.c
