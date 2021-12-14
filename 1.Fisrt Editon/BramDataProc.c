@@ -604,40 +604,40 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
  * @return:      void
  * @author:      zlz
  */
-void CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uint8_t can_devtype)
+void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candata_WR,uint8_t can_devtype)
 {
     switch (can_devtype)
     {
         case CAN0_TYPE: 
         /*CAN0-BMS-A9 READ*/
-        candata_RD[0].can_id    = 0x1800D0F4 | CAN_EFF_FLAG;
-        candata_RD[0].can_dlc   = 8;
-        candata_RD[1].can_id    = 0x1801D0F4 | CAN_EFF_FLAG;
-        candata_RD[1].can_dlc   = 8;
-        candata_RD[2].can_id    = 0x1802D0F4 | CAN_EFF_FLAG;
-        candata_RD[2].can_dlc   = 8;
-        candata_RD[3].can_id    = 0x1803D0F4 | CAN_EFF_FLAG;
-        candata_RD[3].can_dlc   = 8;
+        candata_RD_filter[0].can_id    = 0x1800D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[0].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[1].can_id    = 0x1801D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[1].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[2].can_id    = 0x1802D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[2].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[3].can_id    = 0x1803D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[3].can_mask   = CAN_EFF_MASK;
         /*CAN0-DCDC-A9 READ*/
-        candata_RD[4].can_id    = 0x16F4C000 | CAN_EFF_FLAG;
-        candata_RD[4].can_dlc   = 8;
-        candata_RD[5].can_id    = 0x16F4C001 | CAN_EFF_FLAG;
-        candata_RD[5].can_dlc   = 8;
+        candata_RD_filter[4].can_id    = 0x16F4C000 | CAN_EFF_FLAG;
+        candata_RD_filter[4].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[5].can_id    = 0x16F4C001 | CAN_EFF_FLAG;
+        candata_RD_filter[5].can_mask   = CAN_EFF_MASK;
         /*CAN0-FC-A9 READ*/
-        candata_RD[6].can_id    = 0x18FF3012 | CAN_EFF_FLAG;
-        candata_RD[6].can_dlc   = 8;
-        candata_RD[7].can_id    = 0x18FF3112 | CAN_EFF_FLAG;
-        candata_RD[7].can_dlc   = 8;
-        candata_RD[8].can_id    = 0x18FF3212 | CAN_EFF_FLAG;
-        candata_RD[8].can_dlc   = 8;
-        candata_RD[9].can_id    = 0x18FF3312 | CAN_EFF_FLAG;
-        candata_RD[9].can_dlc   = 8;
-        candata_RD[10].can_id   = 0x18FF6012 | CAN_EFF_FLAG;
-        candata_RD[10].can_dlc  = 8;
-        candata_RD[11].can_id   = 0x18FF7012 | CAN_EFF_FLAG;
-        candata_RD[11].can_dlc  = 8;
-        candata_RD[12].can_id   = 0x18FF7112 | CAN_EFF_FLAG;
-        candata_RD[12].can_dlc  = 8;
+        candata_RD_filter[6].can_id    = 0x18FF3012 | CAN_EFF_FLAG;
+        candata_RD_filter[6].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[7].can_id    = 0x18FF3112 | CAN_EFF_FLAG;
+        candata_RD_filter[7].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[8].can_id    = 0x18FF3212 | CAN_EFF_FLAG;
+        candata_RD_filter[8].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[9].can_id    = 0x18FF3312 | CAN_EFF_FLAG;
+        candata_RD_filter[9].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[10].can_id   = 0x18FF6012 | CAN_EFF_FLAG;
+        candata_RD_filter[10].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[11].can_id   = 0x18FF7012 | CAN_EFF_FLAG;
+        candata_RD_filter[11].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[12].can_id   = 0x18FF7112 | CAN_EFF_FLAG;
+        candata_RD_filter[12].can_mask  = CAN_EFF_MASK;
         /*CAN0-BMS-A9 WRITE*/
         candata_WR[0].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
         candata_WR[0].can_dlc   = 8;
@@ -652,27 +652,27 @@ void CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uin
         break;
         case CAN1_TYPE:
         /*CAN1-变频器-A9 READ*/        
-        candata_RD[0].can_id    = 0x15003000 | CAN_EFF_FLAG;
-        candata_RD[0].can_dlc   = 8;
-        candata_RD[1].can_id    = 0x15003001 | CAN_EFF_FLAG;
-        candata_RD[1].can_dlc   = 8;
-        candata_RD[2].can_id    = 0x15003002 | CAN_EFF_FLAG;
-        candata_RD[2].can_dlc   = 8;
+        candata_RD_filter[0].can_id    = 0x15003000 | CAN_EFF_FLAG;
+        candata_RD_filter[0].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[1].can_id    = 0x15003001 | CAN_EFF_FLAG;
+        candata_RD_filter[1].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[2].can_id    = 0x15003002 | CAN_EFF_FLAG;
+        candata_RD_filter[2].can_mask   = CAN_EFF_MASK;
         /*CAN1-扩展模块-A9 READ*/ 
-        candata_RD[3].can_id    = 0x19003000 | CAN_EFF_FLAG;
-        candata_RD[3].can_dlc   = 8;
-        candata_RD[4].can_id    = 0x19003001 | CAN_EFF_FLAG;
-        candata_RD[4].can_dlc   = 8;
-        candata_RD[5].can_id    = 0x19003002 | CAN_EFF_FLAG;
-        candata_RD[5].can_dlc   = 8;
-        candata_RD[6].can_id    = 0x19003003 | CAN_EFF_FLAG;
-        candata_RD[6].can_dlc   = 8;
-        candata_RD[7].can_id    = 0x19003004 | CAN_EFF_FLAG;
-        candata_RD[7].can_dlc   = 8;
-        candata_RD[8].can_id    = 0x19003005 | CAN_EFF_FLAG;
-        candata_RD[8].can_dlc   = 8;
-        candata_RD[9].can_id    = 0x19003006 | CAN_EFF_FLAG;
-        candata_RD[9].can_dlc   = 8;
+        candata_RD_filter[3].can_id    = 0x19003000 | CAN_EFF_FLAG;
+        candata_RD_filter[3].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[4].can_id    = 0x19003001 | CAN_EFF_FLAG;
+        candata_RD_filter[4].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[5].can_id    = 0x19003002 | CAN_EFF_FLAG;
+        candata_RD_filter[5].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[6].can_id    = 0x19003003 | CAN_EFF_FLAG;
+        candata_RD_filter[6].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[7].can_id    = 0x19003004 | CAN_EFF_FLAG;
+        candata_RD_filter[7].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[8].can_id    = 0x19003005 | CAN_EFF_FLAG;
+        candata_RD_filter[8].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[9].can_id    = 0x19003006 | CAN_EFF_FLAG;
+        candata_RD_filter[9].can_mask   = CAN_EFF_MASK;
         /*CAN1-A9-变频器 Write*/
         candata_WR[0].can_id    = 0x15004000 | CAN_EFF_FLAG;
         candata_WR[0].can_dlc   = 8;
@@ -796,7 +796,10 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
             {
                 for (i=0;i<8;i++)
                 {
-                    tempdata[i+j*8] = candata_rd[j].data[i] ;
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
+                    tempdata[i+j*8] = candata_rd[j].data[i];
+                    
                 }
             }            
             memcpy(bramdata_wr[1].buffer,tempdata,240);
@@ -811,6 +814,8 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
             {
                 for (i=0;i<8;i++)
                 {
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
                     tempdata[i+j*8] = candata_rd[j+4].data[i];
                 }
             }
@@ -826,6 +831,8 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
             {
                 for (i=0;i<8;i++)
                 {
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
                     tempdata[i+j*8] = candata_rd[j+6].data[i];
                 }
             }
@@ -843,6 +850,8 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
             {
                 for (i=0;i<8;i++)
                 {
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                        printf("Candata_rd[%d].data[%d]:%d\n",j,i,candata_rd[j].data[i]);
                     tempdata[i+j*8] = candata_rd[j].data[i];
                 }
             }

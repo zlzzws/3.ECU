@@ -8,7 +8,7 @@ make.exe: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sun Dec 12 13:03:41 2021
+# Make data base, printed on Tue Dec 14 09:31:16 2021
 
 # Variables
 
@@ -53,8 +53,6 @@ PATHEXT = .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
 # makefile
 MAKEFILE_LIST := 
 # environment
-FPS_BROWSER_USER_PROFILE_STRING = Default
-# environment
 TMP = C:\Users\13397\AppData\Local\Temp
 # environment
 VSCODE_VERBOSE_LOGGING = true
@@ -63,7 +61,7 @@ PROGRAMW6432 = C:\Program Files
 # environment
 PROGRAMDATA = C:\ProgramData
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-ee2d66be-cc45-4c27-a9f2-ef61acccfb12-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-b5ba2ff7-58a2-4fb2-ae2d-3ab35ca0b30e-sock
 # environment
 CDSROOT = D:\Program Files\cadence_SPB16.6
 # environment
@@ -99,7 +97,7 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 ZWCADPATH = D:\Program Files\ZWSOFT\ZWCAD 2022\ZWCAD.EXE
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_1172_DWOVZYKRUEUGNHOH
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_16012_VPCZQMPFNNVFETOQ
 # environment
 VSCODE_PIPE_LOGGING = true
 # environment
@@ -176,7 +174,8 @@ PROMPT = $P$G
 MFLAGS = -pqrR
 # automatic
 *D = $(patsubst %/,%,$(patsubst %\,%,$(dir $*)))
-# environment
+# environme 
+nt
 SYSTEMROOT = C:\WINDOWS
 # automatic
 +D = $(patsubst %/,%,$(patsubst %\,%,$(dir $+)))
@@ -215,13 +214,11 @@ LANG = C
 # environment
 PROCESSOR_LEVEL = 23
 # environment
-FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
-# environment
-VSCODE_PID = 1172
+VSCODE_PID = 16012
 # environment
 USERDOMAIN_ROAMINGPROFILE = LAPTOP-2S2J2SV9
 # variable set hash-table stats:
-# Load=104/1024=10%, Rehash=0, Collisions=15/122=12%
+# Load=102/1024=10%, Rehash=0, Collisions=15/120=12%
 
 # Pattern-specific Variable Values
 
@@ -278,7 +275,8 @@ GNUmakefile:
 #  Implicit rule search has been done.
 #  File does not exist.
 #  File has been updated.
-#  Failed to be updated.
+#  Failed to be u 
+pdated.
 
 # files hash-table stats:
 # Load=7/1024=1%, Rehash=0, Collisions=0/16=0%
@@ -294,6 +292,6 @@ GNUmakefile:
 # strcache performance: lookups = 14 / hit rate = 14%
 # hash-table stats:
 # Load=12/8192=0%, Rehash=0, Collisions=1/14=7%
-# Finished Make data base on Sun Dec 12 13:03:41 2021
+# Finished Make data base on Tue Dec 14 09:31:16 2021
 
  

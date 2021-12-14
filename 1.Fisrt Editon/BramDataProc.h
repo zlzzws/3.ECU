@@ -84,7 +84,7 @@ int8_t 	BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_I
 int8_t 	SetTimeFromRTC(BRAM_ADDRS *RDSpcBlk_p,BRAM_ADDRS *WRSpcBlk_p);
 int8_t 	BramCloseMap(void);
 int8_t 	Bram_Mapping_Init(EADS_ERROR_INFO * EADSErrInfop,uint8_t EADSType);
-void 	CAN_FrameInit(struct can_frame *candata_RD,struct can_frame *candata_WR,uint8_t can_devtype);
+void 	CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candata_WR,uint8_t can_devtype);
 void 	CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype);
 void 	CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype);
 void 	TMS570_Bram_TopPackDataSetFun(void);

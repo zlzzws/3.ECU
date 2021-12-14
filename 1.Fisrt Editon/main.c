@@ -1565,6 +1565,7 @@ void *CAN0ThreadFunc(void *arg)
     struct sockaddr_can addr_can0;
     struct ifreq ifr_can0;
     struct timeval tv;
+    struct can_filter recv_filter[13];
     char loginfo[LOG_INFO_LENG]={0};
     //Attention 帧的时序与设定的100ms不符!
     /*创建套接字并与 can0 绑定*/
@@ -1575,12 +1576,14 @@ void *CAN0ThreadFunc(void *arg)
     addr_can0.can_ifindex = ifr_can0.ifr_ifindex;
     bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));    
     /*TODO设置过滤规则*/
-    ioctl(socket_can0,SIOCGSTAMP,&tv);
-    //setsockopt(socket_can0, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+    ioctl(socket_can0,SIOCGSTAMP,&tv);    
     /*初始化报文帧数据*/
-    CAN_FrameInit(s_can0_frame_RD_st,s_can0_frame_WR_st,CAN0_TYPE);
+    CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);
+    /*设置读取数据的过滤规则*/
+    setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
+    
     //TODO:针对读写错误及生命信号停止都应有一些判断过程
-    while(1)
+    //while(1)
     {        
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
         for(i=0;i<CAN0_WRITE_FRAME_NUM;i++)
@@ -1604,9 +1607,11 @@ void *CAN0ThreadFunc(void *arg)
             }
         }       
         usleep(50000);
-        for(i=0;i<CAN0_READ_FRAME_NUM;i++)
-        {
-            nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));
+        for(i=0;i<CAN0_READ_FRAME_NUM-6;i++)
+        {            
+            printf("s_can0_frame_RD_st[%d].CAN_ID is 0x%08x\n",i,s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
+            /*对于CAN_read 的Can_id,A9设置只能用于过滤，后续会被读取的CAN_id覆盖*/
+            nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));            
             if(nbytes != sizeof(s_can0_frame_RD_st[i]))
             {                
                 printf("CAN0 Receive Error frame[%d]!\n",i);
@@ -1622,16 +1627,23 @@ void *CAN0ThreadFunc(void *arg)
             else
             {
                 errnum_rd = 0;
-            }
+            }            
             if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                printf("A9 Read CAN0 ID:0x%x:",s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
-                for (j = 0; j < 8; j++)
-                    printf("[%x]",s_can0_frame_RD_st[i].data[j]);
-                printf("\n");               
+            {                    
+                //for(i=0;i<13;i++)
+                {
+                    printf("A9 Read CAN0 ID:0x%x:",s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
+                    for (j = 0; j < 8; j++)                    
+                        printf("[%x]",s_can0_frame_RD_st[i].data[j]);
+                    printf("\n");
+                }                                                 
             }
-        }               
-        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);          
+        }
+        while (1)
+        {
+            
+        }                       
+        //CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);          
         #if 0
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {
