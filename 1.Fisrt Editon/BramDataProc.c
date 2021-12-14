@@ -982,13 +982,59 @@ int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data)
     Life_signal++;
     return WriteErr;
 }
+
 /**
- * @description: 从Bram指定区域读MVB数据
- * @param:      TMS570_BRAM_DATA *bram_data
+ * @description: MVB初始化
+ * @param:      uint8_t mvb_rd_ch_num
+ *              uint8_t mvb_wr_ch_num
+ * @return:     InitErr
+ * @author:     zlz
+ */
+int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
+{    
+    uint8_t i;
+    uint32_t Addr_wrch=0X8000E01C,Addr_rdch=0X8000E018;
+    uint32_t fdback_Addr_wrch=0X4000E01C,fdback_Addr_rdch=0X4000E018;        
+    uint8_t fdback_wrch,fdback_rdch;    
+    char loginfo[LOG_INFO_LENG]={0};
+    BramWriteU8(Addr_wrch,s_bram_WRFlagAddr,mvb_wr_ch_num);
+    BramWriteU8(Addr_rdch,s_bram_WRFlagAddr,mvb_rd_ch_num);
+    usleep(100);
+    fdback_wrch=BramReadU8(fdback_Addr_wrch,s_bram_RDFlagAddr);
+    fdback_rdch=BramReadU8(fdback_Addr_rdch,s_bram_RDFlagAddr);
+    if ((fdback_wrch==mvb_wr_ch_num) && (fdback_rdch==mvb_rd_ch_num))
+    {
+        return  0;
+    }
+    else
+    {
+        for (i=0;i<5;i++)
+        {
+            BramWriteU8(Addr_wrch,s_bram_WRFlagAddr,mvb_wr_ch_num);
+            BramWriteU8(Addr_rdch,s_bram_WRFlagAddr,mvb_rd_ch_num);
+            usleep(100);
+            fdback_wrch=BramReadU8(fdback_Addr_wrch,s_bram_RDFlagAddr);
+            fdback_rdch=BramReadU8(fdback_Addr_rdch,s_bram_RDFlagAddr);
+            if ((fdback_wrch==mvb_wr_ch_num) && (fdback_rdch==mvb_rd_ch_num))
+            {                
+                return 0;
+            }
+        }       
+        printf("Correct Configures mvb_read:%d or mvb_write:%d , FPGA feedback wrong configures mvb_read:%d or mvb_write:%d\n",\
+                mvb_rd_ch_num,mvb_wr_ch_num,fdback_rdch,fdback_wrch);
+        snprintf(loginfo, sizeof(loginfo)-1, "FPGA feedback wrong mvb read or write channel configures!");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+        return -1;
+    }    
+}
+/**
+ * @description: 从Bram指定区域读MVB数据,并发送给TMS570
+ * @param:      TMS570_BRAM_DATA *bram_data_TMS510_wr
+ *              TMS570_BRAM_DATA *bram_data_mvb_rd
  * @return:     ReadErr
  * @author:     zlz
  */ 
-int8_t MVB_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
+int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_TMS510_wr,TMS570_BRAM_DATA *bram_data_mvb_rd)
 {
 
     int8_t ReadErr = 0,i,j;
@@ -1032,12 +1078,13 @@ int8_t MVB_Bram_Read_Func(TMS570_BRAM_DATA bram_data[])
 }
 
 /**
- * @description: 向Bram指定区域写MVB数据
- * @param        TMS570_BRAM_DATA *bram_data
+ * @description: 从TMS570读取数据，向Bram指定区域写MVB数据
+ * @param        TMS570_BRAM_DATA *bram_data_TMS510_rd
+ *               TMS570_BRAM_DATA *bram_data_mvb_wr * 
  * @return       {uint8_t} WriteErr   写数据返回值
  * @author: zlz
  */
-int8_t MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data) 
+int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_TMS510_rd,TMS570_BRAM_DATA *bram_data_mvb_wr) 
 {
     int8_t i,j;
     static int8_t WriteErr = 0;

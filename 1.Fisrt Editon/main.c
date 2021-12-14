@@ -1526,7 +1526,7 @@ void *LEDWachDogPthreadFunc (void *arg)
 *********************************************************************/
 void *TMS570_Bram_ThreadFunc(void *arg) 
 {
-    //#if 0
+    //#if 0 //FIXME:将这个线程和CAN线程融合
     uint8_t ret = 0;   
     static uint32_t Can_RecordNum = 0;//文件存储条数计数
     uint8_t CAN_Record_Date[16] = {0};    
@@ -1693,7 +1693,7 @@ void *CAN1ThreadFunc(void *arg)
     struct timeval tv={0},tv_select={0,5000};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
-    //Attention 测试时序
+    //Attention 测试时序 将TMS570读写Bram融入线程中，避免跨线程同步
     /*创建套接字并与 can0 绑定*/
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can0" );
@@ -1804,13 +1804,20 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {
-    uint8_t ret = 0; 
+    int8_t  ret = 0;
+    uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
 
-    while(g_LifeFlag > 0)
+    ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
+    //TODO将写TMS570Bram数据的函数写成一个通用函数,用在CAN0 CAN1 以及MVB这三个线程
+    while(g_LifeFlag > 0 && ret == 0)
     {              
-        MVB_Bram_Read_Func(&s_tms570_bram_RD_data_st[0]);       
-        usleep(100000);               
-        MVB_Bram_Write_Func(&s_tms570_bram_WR_data_st[0]);    
+        //TODO 修改此函数
+        MVB_Bram_Read_Func(&s_tms570_bram_WR_data_st[0],s_mvb_bram_RD_data_st);
+        //TODO 加入一个写TMS570 BRAM
+        usleep(100000);
+        //TODO 加入一个读TMS570 BRAM
+        //TODO 修改此函数
+        MVB_Bram_Write_Func(&s_tms570_bram_RD_data_st[0],s_mvb_bram_WR_data_st);           
     }
 
     printf("exit MVBThreadFunc Function!\n");
