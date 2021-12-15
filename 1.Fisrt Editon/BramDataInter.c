@@ -582,21 +582,21 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 	uint32_t TempCrcValue_U32;
 	uint8_t i = 0;
 
-	/*设置包头*/
-	ChanNum = BramAddrs_p -> ChanNum_U8;            //占用的Bram通道
-	Temp32Value = TopPackST.BLVDSTOP_U32;           //已包含协议版本
-	Temp32Value += (ChanNum << 18);                 //将通道写入Byte[1]-bit[7:2]位置
-	Framelen = BramAddrs_p -> DataU32Length << 2;   //8位数据长度 == 32位数据长度*4
-	Temp32Value += (Framelen << 24);                //将数据长度写入Byte[3]-bit[7:0]位置
-	BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;//将包头Byte[3]-Byte[0]写入BramPacketData_ST_p -> BLVDSTOP_U32
-	BramPacketData_ST_p -> BLVDSReser_U32[0] = TopPackST.BLVDSReser_U32[0];//已包含生命信号-Byte[4]-Byte[5]
+	
+	ChanNum = BramAddrs_p -> ChanNum_U8;            
+	Temp32Value = TopPackST.BLVDSTOP_U32;           
+	Temp32Value += (ChanNum << 18);                 
+	Framelen = BramAddrs_p -> DataU32Length << 2;   
+	Temp32Value += (Framelen << 24);                
+	BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;
+	BramPacketData_ST_p -> BLVDSReser_U32[0] = TopPackST.BLVDSReser_U32[0];
     BramPacketData_ST_p -> BLVDSReser_U32[1] = TopPackST.BLVDSReser_U32[1];
-	//DataU32Length*4包含了包头12字节，cpy数据时需要去掉包头长度
+	
 	DataLen = Framelen - BRAM_PACKET_TOP_LENGTH_U8; 
 	memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,DataLen); 
-	Framelen = BramAddrs_p -> DataU32Length; //U32 Lenth
-	TempCrcValue_U32 = Crc32CalU32Bit(Outbuf,Framelen);//计算CRC32值
-	//将CRC32校验值放置BramPacketData_ST_p -> BLVDSData_U32[DataLen]中
+	Framelen = BramAddrs_p -> DataU32Length; 
+	TempCrcValue_U32 = Crc32CalU32Bit(Outbuf,Framelen);
+	
 	DataLen = BramAddrs_p -> DataU32Length - BRAM_PCKT_TOP_LNGTH_U32;
 	BramPacketData_ST_p -> BLVDSData_U32[DataLen]= TempCrcValue_U32;
  

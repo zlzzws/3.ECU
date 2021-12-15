@@ -1531,7 +1531,7 @@ void *TMS570_Bram_ThreadFunc(void *arg)
     static uint32_t Can_RecordNum = 0;//文件存储条数计数
     uint8_t CAN_Record_Date[16] = {0};    
     //帧文件头参数填充
-    TMS570_Bram_TopPackDataSetFun();
+    
     
     while(g_LifeFlag > 0)
     {        
@@ -1557,8 +1557,7 @@ void *TMS570_Bram_ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{
-    #if 0
+{    
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
@@ -1580,11 +1579,13 @@ void *CAN0ThreadFunc(void *arg)
     ioctl(socket_can0,SIOCGSTAMP,&tv);    
     /*初始化报文帧数据*/
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);
+    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE);
     /*设置读取数据的过滤规则*/
     setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
     //TODO:针对读写错误及生命信号停止都应有一些判断过程
     while(1)
     {        
+        TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[1],1,3);
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
         for(i=0;i<CAN0_WRITE_FRAME_NUM;i++)
         {
@@ -1655,7 +1656,8 @@ void *CAN0ThreadFunc(void *arg)
                 }                                                 
             }
         }                     
-        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE,CAN0_READ_FRAME_NUM);          
+        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE,CAN0_READ_FRAME_NUM);
+        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[1],1,3);          
         #if 1
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {
@@ -1669,8 +1671,7 @@ void *CAN0ThreadFunc(void *arg)
         usleep(100000);
     }
     close(socket_can0);
-    return 0;
-    #endif
+    return 0;    
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1692,24 +1693,24 @@ void *CAN1ThreadFunc(void *arg)
     fd_set rfds;
     struct timeval tv={0},tv_select={0,5000};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
-    char loginfo[LOG_INFO_LENG]={0};
-    //Attention 测试时序 将TMS570读写Bram融入线程中，避免跨线程同步
-    /*创建套接字并与 can0 绑定*/
+    char loginfo[LOG_INFO_LENG]={0};    
+    /*bind*/
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can0" );
     ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1);
     addr_can1.can_family = AF_CAN;
     addr_can1.can_ifindex = ifr_can1.ifr_ifindex;
     bind(socket_can1, (struct sockaddr *)&addr_can1, sizeof(addr_can1));    
-    /*打上时间戳*/
-    ioctl(socket_can1,SIOCGSTAMP,&tv);    
-    /*初始化报文帧数据*/
+    ioctl(socket_can1,SIOCGSTAMP,&tv); // add time stamp   
+    /*Init*/
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);
-    /*设置读取数据的过滤规则*/
+    TMS570_Bram_TopPackDataSetFun(CAN1_TYPE);
+    /*Filter*/
     setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
     
-    while(1)
+    while(g_LifeFlag>0)
     {        
+        TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[4],4,4);
         CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
         for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
         {
@@ -1729,8 +1730,7 @@ void *CAN1ThreadFunc(void *arg)
             {
                 errnum_wr =0;
             }
-        }    
-        /*
+        }        
         for(i=0;i<CAN1_READ_FRAME_NUM;i++)
         {            
             //FD_ZERO(&rfds);
@@ -1755,7 +1755,7 @@ void *CAN1ThreadFunc(void *arg)
                 else
                 {
                     errnum_rd = 0;
-                }
+                }                
             }
             *//*else
             {
@@ -1780,7 +1780,8 @@ void *CAN1ThreadFunc(void *arg)
                 }                                                 
             }
         }                     
-        CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE,CAN1_READ_FRAME_NUM);          
+        CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE,CAN1_READ_FRAME_NUM);
+        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[4],4,4);         
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {            
             for (j = 0; j < 25; j++)
@@ -1794,7 +1795,7 @@ void *CAN1ThreadFunc(void *arg)
 }
 /**********************************************************************
 *Name           :   MVBThreadFunc  
-*Function       :   read/write the MVB data from BRAM
+*Function       :   read/write the MVB data from BRAM and read/write the MVB date to TMS570
 *Para           :  
 *Version        :   REV1.0.0       
 *Author:        :   zlz
@@ -1808,16 +1809,18 @@ void *MVBThreadFunc(void *arg)
     uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
 
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
-    //TODO将写TMS570Bram数据的函数写成一个通用函数,用在CAN0 CAN1 以及MVB这三个线程
-    while(g_LifeFlag>0)
-    {              
-        //TODO 修改此函数
-        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
-        //TODO 加入一个写TMS570 BRAM
+    
+    while(g_LifeFlag>0 && ret==0)
+    {       
+        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);
+        
+        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
+        
         usleep(100000);
-        //TODO 加入一个读TMS570 BRAM
-        //TODO 修改此函数
-        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);           
+
+        TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
+        
+        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);                   
     }
 
     printf("exit MVBThreadFunc Function!\n");

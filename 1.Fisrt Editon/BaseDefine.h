@@ -47,7 +47,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <pthread.h>
-#include <signal.h>   //包含signal()函数
+#include <signal.h>
 #include <semaphore.h>
 #include <errno.h>
 #include <linux/watchdog.h>
@@ -66,12 +66,9 @@
 *********************************************************************/
 
 /*EADS Versionasd History*/
-/*1.0.0   20200521*/
-#define EADS_VERSION 100 //tcms version
-#define EADS_VERSION_PTU 102 /*1.0.1   20210620*/
-/*1.0.0   20210419 keep with the trdp version same for 17bian*/
-#define TOTAL_VERSION 100 /*1.0.1   20210227*/
-/*1.0.0   20210419 keep with the trdp version same for 17bian*/
+#define EADS_VERSION 100 
+#define EADS_VERSION_PTU 102
+#define TOTAL_VERSION 100
 #define LINUX_VERSION 440
 #define BOOT_VERSION 100
 #define DTB_VERSION 100
