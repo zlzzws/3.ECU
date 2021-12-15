@@ -1809,15 +1809,15 @@ void *MVBThreadFunc(void *arg)
 
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
     //TODO将写TMS570Bram数据的函数写成一个通用函数,用在CAN0 CAN1 以及MVB这三个线程
-    while(g_LifeFlag > 0 && ret == 0)
+    while(g_LifeFlag>0)
     {              
         //TODO 修改此函数
-        MVB_Bram_Read_Func(&s_tms570_bram_WR_data_st[0],s_mvb_bram_RD_data_st);
+        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //TODO 加入一个写TMS570 BRAM
         usleep(100000);
         //TODO 加入一个读TMS570 BRAM
         //TODO 修改此函数
-        MVB_Bram_Write_Func(&s_tms570_bram_RD_data_st[0],s_mvb_bram_WR_data_st);           
+        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);           
     }
 
     printf("exit MVBThreadFunc Function!\n");

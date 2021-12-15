@@ -70,7 +70,7 @@
 #define BRAM_PCKT_CRC_LNGTH_U32 1
 
 #define BRAM_LENGTH_U32  50
-#define BRAM_BOARD_NUM 10
+#define BRAM_BOARD_NUM 16
 #define CANDATE_LENGTH_U32 5
 
 

@@ -50,6 +50,8 @@
 #define CAN0_WRITE_FRAME_NUM 4
 #define CAN1_READ_FRAME_NUM  10
 #define CAN1_WRITE_FRAME_NUM 3
+#define MVB_READ_FRAME_NUM  2
+#define MVB_WRITE_FRAME_NUM 6
 /**********************************************************************
 *
 *Global Struct Define Section
@@ -91,8 +93,8 @@ void 	TMS570_Bram_TopPackDataSetFun(void);
 int8_t 	TMS570_Bram_Read_Func(TMS570_BRAM_DATA *bram_data);
 int8_t 	TMS570_Bram_write_Func(TMS570_BRAM_DATA *bram_data);
 int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num); 
-int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_TMS510_rd,TMS570_BRAM_DATA *bram_data_mvb_wr);
-int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_TMS510_wr,TMS570_BRAM_DATA *bram_data_mvb_rd);
+int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr);
+int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd);
 /**********************************************************************
 *
 *Multi-Include-Prevent End Section
