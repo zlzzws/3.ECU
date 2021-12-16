@@ -1506,8 +1506,6 @@ void *LEDWachDogPthreadFunc (void *arg)
 }
 #endif
 
-
-
 /**********************************************************************
 *Name           :   CAN0ThreadFunc  
 *Function       :   read/write the CAN0 data
@@ -1519,8 +1517,8 @@ void *LEDWachDogPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{    
-    #if 0
+{   
+    #if 0 
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
@@ -1531,111 +1529,59 @@ void *CAN0ThreadFunc(void *arg)
     struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
     //Attention 测试时序
-    /*创建套接字并与 can0 绑定*/
-    socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);//创建套接字
+    /*bind*/
+    socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can0.ifr_name, "can0" );
-    ioctl(socket_can0, SIOCGIFINDEX, &ifr_can0); //指定 can0 设备
+    ioctl(socket_can0, SIOCGIFINDEX, &ifr_can0);
     addr_can0.can_family = AF_CAN;
     addr_can0.can_ifindex = ifr_can0.ifr_ifindex;
-    bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));    
-    /*TODO设置过滤规则*/
-    ioctl(socket_can0,SIOCGSTAMP,&tv);    
-    /*初始化报文帧数据*/
-    CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);
-    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE);
-    /*设置读取数据的过滤规则*/
-    setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
-    //TODO:针对读写错误及生命信号停止都应有一些判断过程
-    while(1)
+    bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));   
+    ioctl(socket_can0,SIOCGSTAMP,&tv);/*add time stamp*/    
+    CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*Init*/
+    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE);    
+    setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
+    
+    while(g_LifeFlag>0)
     {        
         TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[1],1,3);
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
-        for(i=0;i<CAN0_WRITE_FRAME_NUM;i++)
+        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM);
+        //FD_ZERO(&rfds);
+        //FD_SET(socket_fd,&rfds);
+        //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
+        //if(ret>0)
         {
-            nbytes = write(socket_can0,&s_can0_frame_WR_st[i], sizeof(s_can0_frame_WR_st[i]));
-            if(nbytes != sizeof(s_can0_frame_WR_st[i]))
-            {                
-                printf("CAN0 Send frame[%u] Error!\n",s_can0_frame_WR_st[i].can_id);
-                errnum_wr++;
-                if(errnum_wr >=10)
-                {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN0 Send frame[%u] Error!",s_can0_frame_WR_st[i].can_id);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    errnum_wr = 0;
-                }
-                
-            }
-            else
-            {
-                errnum_wr =0;
-            }
-        }    
-        for(i=0;i<CAN0_READ_FRAME_NUM;i++)
-        {            
-            //FD_ZERO(&rfds);
-            //FD_SET(socket_can0,&rfds);
-            //ret = select(socket_can0+1,&rfds,NULL,NULL,&tv_select);
-            //if(ret>0)
-            {
-                errnum_timeout=0;
-                nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));            
-                if(nbytes != sizeof(s_can0_frame_RD_st[i]))
-                {                
-                    printf("CAN0 Receive Error frame[%d]!\n",i);
-                    memset(s_can0_frame_RD_st[i].data,0,8);
-                    errnum_rd++;
-                    if(errnum_rd >=10)
-                    {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame[%u] Error!",s_can0_frame_RD_st[i].can_id);
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);
-                        errnum_rd = 0;
-                    }                            
-                }
-                else
-                {
-                    errnum_rd = 0;
-                }
-            }
-            /*else
-            {
-                errnum_timeout++;
-                if(errnum_timeout==1)
-                    printf("can0 read time out ,already receive %d frames!\n",i);
-                printf("can0 read time out %d times!\n",errnum_timeout);
-                if(errnum_timeout >=13)
-                {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    errnum_timeout = 0;
-                } 
-            }*/            
+            //errnum_timeout=0;
+            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM);               
+            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
             if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                {
-                    printf("Read CAN0 ID:0x%x:",s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
-                    for (j = 0; j < 8; j++)                    
-                        printf("[%x]",s_can0_frame_RD_st[i].data[j]);
-                    printf("\n");
-                }                                                 
+            {            
+                for (i=1;i<4;i++)
+                {                
+                    for (j = 0; j < 25; j++)
+                        printf("A9->570 BramData[%d][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[i].buffer[j]);
+                }
             }
-        }                     
-        CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE,CAN0_READ_FRAME_NUM);
-        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[1],1,3);          
-        #if 1
-        if(g_DebugType_EU == CAN_RD_DEBUG)
-        {
-            for (i = 1; i < 4; i++)
-            {
-                for (j = 0; j < 25; j++)
-                    printf("A9->570 BramData[%d][%d]:0x%08x\n",i,j,s_tms570_bram_WR_data_st[i].buffer[j]);
-            }
+            TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[1],1,3);
         }
-        #endif
+        /*else
+        {
+            errnum_timeout++;
+            if(errnum_timeout==1)
+                printf("can0 read time out ,already receive %d frames!\n",i);
+            printf("can0 read time out %d times!\n",errnum_timeout);
+            if(errnum_timeout >=13)
+            {
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
+                errnum_timeout = 0;
+            } 
+        }*/  
         usleep(100000);
     }
     close(socket_can0);
     return 0;
-    #endif    
+    #endif        
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1649,18 +1595,19 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {     
-    uint8_t i,j,ret;
-    static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
-    int socket_can1,nbytes;
+    #if 1
+    uint8_t i,j,ret;    
+    static errnum_timeout=0;
+    int    socket_can1;
     struct sockaddr_can addr_can1;
     struct ifreq ifr_can1;
     fd_set rfds;
-    struct timeval tv={0},tv_select={0,5000};
+    struct timeval tv={0},tv_select={0,10000};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};    
     /*bind*/
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    strcpy(ifr_can1.ifr_name, "can0" );
+    strcpy(ifr_can1.ifr_name, "can1" );
     ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1);
     addr_can1.can_family = AF_CAN;
     addr_can1.can_ifindex = ifr_can1.ifr_ifindex;
@@ -1676,20 +1623,40 @@ void *CAN1ThreadFunc(void *arg)
     {        
         TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[4],4,4);
         CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        CAN_Write_Option(socket_can1,s_can1_frame_WR_st);
-
-        CAN_Read_Option(socket_can1,s_can1_frame_RD_st);               
-        CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE,CAN1_READ_FRAME_NUM);
-        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[4],4,4);         
-        if(g_DebugType_EU == CAN_RD_DEBUG)
-        {            
-            for (j = 0; j < 25; j++)
-                printf("A9->570 BramData[4][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[4].buffer[j]);
-        }    
+        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
+        //FD_ZERO(&rfds);
+        //FD_SET(socket_fd,&rfds);
+        //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
+        //if(ret>0)
+        {
+            //errnum_timeout=0;
+            CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM);                       
+            CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {            
+                for (j = 0; j < 25; j++)
+                    printf("A9->570 BramData[4][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[4].buffer[j]);
+            }
+            TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[4],4,4);
+        }
+        /*else
+        {
+            errnum_timeout++;
+            if(errnum_timeout==1)
+                printf("can0 read time out ,already receive %d frames!\n",i);
+            printf("can0 read time out %d times!\n",errnum_timeout);
+            if(errnum_timeout >=13)
+            {
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
+                errnum_timeout = 0;
+            } 
+        }*/  
         usleep(100000);
     }
     close(socket_can1);
-    return 0;    
+    return 0;
+    #endif    
 }
 /**********************************************************************
 *Name           :   MVBThreadFunc  
@@ -1710,7 +1677,7 @@ void *MVBThreadFunc(void *arg)
     
     while(1)
     {       
-        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
+        //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
         //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
         

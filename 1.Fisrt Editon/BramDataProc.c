@@ -598,7 +598,145 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
     }     
     return ReadErr;
 }
+/**
+ * @description: just for this page can program use!(pay attention "static")
+ * @param:       void life_data,void *life_lasttime,uint8_t *errnum
+ * @return:      uint8_t life stop ->1 life normal ->0
+ * @author:      zlz
+ */
+static uint8_t Life_Judge_Fun(uint8_t life_data,uint8_t *life_lasttime,uint8_t *errnum)
+{
+    if(life_data == *life_lasttime)
+    {
+        *errnum++;
+        if(*errnum >= 10)
+        {   
+            *errnum = 0;            
+            return 1;
+        }             
+    }
+    else
+    {
+        *errnum = 0;
+        *life_lasttime = life_data;
+        return 0;       
+    }
 
+}
+/**
+ * @description: CAN 设备生命信号进行判断处理 (pay attention "static")
+ * @param:       void
+ * @return:      void
+ * @author:      zlz
+ */
+static void CAN_Life_Judge(struct can_frame *candata,uint32_t *judge_val,uint8_t can_devtype)
+{
+    uint8_t i;
+    static uint8_t errnum[5]= {0};    
+    static uint8_t errflag[5] = {0};
+    static uint8_t life_lasttime[5] = {0};    
+    char loginfo[LOG_INFO_LENG] = {0};
+
+    if (can_devtype == CAN0_TYPE)
+    {
+        for (i=0;i<CAN0_READ_FRAME_NUM;i++)
+        {
+            switch (candata[i].can_id)
+            {
+                case 0x1800D0F4 :
+                    judge_val[0] = Life_Judge_Fun(candata[i].data[6],&life_lasttime[0],&errnum[0]);
+                    if(judge_val[0])
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x1800D0F4] life have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[0]=1;
+                    }
+                    else if(judge_val[0]==0 && errflag[0]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x1800D0F4] life have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[0]=0;
+                    }                    
+                    break;
+                case 0x16F4C001 :    
+                    judge_val[1] = Life_Judge_Fun(candata[i].data[7],&life_lasttime[1],&errnum[1]);
+                    if(judge_val[1])
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x16F4C001] life have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[1]=1;
+                    }
+                    else if(judge_val[1]==0 && errflag[1]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x16F4C001] life have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[1]=0;
+                    }
+                    break;
+                case 0x18FF3012 :    
+                    judge_val[2] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[2],&errnum[2]);
+                    if(judge_val[2])
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x18FF3012] life have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[2]=1;
+                    }
+                    else if(judge_val[2]==0 && errflag[2]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x18FF3012] life have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[2]=0;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }  
+    }
+    else if (can_devtype == CAN1_TYPE)
+    {
+        for (i=0;i<CAN1_READ_FRAME_NUM;i++)
+        {
+            switch (candata[i].can_id)
+            {
+                #if 0 //FIXME 变频器暂无生命信号，后期增加后请修改此处
+                case 0x15003000 :
+                    judgeret[3] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[4],&errnum[4]);
+                    if(judgeret[3])
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x15003000] life have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[3]=1;
+                    }
+                    else if(judgeret[3]==0 && errflag[3]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x15003000] life have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[3]=0;
+                    }
+                    break;
+                #endif
+                case 0x19003000 :
+                    judge_val[0] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[4],&errnum[4]);
+                    if(judge_val[0])
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x19003000] life have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[4]=1;
+                    }
+                    else if(judge_val[0]==0 && errflag[4]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x19003000] life have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[4]=0;
+                    }                   
+                    break;                
+                default:
+                    break;
+            }
+        }
+    }   
+}
 /**
  * @description: 初始化CAN0数据帧ID及帧长度信息
  * @param:       void
@@ -697,32 +835,33 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data)
+int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num)
 {    
     uint8_t i,nbytes;
     static uint8_t errnum_wr=0;
     char loginfo[LOG_INFO_LENG]={0};
 
-    for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
+    for(i=0;i<frames_num;i++)
     {
         nbytes = write(socket_fd,&can_frame_data[i], sizeof(can_frame_data[i]));
         if(nbytes != sizeof(can_frame_data[i]))
         {                
-            printf("CAN1 Send frame[%u] Error!\n",can_frame_data[i].can_id);
+            printf("CAN Send frame[%u] Error!\n",can_frame_data[i].can_id);
             errnum_wr++;
             if(errnum_wr >=10)
             {
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN1 Send frame[%u] Error!",can_frame_data[i].can_id);
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN Send frame[%u] Error!",can_frame_data[i].can_id);
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_wr = 0;
+                return -1;
             }                
         }
         else
         {
             errnum_wr =0;
-        }
+        }        
     }
-           
+    return 0;      
 }
 /*
  * @description: CAN读操作
@@ -732,7 +871,7 @@ int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data)
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data)
+int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num)
 {
     uint8_t i,j,nbytes;
     static uint8_t errnum_rd=0,errnum_timeout=0;
@@ -740,7 +879,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data)
     fd_set rdfs={0};
     struct timeval tv_select={0,1000};
 
-    for(i=0;i<CAN0_READ_FRAME_NUM;i++)
+    for(i=0;i<frames_num;i++)
     {            
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
@@ -801,9 +940,10 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data)
 void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
 {
     uint8_t i,j;    
-    /**uint8_t testbuff[24]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                            0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                            0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0};**/
+    /*uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                        0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
+                        0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
+                        0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};*/
 
     switch (can_devtype)
     {
@@ -826,7 +966,7 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
         case CAN1_TYPE:                        
             for(j=0;j<3;j++)
             {               
-                memcpy(candata_wr[j].data,&bramdata_rd[4].buffer[j*2],8);               
+                memcpy(candata_wr[j].data,&bramdata_rd[4].buffer[j*2],8);                               
             }
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
@@ -852,14 +992,17 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
  * @return:      void
  * @author:      zlz
  */
-void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype,uint8_t can_frame_num)
+void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype)
 {
     uint8_t i,j;
     uint8_t tempdata[240]={0};
+    uint32_t life_judge_val[3]={0};
+
+    CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
 
     if(can_devtype == CAN0_TYPE)
     {    
-        for(i=0;i<can_frame_num;i++)
+        for(i=0;i<CAN0_READ_FRAME_NUM;i++)
         {
             switch (candata_rd[i].can_id & 0x1FFFFFFF)
             {
@@ -874,12 +1017,14 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;                    
                 case 0x1803D0F4 :
                     memcpy(&bramdata_wr[1].buffer[6],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[1].buffer[8],&life_judge_val[0],4);
                     break;
                 case 0x16F4C000 :
                     memcpy(&bramdata_wr[2].buffer[0],candata_rd[i].data,8);
                     break;
                 case 0x16F4C001 :
                     memcpy(&bramdata_wr[2].buffer[2],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[2].buffer[4],&life_judge_val[1],4);
                     break;
                 case 0x18FF3012 :
                     memcpy(&bramdata_wr[3].buffer[0],candata_rd[i].data,8);
@@ -901,6 +1046,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;
                 case 0x18FF7112 :
                     memcpy(&bramdata_wr[3].buffer[12],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[3].buffer[14],&life_judge_val[2],4);
                     break;
                 default:
                     break;              
@@ -909,7 +1055,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     }
     else if(can_devtype == CAN1_TYPE)
     {        
-        for(i=0;i<can_frame_num;i++)
+        for(i=0;i<CAN1_READ_FRAME_NUM;i++)
         {
             switch (candata_rd[i].can_id & 0x1FFFFFFF)
             {   
@@ -942,6 +1088,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;
                 case 0x19003006 :
                     memcpy(&bramdata_wr[4].buffer[18],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[20],&life_judge_val[0],4);
                     break;
                 default:
                     break;    
@@ -1027,33 +1174,30 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[],uint8_t begin_index,ui
     {       
         s_bram_RD_TMS_SPC_Blck_ST.DataU32Length = CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_RD_ST[i].ChanNum_U8;
-
-        if(0 == g_LinuxDebug)
-        {  
-            memset(tempdatabuffer,0,256);
-            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,tempdatabuffer);
-            memcpy(bram_data[i].buffer,&tempdatabuffer[12],240);
-            if(CODE_ERR == ReadErr) 
+        memset(tempdatabuffer,0,256);
+        ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,tempdatabuffer);
+        memcpy(bram_data[i].buffer,&tempdatabuffer[12],240);
+        if(CODE_ERR == ReadErr) 
+        {
+            DataErrNum++;  
+            if(DataErrNum > BRAMERR_NUM) 
             {
-                DataErrNum++;  
-                if(DataErrNum > BRAMERR_NUM) 
-                {
-                    if(0 == DataErrFlag)
-                    {                    
-                        DataErrFlag = 1;
-                        printf("The [%d] frame Bramdata read from TMS570 is Err.\n",i);
-                        snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 is Err.",i);
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
-                    }
-                    DataErrNum = 0;
+                if(0 == DataErrFlag)
+                {                    
+                    DataErrFlag = 1;
+                    printf("The [%d] frame Bramdata read from TMS570 is Err.\n",i);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 is Err.",i);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
                 }
+                DataErrNum = 0;
             }
-            if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
-            {
-                for(j=0;j<bram_data[i].length;j++)
-                    printf("TMS570:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
-            } 
         }
+        if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+        {
+            for(j=0;j<bram_data[i].length;j++)
+                printf("TMS570:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
+        } 
+        
     }
     return ReadErr;
 }
