@@ -697,24 +697,30 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Write_Option(int8_t socket_fd,can_frame *can_frame_data)
+int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data)
 {    
-  
-    nbytes = write(socket_fd,can_frame_data, sizeof(can_frame_data));
-    if(nbytes != sizeof(can_frame_data))
-    {               
-        errnum_wr++;
-        if(errnum_wr >=10)
-        {
-            snprintf(loginfo, sizeof(loginfo)-1, "CAN Send frame[%u] Error!");
-            WRITELOGFILE(LOG_ERROR_1,loginfo);
-            errnum_wr = 0;
-        }
-        
-    }
-    else
+    uint8_t i,nbytes;
+    static uint8_t errnum_wr=0;
+    char loginfo[LOG_INFO_LENG]={0};
+
+    for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
     {
-        errnum_wr =0;
+        nbytes = write(socket_fd,&can_frame_data[i], sizeof(can_frame_data[i]));
+        if(nbytes != sizeof(can_frame_data[i]))
+        {                
+            printf("CAN1 Send frame[%u] Error!\n",can_frame_data[i].can_id);
+            errnum_wr++;
+            if(errnum_wr >=10)
+            {
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN1 Send frame[%u] Error!",can_frame_data[i].can_id);
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
+                errnum_wr = 0;
+            }                
+        }
+        else
+        {
+            errnum_wr =0;
+        }
     }
            
 }
@@ -726,25 +732,31 @@ int8_t CAN_Write_Option(int8_t socket_fd,can_frame *can_frame_data)
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Read_Option(int8_t socket_fd,can_frame *can_frame_data)
+int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data)
 {
+    uint8_t i,j,nbytes;
+    static uint8_t errnum_rd=0,errnum_timeout=0;
+    char loginfo[LOG_INFO_LENG]={0};
+    fd_set rdfs={0};
+    struct timeval tv_select={0,1000};
+
     for(i=0;i<CAN0_READ_FRAME_NUM;i++)
     {            
         //FD_ZERO(&rfds);
-        //FD_SET(socket_can0,&rfds);
-        //ret = select(socket_can0+1,&rfds,NULL,NULL,&tv_select);
+        //FD_SET(socket_fd,&rfds);
+        //ret = select(socket_fd+1,&rfds,NULL,NULL,&tv_select);
         //if(ret>0)
         {
             errnum_timeout=0;
-            nbytes = read(socket_can0,&s_can0_frame_RD_st[i],sizeof(s_can0_frame_RD_st[i]));            
-            if(nbytes != sizeof(s_can0_frame_RD_st[i]))
+            nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
+            if(nbytes != sizeof(can_frame_data[i]))
             {                
                 printf("CAN0 Receive Error frame[%d]!\n",i);
-                memset(s_can0_frame_RD_st[i].data,0,8);
+                memset(can_frame_data[i].data,0,8);
                 errnum_rd++;
                 if(errnum_rd >=10)
                 {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame[%u] Error!",s_can0_frame_RD_st[i].can_id);
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame[%u] Error!",can_frame_data[i].can_id);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
                     errnum_rd = 0;
                 }                            
@@ -770,9 +782,9 @@ int8_t CAN_Read_Option(int8_t socket_fd,can_frame *can_frame_data)
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {               
             {
-                    printf("Read CAN0 ID:0x%x:",s_can0_frame_RD_st[i].can_id & 0x1FFFFFFF);
+                    printf("Read CAN0 ID:0x%x:",can_frame_data[i].can_id & 0x1FFFFFFF);
                     for (j = 0; j < 8; j++)                    
-                        printf("[%x]",s_can0_frame_RD_st[i].data[j]);
+                        printf("[%x]",can_frame_data[i].data[j]);
                     printf("\n");
             }                                                 
         }
@@ -946,7 +958,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
 void TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype)
 {
     //Attention:数据区长度不包含CRC32，PacktLength需要在总长度上-1
-    switch (expression)
+    switch (can_devtype)
     {
         case CAN0_TYPE:       
             /*MVB A9->570*/
@@ -1121,7 +1133,7 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
 	    MVB_CmdPact_RD_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_RD_ST[i].PacktLength_U32 = 11;
     }         
-
+    /*
     BramWriteU8(Addr_wrch,s_bram_WRFlagAddr,mvb_wr_ch_num);
     BramWriteU8(Addr_rdch,s_bram_WRFlagAddr,mvb_rd_ch_num);
     usleep(100);
@@ -1150,7 +1162,7 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
         snprintf(loginfo, sizeof(loginfo)-1, "FPGA feedback wrong mvb read or write channel configures!");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         return -1;
-    }    
+    } */   
 }
 /**
  * @description: 从Bram指定区域读MVB数据,并发送给TMS570
@@ -1161,43 +1173,40 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
  */ 
 int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
 {
-
     int8_t ReadErr = 0,i,j;
     char loginfo[LOG_INFO_LENG] = {0};       
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
     for(i=0;i<MVB_READ_FRAME_NUM;i++)
     {       
+        
         //Attention PacktLength是帧头加数据区长度，而帧头内的第4个字节[7:0]是指数据区的长度，请注意区分
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length =  MVB_CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 =  MVB_CmdPact_RD_ST[i].ChanNum_U8;
-
-        if(0 == g_LinuxDebug)
-        {            
-            ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,bram_data_mvb_rd[i].buffer);            
-            if(CODE_ERR == ReadErr)
+           
+        ReadErr = BoardDataRead(&s_bram_RD_B_BLVDSBlckAddr_ST,bram_data_mvb_rd[i].buffer);
+                    
+        if(CODE_ERR == ReadErr)
+        {
+            DataErrNum++;  
+            if(DataErrNum > BRAMERR_NUM) 
             {
-                DataErrNum++;  
-                if(DataErrNum > BRAMERR_NUM) 
-                {
-                    if(0 == DataErrFlag)
-                    {                    
-                        DataErrFlag = 1;
-                        printf("The [%d] frame Bramdata read from MVB is Err.\n",i);
-                        snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from MVB is Err.",i);
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
-                    }
-                    DataErrNum = 0;
+                if(0 == DataErrFlag)
+                {                    
+                    DataErrFlag = 1;
+                    printf("The [%d] frame Bramdata read from MVB is Err.\n",i);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from MVB is Err.",i);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
                 }
+                DataErrNum = 0;
             }
-            if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
-            {
-                for(j=0;j<bram_data_mvb_rd[i].length;j++)
-                    printf("MVB:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data_mvb_rd[i].buffer[j]);              
-            } 
         }
-    }
-    MVB_RD_Data_proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);
+        if(MVB_RD_DEBUG == g_DebugType_EU)
+        {
+            for(j=0;j<15;j++)
+                printf("MVB:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data_mvb_rd[i].buffer[j]);              
+        }        
+    }    
     return ReadErr;
 }
 
@@ -1217,7 +1226,7 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     uint8_t DataErrNum  = 0;     
     static uint16_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST[MVB_WRITE_FRAME_NUM] = {0};
-    MVB_WR_Data_proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
+    
     for(i+0;i<MVB_WRITE_FRAME_NUM;i++)
     {
         
@@ -1244,4 +1253,26 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     
     Life_signal++;
     return WriteErr;
+}
+/**
+ * @description: 
+ * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
+ *               uint8_t frame_nums  
+ * @return       {uint8_t} WriteErr   写数据返回值
+ * @author:      zlz
+ */
+int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bram_data_tms570_rd)
+{
+
+}
+/**
+ * @description: 
+ * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
+ *               uint8_t frame_nums  
+ * @return       {uint8_t} WriteErr   写数据返回值
+ * @author:      zlz
+ */
+int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bram_data_tms570_wr)
+{
+    
 }

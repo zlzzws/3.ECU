@@ -452,8 +452,10 @@ typedef enum _DEBUG_TYPE
 	TMS570_BRAM_WR_DEBUG= 20,				//将数据写入Bram发送给TMS570打印
     CAN_RD_DEBUG        = 21,
     CAN_WR_DEBUG        = 22,
-	FileSave_DEBUG 		= 23,				//外设文件存储调试打印
-	socket_Debug 		= 24				//调试CSR_Drive与A9的Socket通讯
+	MVB_WR_DEBUG		= 23,
+	MVB_RD_DEBUG		= 24,
+	FileSave_DEBUG 		= 25,				//外设文件存储调试打印
+	socket_Debug 		= 26				//调试CSR_Drive与A9的Socket通讯
 }DEBUG_TYPE_ENUM;
 
 typedef enum _COMMU_MCU
@@ -542,8 +544,7 @@ typedef struct
 	pthread_t DirTarThread;	
 	pthread_t CAN0Thread;
     pthread_t CAN1Thread;
-	pthread_t MVBThread;
-	pthread_t TMS570_Bram_Thread;	
+	pthread_t MVBThread;		
 }PTHREAD_INFO;
 
 typedef struct

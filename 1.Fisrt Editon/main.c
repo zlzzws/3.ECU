@@ -17,7 +17,6 @@
 *Include file  section
 *
 *********************************************************************/
-#include "BaseDefine.h"
 #include "Socket.h"
 #include "BramDataProc.h"
 #include "ModbusSer.h"
@@ -500,23 +499,15 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         perror("create CAN1ThreadFunc failed");
         snprintf(loginfo, sizeof(loginfo)-1, "create CAN1ThreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
-    
-    res = pthread_create(&pthread_ST_p -> TMS570_Bram_Thread, NULL,TMS570_Bram_ThreadFunc, NULL); 
-    if (res != 0) 
-    { 
-        perror("create TMS570_Bram_ThreadFun failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create TMS570_Bram_ThreadFun failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);      
-    }
+    }    
+ 
     /*pthread_detach(pthread_ST_p -> DirTarThread);
     pthread_detach(pthread_ST_p -> RealWaveThread);
     pthread_detach(pthread_ST_p -> TRDPThread);
     pthread_detach(pthread_ST_p -> ModbusThread);*/       
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
-    pthread_detach(pthread_ST_p -> CAN1Thread);
-    pthread_detach(pthread_ST_p -> TMS570_Bram_Thread);    
+    pthread_detach(pthread_ST_p -> CAN1Thread);       
 }
 
 /**********************************************************************
@@ -1514,37 +1505,8 @@ void *LEDWachDogPthreadFunc (void *arg)
     pthread_exit(NULL);
 }
 #endif
-/**********************************************************************
-*Name           :   CAN_DataReadThreaFunc  
-*Function       :   read/write the CAN data between Bram and A9 
-*Para           :  
-*Version        :   REV1.0.0       
-*Author:        :   zlz
-*direction      :方向以TRDP为基准，接收570数据发送给TRDP认为Send，接收TRDP数据发送570认为Recv
-*History:
-*REV1.0.0     zlz    2021/9/6  Create
-*********************************************************************/
-void *TMS570_Bram_ThreadFunc(void *arg) 
-{
-    //#if 0 //FIXME:将这个线程和CAN线程融合
-    uint8_t ret = 0;   
-    static uint32_t Can_RecordNum = 0;//文件存储条数计数
-    uint8_t CAN_Record_Date[16] = {0};    
-    //帧文件头参数填充
-    
-    
-    while(g_LifeFlag > 0)
-    {        
-        //从Bram指定地址读取数据        
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st);        
-        usleep(100000);
-        //向Bram指定地址写入数据        
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st);      
-    }    
-    printf("exit TMS570_Bram_Thread Function!\n");//TODO:考虑每个线程退出时记录在日志中
-    pthread_exit(NULL);
-    //#endif
-}
+
+
 
 /**********************************************************************
 *Name           :   CAN0ThreadFunc  
@@ -1558,12 +1520,13 @@ void *TMS570_Bram_ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {    
+    #if 0
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
     struct sockaddr_can addr_can0;
     struct ifreq ifr_can0;
-    fd_set rfds;
+    fd_set rfds ={0};
     struct timeval tv={0},tv_select={0,5000};
     struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
@@ -1671,7 +1634,8 @@ void *CAN0ThreadFunc(void *arg)
         usleep(100000);
     }
     close(socket_can0);
-    return 0;    
+    return 0;
+    #endif    
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1684,7 +1648,7 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{
+{     
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can1,nbytes;
@@ -1712,86 +1676,20 @@ void *CAN1ThreadFunc(void *arg)
     {        
         TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[4],4,4);
         CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        for(i=0;i<CAN1_WRITE_FRAME_NUM;i++)
-        {
-            nbytes = write(socket_can1,&s_can1_frame_WR_st[i], sizeof(s_can1_frame_WR_st[i]));
-            if(nbytes != sizeof(s_can1_frame_WR_st[i]))
-            {                
-                printf("CAN1 Send frame[%u] Error!\n",s_can1_frame_WR_st[i].can_id);
-                errnum_wr++;
-                if(errnum_wr >=10)
-                {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN1 Send frame[%u] Error!",s_can0_frame_WR_st[i].can_id);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    errnum_wr = 0;
-                }                
-            }
-            else
-            {
-                errnum_wr =0;
-            }
-        }        
-        for(i=0;i<CAN1_READ_FRAME_NUM;i++)
-        {            
-            //FD_ZERO(&rfds);
-            //FD_SET(socket_can1,&rfds);
-            //ret = select(socket_can1+1,&rfds,NULL,NULL,&tv_select);
-            //if(ret>0)
-            {
-                errnum_timeout=0;
-                nbytes = read(socket_can1,&s_can1_frame_RD_st[i],sizeof(s_can1_frame_RD_st[i]));            
-                if(nbytes != sizeof(s_can1_frame_RD_st[i]))
-                {                
-                    printf("CAN1 Receive Error frame[%d]!\n",i);
-                    memset(s_can1_frame_RD_st[i].data,0,8);
-                    errnum_rd++;
-                    if(errnum_rd >=10)
-                    {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN1 receive frame[%u] Error!",s_can0_frame_RD_st[i].can_id);
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);
-                        errnum_rd = 0;
-                    }                            
-                }
-                else
-                {
-                    errnum_rd = 0;
-                }                
-            }
-            *//*else
-            {
-                errnum_timeout++;
-                if(errnum_timeout==1)
-                    printf("can0 read time out ,already receive %d frames!\n",i);
-                printf("can0 read time out %d times!\n",errnum_timeout);
-                if(errnum_timeout >=13)
-                {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    errnum_timeout = 0;
-                } 
-            }*//*            
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {               
-                {
-                    printf("Read CAN1 ID:0x%x:",s_can1_frame_RD_st[i].can_id & 0x1FFFFFFF);
-                    for (j = 0; j < 8; j++)                    
-                        printf("[%x]",s_can1_frame_RD_st[i].data[j]);
-                    printf("\n");
-                }                                                 
-            }
-        }                     
+        CAN_Write_Option(socket_can1,s_can1_frame_WR_st);
+
+        CAN_Read_Option(socket_can1,s_can1_frame_RD_st);               
         CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE,CAN1_READ_FRAME_NUM);
         TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[4],4,4);         
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {            
             for (j = 0; j < 25; j++)
                 printf("A9->570 BramData[4][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[4].buffer[j]);
-            
-        }*/        
+        }    
         usleep(100000);
     }
     close(socket_can1);
-    return 0;
+    return 0;    
 }
 /**********************************************************************
 *Name           :   MVBThreadFunc  
@@ -1810,17 +1708,17 @@ void *MVBThreadFunc(void *arg)
 
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
     
-    while(g_LifeFlag>0 && ret==0)
+    while(1)
     {       
-        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);
-        
-        TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
+        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
+        //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
+        //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
         
         usleep(100000);
 
-        TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
-        
-        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);                   
+        //TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
+        //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
+        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                   
     }
 
     printf("exit MVBThreadFunc Function!\n");

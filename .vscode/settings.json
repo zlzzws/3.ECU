@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "basedefine.h": "c",
-        "socket.h": "c"
+        "socket.h": "c",
+        "timer.h": "c",
+        "bramdataproc.h": "c",
+        "gpiocontrol.h": "c",
+        "modbusclientrtu.h": "c"
     }
 }

@@ -87,6 +87,8 @@ int8_t 	SetTimeFromRTC(BRAM_ADDRS *RDSpcBlk_p,BRAM_ADDRS *WRSpcBlk_p);
 int8_t 	BramCloseMap(void);
 int8_t 	Bram_Mapping_Init(EADS_ERROR_INFO * EADSErrInfop,uint8_t EADSType);
 void 	CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candata_WR,uint8_t can_devtype);
+int8_t 	CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data);
+int8_t 	CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data);
 void 	CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype);
 void 	CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype,uint8_t can_frame_num);
 void 	TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype);
