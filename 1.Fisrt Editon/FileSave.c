@@ -2399,30 +2399,29 @@ int8_t EventFileTopSet(TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FI
     time(&timep_ST); 
     now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
 
-    DriveTop_ST_p ->RecEnDianType_U16 = 0x01; //small End
-    DriveTop_ST_p ->RecHeadSize_U16=0x82; // the top size by byte
+    DriveTop_ST_p ->RecEnDianType_U16 = 0x01;//small End
+    DriveTop_ST_p ->RecHeadSize_U16=0x82; // 0x82->130
     DriveTop_ST_p ->RecHeadVer_U16=100; 
-    DriveTop_ST_p ->RecordType_U16 = RecXm_p -> Rec_Event_ST.RecTypeIdx; //  TYPE 1=Event 2=Log 3=Fast 4=Real
+    DriveTop_ST_p ->RecordType_U16 = RecXm_p -> Rec_Event_ST.RecTypeIdx; //TYPE 1=Event 2=Log 3=Fast 4=Real
     DriveTop_ST_p ->ProjectNo_U16 = 0x00;
     DriveTop_ST_p ->DCUType_U16 = 0x00;
     DriveTop_ST_p ->VehicleNo_U16 = TranInfo_ST_p -> CoachNum_U8;
     DriveTop_ST_p ->DCUNO_U16 = 0x00;
-    DriveTop_ST_p ->RecordTotalChnNum_U16 = RecXm_p -> Rec_Event_ST.RecTotalChn_U8; //96 number
-    DriveTop_ST_p ->RecordChnNum_U16 = RecXm_p -> Rec_Event_ST.RecChnNum_U8 ;      //Event chanal num is 8 +70=78
+    DriveTop_ST_p ->RecordTotalChnNum_U16 = RecXm_p -> Rec_Event_ST.RecTotalChn_U8;
+    DriveTop_ST_p ->RecordChnNum_U16 = RecXm_p -> Rec_Event_ST.RecChnNum_U8 ;
     DriveTop_ST_p ->RecordInterval_U16= RecXm_p -> Rec_Event_ST.RecInterval;
       
     DriveTop_ST_p ->ChnMask1_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask1; 
-    DriveTop_ST_p ->ChnMask2_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask2;// Analog signal
+    DriveTop_ST_p ->ChnMask2_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask2;
     DriveTop_ST_p ->ChnMask3_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask3;
     DriveTop_ST_p ->ChnMask4_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask4;
     DriveTop_ST_p ->ChnMask5_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask5;
     DriveTop_ST_p ->ChnMask6_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask6;
 
-    DriveTop_ST_p ->RecordBefore_U16= RecXm_p -> Rec_Event_ST.RecBeforeNum;  //fault-before point number
-    DriveTop_ST_p ->RecordAfter_U16= RecXm_p ->  Rec_Event_ST.RecAfterNum;    //fault-after point number
-    DriveTop_ST_p ->RecordTotal_U16= RecXm_p -> Rec_Event_ST.RecToTalNum;   //wave count number/ log count number /not event count number
-
-     //uint8_T
+    DriveTop_ST_p ->RecordBefore_U16= RecXm_p -> Rec_Event_ST.RecBeforeNum;  
+    DriveTop_ST_p ->RecordAfter_U16= RecXm_p ->  Rec_Event_ST.RecAfterNum;  
+    DriveTop_ST_p ->RecordTotal_U16= RecXm_p -> Rec_Event_ST.RecToTalNum; 
+    
     DriveTop_ST_p ->RecordTime_MT= (1 + now_time_p_ST->tm_mon);
     DriveTop_ST_p ->RecordTime_YY = (uint8_t)((1900 + now_time_p_ST->tm_year) - 2000);
     DriveTop_ST_p ->RecordTime_HH = (now_time_p_ST->tm_hour);
@@ -2461,7 +2460,7 @@ int8_t EventFileTopSet(TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FI
 *History:
 *REV1.0.0     feng    2020/1/7  Create
 *********************************************************************/
-int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML * RecXm_p,TRAIN_INFO * TranInfo_ST_p)
+int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML *RecXm_p,TRAIN_INFO *TranInfo_ST_p)
 {
     int8_t fwerr = 0;
     DRIVE_FILE_TOP DriveEventTop_ST = {0};
@@ -2586,9 +2585,8 @@ int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
 *History:
 *REV1.0.0     feng    2020/6/29  Create
 *********************************************************************/
-int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
-{ 
-    //FILE *fd;
+int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
+{     
     uint8_t File_EventName_U8[200] = {0};
     uint8_t File_Directory_U8[200] = {0};
     uint8_t TimeString_U8[40] = {0};
@@ -2602,36 +2600,25 @@ int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * 
 
     time(&timep_ST);
     now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
-    sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",
-          (1900 + now_time_p_ST->tm_year), 
-          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,
+    sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",(1900 + now_time_p_ST->tm_year),\
+          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,\
           now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec); 
-        // add year month folder
+        
     if(0 == g_LinuxDebug)
     {
-        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
-   
-    }
-    //for ubuntu linux test 
-    else
-    {
-        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
-   
-    }  
-    /*a new day*/
+        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8);   
+    } 
+    /*machine run into a new day*/
     if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
     {
-        //powon not run
+        //exclude the power-on condition
         if(strlen(s_EventPowOnDataString) != 0) 
         {
 			FileSpaceProc(&g_Rec_XML_ST);//for new day
 			LogFileCreatePowOn();
             printf("after LogFileCreatePowOn\n");
-
         }
-        memcpy(s_EventPowOnDataString,TimeString_U8,8);        
-
-         //should make sure
+        memcpy(s_EventPowOnDataString,TimeString_U8,8);
         if(0 == g_LinuxDebug)
         {
             GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
@@ -2651,16 +2638,7 @@ int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * 
 		           DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
 
 		       }
-     
-               // DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
             }
-        }
-        //for ubuntu linux test 
-        else
-        {
-            //DeleteEarliestDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA");
-            DeleteEarliestFile("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",RECORD_FILE_TYPE);
-
         }
         err = MultiDircCreate(File_Directory_U8);
         if(CODE_CREAT == err)
@@ -2673,46 +2651,45 @@ int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * 
     snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,
         RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
 
-    //g_fd_EventName = fopen(File_EventName_U8, "a+"); 
     file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");
     if(NULL ==  file_p ->EventFile_fd)
     {
         TryNum ++;
         perror("creat Eventfile.dat file failed");
+        while(TryNum < FILETRY_NUM)
+        {
+            file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");   
+            if(NULL ==  file_p -> EventFile_fd )
+            {
+                TryNum ++;
+                perror("creat Eventfile.dat File failed again");
+            }
+            else
+            {
+                /*quit the cycle*/
+                TryNum = 0;
+                EADSErrInfo_ST -> EADSErr = 0;
+                printf("creat file %s\n",File_EventName_U8);
+                snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
+                WRITELOGFILE(LOG_INFO_1,loginfo); 
+                break; 
+            }
+        }
+        if(TryNum >= FILETRY_NUM)
+        {        
+            EADSErrInfo_ST -> EADSErr = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;
+            return err;
+        }
     }
     else
     {
         EADSErrInfo_ST -> EADSErr = 0;
-        printf("creat file %s\n",File_EventName_U8);
-        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s",File_EventName_U8);
+        printf("creat file %s success!\n",File_EventName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
         WRITELOGFILE(LOG_INFO_1,loginfo);        
-    } 
-    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
-    {
-        file_p -> EventFile_fd = fopen(File_EventName_U8, "a+"); //every time creat the file and write replace   
-        if(NULL ==  file_p -> EventFile_fd )
-        {
-            TryNum ++;
-            perror("creat Eventfile.dat File failed again");
-        }
-        else
-        {
-            TryNum = 0;/*quit the while*/
-            EADSErrInfo_ST -> EADSErr = 0;
-            printf("creat file %s\n",File_EventName_U8);
-            snprintf(loginfo, sizeof(loginfo)-1, "creat  file %s",File_EventName_U8);
-            WRITELOGFILE(LOG_INFO_1,loginfo);    
-        }
-
-    }
-    if(TryNum >= FILETRY_NUM)
-    {
-        
-        EADSErrInfo_ST -> EADSErr = 1;
-        snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed %m");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-        err  = CODE_ERR;
-        return err;
     }
     err = EventFileTopSave(file_p ->EventFile_fd,RrdXml_p,TranInfo_p);
     return err;

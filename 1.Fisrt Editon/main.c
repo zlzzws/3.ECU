@@ -26,7 +26,7 @@
 sem_t               g_RealSend_sem;
 DEBUG_TYPE_ENUM     g_DebugType_EU;
 EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};
-TRAIN_INFO          g_TrainInfo_ST = {0};
+TRAIN_INFO          g_TrainInfo_ST = {0,0};
 VERSION             g_Version_ST = {0};
 RECORD_XML          g_Rec_XML_ST = {0};
 SPACE_JUDGE_VALUE   g_SpaceJudge_ST = {0};
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
     /*Event File xml_config_file*/
     SysXmlParInit(ECU_CONFIG,&g_Rec_XML_ST,&g_Version_ST);
     XmlParJudge(&g_Rec_XML_ST);   
-    //EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
+    EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
     VersionInit(&g_Version_ST);                
     VersionSave(&g_Version_ST);               
     ThreadInit(&g_Pthread_ST);

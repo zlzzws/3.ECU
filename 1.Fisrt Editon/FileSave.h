@@ -96,14 +96,13 @@ typedef struct
 	uint16_t PulseChnMask4_U16;
 	uint16_t PulseChnMask5_U16;
 	uint16_t PulseChnMask6_U16;
-
-}DRIVE_FILE_TOP;//csr_driver的文件头格式，130个字节
+}DRIVE_FILE_TOP;
 
 typedef struct
 {
-  	uint8_t DriveDigital_U8[DIGITAL_NUM_BYTE]; //max 16 word  now 8 Word
-  	uint16_t DriveAnalog_U16[ALL_CHAN_NUM]; //max 80 word   ANALOG_NUM_WORD 
-}DRIVE_FILE_DATA;//csr_driver的文件头格式，130个字节
+  	uint8_t DriveDigital_U8[DIGITAL_NUM_BYTE]; 	//max 16 word  	Digital
+  	uint16_t DriveAnalog_U16[ALL_CHAN_NUM]; 	//max 80 word   Analog
+}DRIVE_FILE_DATA;
 
 typedef struct
 {
