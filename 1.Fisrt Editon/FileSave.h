@@ -129,24 +129,24 @@ typedef struct
 *Global Prototype Declare Section
 *
 *********************************************************************/
-int8_t FileCreatePowOn(FILE_FD *file_p,RECORD_XML *RrdXml_p,RECORD_XML *RrdLifeXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO *EADSErrInfo_p);
+/*
+int8_t FileCreatePowOn(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO *EADSErrInfo_p);
 int8_t WriteFile(FILE *FilePath,uint16_t Length,uint8_t *BufferIn);
-int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);
-int8_t EventDataSave(FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO  EADSErrInfoST,const CHAN_LG_INFO LgInfoST,
-		const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,const CHAN_STATUS_INFO  ChanInfop);
 int8_t OperNumFileSave(FILE_FD * File_p, CHAN_STATUS_INFO * ChanStaInfo_p,RECORD_XML * RrdXml_p,TRAIN_INFO * inTranInfo_p);
 int8_t FltRealFileProc(FILE_FD * File_p, CHAN_STATUS_INFO * InStusInfo_p,RECORD_XML * xml_p,TRAIN_INFO * TranInfo_p,uint8_t ProcNum,uint8_t EADSType);
 int8_t ChanCalibFileCreat(FILE_FD *file_p,uint8_t *path,EADS_ERROR_INFO  *EADSErrInfo_ST);
 int8_t ChanCalibDataSave(FILE * fd,CHAN_CALIB_DATA *CalibDataSave_p);
-int8_t DirFileTar(RECORD_XML * RrdXml_p);
-int8_t FileSpaceProc(RECORD_XML * RrdXml_p);
 int8_t EventDataSaveForRelayTest(FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO	EADSErrInfoST,const CHAN_LG_INFO LgInfoST,
 			const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,const CHAN_STATUS_INFO  ChanInfop);
 int8_t EventRelayLifeSave(FILE_FD * file_p,uint8_t EADSType,const CHAN_STATUS_INFO ChanInfop);
 int8_t EventLifeFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);
 void   FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
-                 uint32_t Record_Num_U32);
-
+                 uint32_t Record_Num_U32);*/
+int8_t FileSpaceProc(RECORD_XML * RrdXml_p);
+int8_t EventDataSave(FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO  EADSErrInfoST,const CHAN_LG_INFO LgInfoST,
+		const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,const CHAN_STATUS_INFO  ChanInfop);				 
+int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);				 
+int8_t DirFileTar(RECORD_XML * RrdXml_p);
 /**********************************************************************
 *
 *Multi-Include-Prevent End Section

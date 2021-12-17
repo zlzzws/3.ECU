@@ -363,11 +363,9 @@ int8_t i2c_read(int fd,
 	    perror("ioctl()");
 	    fprintf(stderr,"ioctl WR returned %d\n",i);
         return CODE_ERR;
-	}
-	
+	}	
 	msg_rdwr.msgs = &i2cmsg;
-	msg_rdwr.nmsgs = 1;
-	
+	msg_rdwr.nmsgs = 1;	
 	i2cmsg.addr  = addr;
 	i2cmsg.flags = I2C_M_RD;
 	i2cmsg.len   = len;

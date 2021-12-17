@@ -113,24 +113,22 @@ void    *CAN1ThreadFunc(void *arg);
 
 int main(int argc, char *argv[])
 {      
-    struct timeval Time_ST,TimeEnd_ST;    
+    struct timeval Time_ST,TimeEnd_ST;
+    struct timeval A_Time_ST,A_TimeEnd_ST;
+    int SemValue = 0;
+    int SemtValue = 0;
+    int i2cbus_fd =0;   
     int8_t res=0;
     int8_t fifofd = 0;
+    int8_t fd = 0;
+    uint8_t i = 0;
+    uint8_t BOXID =0;     
     uint8_t BinLife = 0;
     uint8_t FifoWrNum = 0;
     uint8_t FifoErr = 0;
     uint16_t FifoWrTime = 0;
 	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;  
     char ArgLogInfo[LOG_INFO_LENG] = {0};
-    uint8_t BOXID =0;    
-	char begin[LOG_INFO_LENG] = {0};
-	char end[LOG_INFO_LENG] = {0};
-    int SemtValue = 0;	
-	struct timeval A_Time_ST,A_TimeEnd_ST;
-	uint8_t i = 0;
-	int SemValue = 0;
-    int i2cbus_fd =0; 
-	int8_t fd = 0;
 
 	GetMemSize("/yaffs/",&EmmcTotalSizeMB_U32,&EmmcFreeSizeMB_U32);
 	if(EmmcTotalSizeMB_U32 > 50000)//48G
@@ -153,8 +151,9 @@ int main(int argc, char *argv[])
         g_SpaceJudge_ST.UART_RESER_SPACE    = 300;
 		g_SpaceJudge_ST.MIN_RESER_SPACE     = 600;
 	}
-    //上电创建日志文件
+    
     LogFileCreatePowOn();
+
     if (argc < 4)
     {
         FuncUsage();
@@ -164,12 +163,12 @@ int main(int argc, char *argv[])
     }
 
     g_LifeFlag = 1;                                                         //生命信号标志位  
-    g_EADSType_U8 = 0;                                                      //暂时强制type为1，避免程序出现错误  
+    g_EADSType_U8 = 0;                                                      //强制type为0
     g_Version_ST.EADS_RunVer_U16 = EADS_VERSION_PTU;                        //EADS软件版本，可通过PTU查看
     g_ProcNum_U8 = 4;  
-    g_DebugType_EU = (DEBUG_TYPE_ENUM)strtoul(argv[1], NULL, 10);           //Debug类型              
-    g_PowDebug = (uint16_t)strtoul(argv[2], NULL, 10);                      //电源选项，涉及到掉电监测    
-    g_LinuxDebug = (uint16_t)strtoul(argv[3], NULL, 10);                    //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_DebugType_EU = (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);             //Debug类型              
+    g_PowDebug = (uint16_t)strtoul(argv[2],NULL,10);                        //电源选项，1-使能掉电监测    
+    g_LinuxDebug = (uint16_t)strtoul(argv[3],NULL,10);                      //软件运行环境:0:ZYNQ 1:Ubuntu
     
     ArgJudge();
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
@@ -178,16 +177,17 @@ int main(int argc, char *argv[])
 	
     if (0 == g_LinuxDebug)
     {
-       Bram_Mapping_Init(&g_EADSErrInfo_ST);      
+       Bram_Mapping_Init(&g_EADSErrInfo_ST);     
     }
     RTCTesT();
-    /**I2C*/
+    /*I2C*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
     i2c_read(i2cbus_fd,0X20,0,&BOXID,1);
-    printf("BOXID is %x\n",BOXID);    
-    printf("DataProcPowerOn!\n");
-    //DataProcPowerOn(&g_ChanStatuInfo_ST,&g_ChanCalib0VData_ST,&g_ChanCalib110VData_ST,g_ProcNum_U8,g_EADSType_U8);    
-    //FileCreatePowOn(&g_FileFd_ST,&g_Rec_XML_ST,&g_LifeRec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);      
+    printf("BOXID is %x\n",BOXID);
+    /*Event File xml_config_file*/
+    SysXmlParInit(ECU_CONFIG,&g_Rec_XML_ST,&g_Version_ST);
+    XmlParJudge(&g_Rec_XML_ST);   
+    //EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
     VersionInit(&g_Version_ST);                
     VersionSave(&g_Version_ST);               
     ThreadInit(&g_Pthread_ST);
@@ -213,8 +213,7 @@ int main(int argc, char *argv[])
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&Time_ST,NULL);                
-        }           
-        
+        }       
         if(1 == g_PowDebug)
         {
           PowDownFun();
@@ -513,7 +512,6 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
 *History:
 *REV1.0.0     feng    2020/5/6  Create
 *********************************************************************/
-
 int8_t PowDownFun(void)
 {
     struct timeval A_Time_ST,A_TimeEnd_ST;
@@ -525,8 +523,7 @@ int8_t PowDownFun(void)
     static uint8_t s_ClearPowNum = 0;
     if(POWTIME_DEBUG  == g_DebugType_EU)
     {
-        gettimeofday(&A_Time_ST,NULL);
-                
+        gettimeofday(&A_Time_ST,NULL);                
     }
     GPIO_PowDowRead(&PowDowIOValue); //cause 13~15 us
     if(POWTIME_DEBUG  == g_DebugType_EU)

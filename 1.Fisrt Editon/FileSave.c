@@ -80,232 +80,7 @@ extern uint32_t g_LinuxDebug;
 *
 *********************************************************************/
 #if 0
-/**********************************************************************
-*Name     	  :   FileWriteWithTry
-*Function     :   write with try 调用fwrite函数对文件进行写数据，并进行判断，若失败则进行尝试（3次）
-*Para         :  
-*
-*Return       :   int8_t 0,success;-1 false.
-*Version      :   REV1.0.0       
-*Author:      :   feng
-*History:
-*REV1.0.0     feng    2020/8/26  Create
-*********************************************************************/
-int8_t FileWriteWithTry(const void *Indata,uint16_t WriteSize,uint8_t WriteLength,FILE *fd)
-{
 
-    uint8_t TryNum = 0,i;
-    int8_t  Err = 0;
-    uint8_t FileWrite = 0;
-    char loginfo[LOG_INFO_LENG] = {0};
-
-    if(NULL ==  fd)
-    {
-        perror("File fp  is NULL");
-        snprintf(loginfo, sizeof(loginfo)-1, "fp is NULL");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-        return CODE_ERR;
-    }
-    FileWrite = fwrite(Indata,WriteSize,WriteLength,fd);
-    if(FileWrite == WriteLength)
-    {
-        Err = CODE_OK;
-    }
-    else
-    {
-        TryNum++;
-    }
-    
-    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
-    {
-        FileWrite = fwrite(Indata,WriteSize,WriteLength,fd);  
-        if(FileWrite != WriteLength)
-        {
-            TryNum ++;
-            perror("File data Write failde ,try again");
-            snprintf(loginfo, sizeof(loginfo)-1, "File data Write failed,try again %m");
-            WRITELOGFILE(LOG_WARN_1,loginfo);
-        }
-        else
-        {
-            TryNum = 0;/*quit the while*/
-        }
-    }
-    if(TryNum >= FILETRY_NUM)
-    {
-        perror("File data Write failde");
-        snprintf(loginfo, sizeof(loginfo)-1, "File data Write failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-        Err  = CODE_ERR; 
-    }
-    return Err;
-}
-/**********************************************************************
-*Name     :   EventFileTopSet
-*Function       :   Set the Event File Top Data According Record.xml 
-*Para         :   (TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FILE_TOP  *DriveTop_ST_p)
-*
-*Return       :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2020/3/7  Create
-*********************************************************************/
-int8_t EventFileTopSet(TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FILE_TOP  *DriveTop_ST_p)
-{   
-    int i;
-    time_t timep_ST;
-    struct tm *now_time_p_ST;
-    time(&timep_ST); 
-    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
-
-    DriveTop_ST_p ->RecEnDianType_U16 = 0x01; //small End
-    DriveTop_ST_p ->RecHeadSize_U16=0x82; // the top size by byte
-    DriveTop_ST_p ->RecHeadVer_U16=100; 
-    DriveTop_ST_p ->RecordType_U16 = RecXm_p -> Rec_Event_ST.RecTypeIdx; //  TYPE 1=Event 2=Log 3=Fast 4=Real
-    DriveTop_ST_p ->ProjectNo_U16 = 0x00;
-    DriveTop_ST_p ->DCUType_U16 = 0x00;
-    DriveTop_ST_p ->VehicleNo_U16 = TranInfo_ST_p -> CoachNum_U8;
-    DriveTop_ST_p ->DCUNO_U16 = 0x00;
-    DriveTop_ST_p ->RecordTotalChnNum_U16 = RecXm_p -> Rec_Event_ST.RecTotalChn_U8; //96 number
-    DriveTop_ST_p ->RecordChnNum_U16 = RecXm_p -> Rec_Event_ST.RecChnNum_U8 ;      //Event chanal num is 8 +70=78
-    DriveTop_ST_p ->RecordInterval_U16= RecXm_p -> Rec_Event_ST.RecInterval;
-      
-    DriveTop_ST_p ->ChnMask1_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask1; 
-    DriveTop_ST_p ->ChnMask2_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask2;// Analog signal
-    DriveTop_ST_p ->ChnMask3_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask3;
-    DriveTop_ST_p ->ChnMask4_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask4;
-    DriveTop_ST_p ->ChnMask5_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask5;
-    DriveTop_ST_p ->ChnMask6_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask6;
-
-    DriveTop_ST_p ->RecordBefore_U16= RecXm_p -> Rec_Event_ST.RecBeforeNum;  //fault-before point number
-    DriveTop_ST_p ->RecordAfter_U16= RecXm_p ->  Rec_Event_ST.RecAfterNum;    //fault-after point number
-    DriveTop_ST_p ->RecordTotal_U16= RecXm_p -> Rec_Event_ST.RecToTalNum;   //wave count number/ log count number /not event count number
-
-     //uint8_T
-    DriveTop_ST_p ->RecordTime_MT= (1 + now_time_p_ST->tm_mon);
-    DriveTop_ST_p ->RecordTime_YY = (uint8_t)((1900 + now_time_p_ST->tm_year) - 2000);
-    DriveTop_ST_p ->RecordTime_HH = (now_time_p_ST->tm_hour);
-    DriveTop_ST_p ->RecordTime_DD = (now_time_p_ST->tm_mday);
-    DriveTop_ST_p ->RecordTime_SS = (now_time_p_ST->tm_sec);
-    DriveTop_ST_p ->RecordTime_MN = (now_time_p_ST->tm_min);
-    for(i=0;i<16;i++)
-    {
-      DriveTop_ST_p ->EnvData_U16[i] = 0x00;
-      DriveTop_ST_p ->FaultCode_U16[i] = 0x00;
-    }
-
-    DriveTop_ST_p ->HavePulse_U16=0x00;
-    DriveTop_ST_p ->RecordTotalChnNumPulse_U16=0x00;
-    DriveTop_ST_p ->RecordChnNumPulse_U16=0x00;;
-    DriveTop_ST_p ->RecordIntervalPulse_U16=0x00;
-
-    DriveTop_ST_p ->PulseChnMask1_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask2_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask3_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask4_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask5_U16=0xEEEE;
-    DriveTop_ST_p ->PulseChnMask6_U16=0xEEEE;
-    return CODE_OK;
-}
-/**********************************************************************
-*Name           :   peripheralFileTopSet
-*Function       :   Set the Event File Top Data According Record.xml 
-*Para 1         :   RECORD_TYPE_CFG *REC_TYPE
-*Para 2         :   TRAIN_INFO *TranInfo_ST_p
-*Para 3         :   DRIVE_FILE_TOP  *DriveTop_ST_p
-*Return         :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2020/3/7  Create
-*********************************************************************/
-int8_t  peripheralFileTopSet(TRAIN_INFO *TranInfo_ST_p , RECORD_TYPE_CFG *REC_TYPE , DRIVE_FILE_TOP  *DriveTop_ST_p)
-{   
-    int i;
-    time_t timep_ST;
-    struct tm *now_time_p_ST;
-    time(&timep_ST); 
-    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
-
-    DriveTop_ST_p ->RecEnDianType_U16 = 0x01; //small End
-    DriveTop_ST_p ->RecHeadSize_U16=0x82; // the top size by byte
-    DriveTop_ST_p ->RecHeadVer_U16=100; 
-    DriveTop_ST_p ->RecordType_U16 = 0x1; //由于外设记录周期与EVENT类似，RECTypeIdx强制为EVENTtype
-    DriveTop_ST_p ->ProjectNo_U16 = 0x00;
-    DriveTop_ST_p ->DCUType_U16 = 0x00;
-    DriveTop_ST_p ->VehicleNo_U16 = TranInfo_ST_p -> CoachNum_U8;
-    DriveTop_ST_p ->DCUNO_U16 = 0x00;
-    DriveTop_ST_p ->RecordTotalChnNum_U16 = REC_TYPE -> RecTotalChn_U8; //16数字+80模拟
-    DriveTop_ST_p ->RecordChnNum_U16 = REC_TYPE -> RecChnNum_U8 ;    
-    DriveTop_ST_p ->RecordInterval_U16= REC_TYPE ->RecInterval;
-      
-    DriveTop_ST_p ->ChnMask1_U16 = REC_TYPE ->RecChnBitMask1;// Digtal signal[16位代表16个chan，每个chan包含16个通道]
-    DriveTop_ST_p ->ChnMask2_U16 = REC_TYPE ->RecChnBitMask2;// Analog signal
-    DriveTop_ST_p ->ChnMask3_U16 = REC_TYPE ->RecChnBitMask3;// Analog signal
-    DriveTop_ST_p ->ChnMask4_U16 = REC_TYPE ->RecChnBitMask4;// Analog signal
-    DriveTop_ST_p ->ChnMask5_U16 = REC_TYPE ->RecChnBitMask5;// Analog signal
-    DriveTop_ST_p ->ChnMask6_U16 = REC_TYPE ->RecChnBitMask6;// Analog signal
-
-    DriveTop_ST_p ->RecordBefore_U16= REC_TYPE ->RecBeforeNum;  //fault-before point number
-    DriveTop_ST_p ->RecordAfter_U16 = REC_TYPE ->RecAfterNum;   //fault-after point number
-    DriveTop_ST_p ->RecordTotal_U16 = REC_TYPE ->RecToTalNum;   //wave count number/ log count number /not event count number
-
-    //8位
-    DriveTop_ST_p ->RecordTime_MT= (1 + now_time_p_ST->tm_mon);
-    DriveTop_ST_p ->RecordTime_YY = (uint8_t)((1900 + now_time_p_ST->tm_year) - 2000);
-    DriveTop_ST_p ->RecordTime_HH = (now_time_p_ST->tm_hour);
-    DriveTop_ST_p ->RecordTime_DD = (now_time_p_ST->tm_mday);
-    DriveTop_ST_p ->RecordTime_SS = (now_time_p_ST->tm_sec);
-    DriveTop_ST_p ->RecordTime_MN = (now_time_p_ST->tm_min);
-    for(i=0;i<16;i++)
-    {
-      DriveTop_ST_p ->EnvData_U16[i] = 0x00;//环境数据
-      DriveTop_ST_p ->FaultCode_U16[i] = 0x00;//故障代码
-    }
-    //脉冲信号相关
-    DriveTop_ST_p ->HavePulse_U16=0x00;
-    DriveTop_ST_p ->RecordTotalChnNumPulse_U16=0x00;
-    DriveTop_ST_p ->RecordChnNumPulse_U16=0x00;;
-    DriveTop_ST_p ->RecordIntervalPulse_U16=0x00;
-
-    DriveTop_ST_p ->PulseChnMask1_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask2_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask3_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask4_U16=0x00;
-    DriveTop_ST_p ->PulseChnMask5_U16=0xEEEE;
-    DriveTop_ST_p ->PulseChnMask6_U16=0xEEEE;
-    return CODE_OK;
-}
-/**********************************************************************
-*Name     :   int8_t EventFileTopSave(void)
-*Function       :   Save Event File Top  to event file
-*               :   
-*Para         :   
-*Return       :   uint8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*
-*History:
-*REV1.0.0     feng    2020/1/7  Create
-*********************************************************************/
-int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML * RecXm_p,TRAIN_INFO * TranInfo_ST_p)
-{
-    int8_t fwerr = 0;
-    DRIVE_FILE_TOP DriveEventTop_ST = {0};
-    char loginfo[LOG_INFO_LENG] = {0};
-    EventFileTopSet(TranInfo_ST_p,RecXm_p,&DriveEventTop_ST);
-
-    fwerr = FileWriteWithTry(&DriveEventTop_ST,sizeof(DRIVE_FILE_TOP),1,Fd_p);
-    if(CODE_OK != fwerr)
-    {
-        printf("fwrite Event Top error");
-        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  Event Top error");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
-    fflush(Fd_p);
-    return fwerr;
-}
 /**********************************************************************
 *Name           :   int8_t peripheralFileTopSave(void)
 *Function       :   Save Event File Top  to event file
@@ -443,151 +218,7 @@ int8_t EventLifeFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INF
 
 }
 
-/**********************************************************************
-*Name         :   int8_t EventFileCreateByNum(void)
-*Function     :   Creat Event file by Eventsave Num,For PTU analysis
-                  if the remain mmc space not enough  will delete the earliest file 
-*Para         :   void 
-*
-*Return       :   int8_t 0,success;else false.
-*Version      :   REV1.0.0       
-*Author:      :   feng
-*
-*History:
-*REV1.0.0     feng    2020/6/29  Create
-*********************************************************************/
-int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
-{ 
-    //FILE *fd;
-    uint8_t File_EventName_U8[200] = {0};
-    uint8_t File_Directory_U8[200] = {0};
-    uint8_t TimeString_U8[40] = {0};
-    int8_t err = 0;
-    uint8_t TryNum = 0;
-    uint32_t TotalSizeMB_U32 = 0,FreeSizeMB_U32 = 0;
-    time_t timep_ST;   
-    struct tm *now_time_p_ST;
-    char loginfo[LOG_INFO_LENG] = {0};
-    static uint8_t s_EventPowOnDataString[10] = {0};
 
-    time(&timep_ST);
-    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
-    sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",
-          (1900 + now_time_p_ST->tm_year), 
-          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,
-          now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec); 
-        // add year month folder
-    if(0 == g_LinuxDebug)
-    {
-        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
-   
-    }
-    //for ubuntu linux test 
-    else
-    {
-        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
-   
-    }  
-    /*a new day*/
-    if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
-    {
-        //powon not run
-        if(strlen(s_EventPowOnDataString) != 0) 
-        {
-			FileSpaceProc(&g_Rec_XML_ST);//for new day
-			LogFileCreatePowOn();
-            printf("after LogFileCreatePowOn\n");
-
-        }
-        memcpy(s_EventPowOnDataString,TimeString_U8,8);        
-
-         //should make sure
-        if(0 == g_LinuxDebug)
-        {
-            GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-            if(FreeSizeMB_U32 < g_SpaceJudge_ST.EVENT_RESER_SPACE)//whether alway delete until the size is meet the size 
-            {
-               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-               WRITELOGFILE(LOG_WARN_1,loginfo);
-			   err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
-		       if(REC_FILE_TYPE == err)
-		       {
-		           DeleteEarliestFile(RrdXml_p -> Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
-
-		       }
-		       else if(REC_DIR_TYPE == err)
-		       {
-		           DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
-
-		       }
-     
-               // DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
-            }
-        }
-        //for ubuntu linux test 
-        else
-        {
-            //DeleteEarliestDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA");
-            DeleteEarliestFile("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",RECORD_FILE_TYPE);
-
-        }
-        err = MultiDircCreate(File_Directory_U8);
-        if(CODE_CREAT == err)
-        {
-            memset(loginfo,0,sizeof(loginfo));
-            snprintf(loginfo, sizeof(loginfo)-1, "make Dir %s success",File_Directory_U8);
-            WRITELOGFILE(LOG_INFO_1,loginfo); 
-        }
-    }
-    snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,
-        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
-
-    //g_fd_EventName = fopen(File_EventName_U8, "a+"); 
-    file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");
-    if(NULL ==  file_p ->EventFile_fd)
-    {
-        TryNum ++;
-        perror("creat Eventfile.dat file failed");
-    }
-    else
-    {
-        EADSErrInfo_ST -> EADSErr = 0;
-        printf("creat file %s\n",File_EventName_U8);
-        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s",File_EventName_U8);
-        WRITELOGFILE(LOG_INFO_1,loginfo);        
-    } 
-    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
-    {
-        file_p -> EventFile_fd = fopen(File_EventName_U8, "a+"); //every time creat the file and write replace   
-        if(NULL ==  file_p -> EventFile_fd )
-        {
-            TryNum ++;
-            perror("creat Eventfile.dat File failed again");
-        }
-        else
-        {
-            TryNum = 0;/*quit the while*/
-            EADSErrInfo_ST -> EADSErr = 0;
-            printf("creat file %s\n",File_EventName_U8);
-            snprintf(loginfo, sizeof(loginfo)-1, "creat  file %s",File_EventName_U8);
-            WRITELOGFILE(LOG_INFO_1,loginfo);    
-        }
-
-    }
-    if(TryNum >= FILETRY_NUM)
-    {
-        
-        EADSErrInfo_ST -> EADSErr = 1;
-        snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed %m");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-        err  = CODE_ERR;
-        return err;
-    }
-    err = EventFileTopSave(file_p ->EventFile_fd,RrdXml_p,TranInfo_p);
-    return err;
-
-}
 /**********************************************************************
 *Name         :   int8_t peripheralFileCreate(void)
 *Function     :   创建外设数据记录文件，可通过PTU解析
@@ -1597,7 +1228,7 @@ int8_t RealFileBeforWarnSave(FILE * file_p, CHAN_DATA inChanData[],uint16_t Save
     }
     return fwerr;
 }
-#if 0
+
 /**********************************************************************
 *Name         :   int8_t FltRealFileProc(uint8_t ChanName,uint8_t ChanNumTmp)
 *Function     :   the realfile save when happen warn  
@@ -1713,7 +1344,7 @@ int8_t FltRealFileProc(FILE_FD * File_p, CHAN_STATUS_INFO * InStusInfo_p,RECORD_
         }                    
     }
 }
-#endif
+
 /**********************************************************************
 *Name     :   OprtRealFileTopSet
 *Function       :   Set the Oprt Real File Top Data According Record.xml
@@ -1955,7 +1586,7 @@ int8_t OprtRealFileCreat(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * Tra
     err = OprtRealFileTopSave(file_p -> OprtRealFile_fd,RrdXml_p,TranInfo_p);
     return err;
 }     
-#if 0
+
 /**********************************************************************
 *Name     :   OprtRealFileProc
 *Function       :   save the Oprt real file 
@@ -2066,7 +1697,6 @@ int8_t OprtRealFileProc(FILE_FD *File_p, CHAN_STATUS_INFO *InStusInfo_p,RECORD_X
         }                    
     }
 }
-#endif
 /**********************************************************************
 *Name     :   int8_t ChanCalibFileCreat(void)
 *Function       :   Creat the /tffs0/ChanCalibValue.dat for save the calib value
@@ -2139,7 +1769,7 @@ int8_t ChanCalibFileCreat(FILE_FD *file_p,uint8_t *path,EADS_ERROR_INFO  *EADSEr
 *History:
 *REV1.0.0     feng    2020/6/29  Create
 *********************************************************************/
-#if 0
+
 int8_t ChanCalibDataSave(FILE * fd,CHAN_CALIB_DATA *CalibDataSave_p)
 {
    int8_t fwerr = 0;
@@ -2443,7 +2073,7 @@ int8_t OperNumFileSave(FILE_FD * File_p, CHAN_STATUS_INFO * ChanStaInfo_p,RECORD
     }
     return CODE_OK;
 }
-#endif
+
 /**********************************************************************
 *Name     :   int8_t FileCreatePowOn(void)
 *Function       :   when application run,creat  Event file and 
@@ -2468,9 +2098,385 @@ int8_t FileCreatePowOn(FILE_FD *file_p,RECORD_XML *RrdXml_p,RECORD_XML *RrdLifeX
     {
         MultiDircCreate(RrdXml_p -> Rec_Fast_ST.RecPath);
 
+    }    
+    return CODE_OK;
+}
+
+     
+
+
+/**********************************************************************
+*Name           :   peripheralFileTopSet
+*Function       :   Set the Event File Top Data According Record.xml 
+*Para 1         :   RECORD_TYPE_CFG *REC_TYPE
+*Para 2         :   TRAIN_INFO *TranInfo_ST_p
+*Para 3         :   DRIVE_FILE_TOP  *DriveTop_ST_p
+*Return         :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2020/3/7  Create
+*********************************************************************/
+int8_t  peripheralFileTopSet(TRAIN_INFO *TranInfo_ST_p , RECORD_TYPE_CFG *REC_TYPE , DRIVE_FILE_TOP  *DriveTop_ST_p)
+{   
+    int i;
+    time_t timep_ST;
+    struct tm *now_time_p_ST;
+    time(&timep_ST); 
+    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
+
+    DriveTop_ST_p ->RecEnDianType_U16 = 0x01; //small End
+    DriveTop_ST_p ->RecHeadSize_U16=0x82; // the top size by byte
+    DriveTop_ST_p ->RecHeadVer_U16=100; 
+    DriveTop_ST_p ->RecordType_U16 = 0x1; //由于外设记录周期与EVENT类似，RECTypeIdx强制为EVENTtype
+    DriveTop_ST_p ->ProjectNo_U16 = 0x00;
+    DriveTop_ST_p ->DCUType_U16 = 0x00;
+    DriveTop_ST_p ->VehicleNo_U16 = TranInfo_ST_p -> CoachNum_U8;
+    DriveTop_ST_p ->DCUNO_U16 = 0x00;
+    DriveTop_ST_p ->RecordTotalChnNum_U16 = REC_TYPE -> RecTotalChn_U8; //16数字+80模拟
+    DriveTop_ST_p ->RecordChnNum_U16 = REC_TYPE -> RecChnNum_U8 ;    
+    DriveTop_ST_p ->RecordInterval_U16= REC_TYPE ->RecInterval;
+      
+    DriveTop_ST_p ->ChnMask1_U16 = REC_TYPE ->RecChnBitMask1;// Digtal signal[16位代表16个chan，每个chan包含16个通道]
+    DriveTop_ST_p ->ChnMask2_U16 = REC_TYPE ->RecChnBitMask2;// Analog signal
+    DriveTop_ST_p ->ChnMask3_U16 = REC_TYPE ->RecChnBitMask3;// Analog signal
+    DriveTop_ST_p ->ChnMask4_U16 = REC_TYPE ->RecChnBitMask4;// Analog signal
+    DriveTop_ST_p ->ChnMask5_U16 = REC_TYPE ->RecChnBitMask5;// Analog signal
+    DriveTop_ST_p ->ChnMask6_U16 = REC_TYPE ->RecChnBitMask6;// Analog signal
+
+    DriveTop_ST_p ->RecordBefore_U16= REC_TYPE ->RecBeforeNum;  //fault-before point number
+    DriveTop_ST_p ->RecordAfter_U16 = REC_TYPE ->RecAfterNum;   //fault-after point number
+    DriveTop_ST_p ->RecordTotal_U16 = REC_TYPE ->RecToTalNum;   //wave count number/ log count number /not event count number
+
+    //8位
+    DriveTop_ST_p ->RecordTime_MT= (1 + now_time_p_ST->tm_mon);
+    DriveTop_ST_p ->RecordTime_YY = (uint8_t)((1900 + now_time_p_ST->tm_year) - 2000);
+    DriveTop_ST_p ->RecordTime_HH = (now_time_p_ST->tm_hour);
+    DriveTop_ST_p ->RecordTime_DD = (now_time_p_ST->tm_mday);
+    DriveTop_ST_p ->RecordTime_SS = (now_time_p_ST->tm_sec);
+    DriveTop_ST_p ->RecordTime_MN = (now_time_p_ST->tm_min);
+    for(i=0;i<16;i++)
+    {
+      DriveTop_ST_p ->EnvData_U16[i] = 0x00;//环境数据
+      DriveTop_ST_p ->FaultCode_U16[i] = 0x00;//故障代码
+    }
+    //脉冲信号相关
+    DriveTop_ST_p ->HavePulse_U16=0x00;
+    DriveTop_ST_p ->RecordTotalChnNumPulse_U16=0x00;
+    DriveTop_ST_p ->RecordChnNumPulse_U16=0x00;;
+    DriveTop_ST_p ->RecordIntervalPulse_U16=0x00;
+
+    DriveTop_ST_p ->PulseChnMask1_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask2_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask3_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask4_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask5_U16=0xEEEE;
+    DriveTop_ST_p ->PulseChnMask6_U16=0xEEEE;
+    return CODE_OK;
+}
+/*!
+ * Function:文件记录功能
+ * @param Device_Type_enum -设备类型
+ * @param device_FP -文件流（二级指针）
+ * @param databuf -记录的数据
+ * @param datalength -数据长度
+ * @param REC_TYPE -xml中的REC_TYPE
+ * @param Record_Num_U32 -记录帧数
+ */
+void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
+                 uint32_t Record_Num_U32) 
+{
+    struct timeval A_Time_ST,A_TimeEnd_ST;
+    DRIVE_FILE_DATA Record_Data={0};
+    uint8_t i = 0;        
+    int8_t ret_fd = 0;
+    if(TIME_DEBUG  == g_DebugType_EU)
+    {
+        gettimeofday(&A_Time_ST,NULL);
+    } 
+    if(Record_Num_U32 >= REC_TYPE->RecToTalNum)
+    {                
+        printf("s_FrameSaveNum_U32:%d\n",Record_Num_U32);
+        fflush(*device_FP);
+        ret_fd = fileno(*device_FP);
+        fsync(ret_fd);
+        fclose(*device_FP);
+        *device_FP = NULL;
+        peripheralFileCreate(Device_Type_enum,device_FP,REC_TYPE,&g_TrainInfo_ST,&g_EADSErrInfo_ST);                  
+    }
+	else if(0 == (Record_Num_U32 % Peri_FILE_SYNC_NUM ))//每50次记录刷新缓存,理论是5s
+    {
+		fflush(*device_FP);
+        ret_fd = fileno(*device_FP);
+        fsync(ret_fd);
+	}
+    memcpy(&Record_Data,databuf,datalength);
+    peripheralDataSave(*device_FP,&Record_Data);
+       
+    //保存数组至记录文件中    
+    if(TIME_DEBUG  == g_DebugType_EU)
+    {
+            gettimeofday(&A_TimeEnd_ST,NULL);
+            printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
+            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
+    }
+} 
+#endif
+/**********************************************************************
+*Name     :   int8_t DirFileTar
+*Function       :   tar the Event ,RealFlt,RealOprt directory which create before today
+*Para         :   void 
+*
+*Return       :   int8_t 0,success;else false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*
+*History:
+*REV1.0.0     feng    2020/6/29  Create
+*note Para  can improve with Freesize
+*********************************************************************/
+int8_t DirFileTar(RECORD_XML * RrdXml_p)
+{ 
+    //FILE *fd;
+    uint8_t File_EventName_U8[200] = {0};
+    uint8_t File_Directory_U8[200] = {0};
+    uint8_t TimeString_U8[40] = {0};
+    int8_t err = 0;
+    time_t timep_ST;   
+    struct tm *now_time_p_ST;
+    char loginfo[LOG_INFO_LENG] = {0};
+
+    time(&timep_ST);
+    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
+    sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",
+          (1900 + now_time_p_ST->tm_year), 
+          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,
+          now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec); 
+        // add year month folder
+	
+	/*firsttar Realflt dir*/
+	memset(File_Directory_U8,0,sizeof(File_Directory_U8));
+	if(0 == g_LinuxDebug)
+	{
+		sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Real_ST.RecPath,TimeString_U8); 
+		
+	}
+	//for ubuntu linux test 
+	else
+	{
+		sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",TimeString_U8);//for ubuntu linux test	
+	} 		
+	/*first tar Realflt file*/
+	if(0 == g_LinuxDebug)
+	{
+		TarDir(RrdXml_p -> Rec_Real_ST.RecPath,File_Directory_U8);
+	}
+	else
+	{
+		TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",File_Directory_U8);
+	}
+    /*senond tar event dir*/
+    if(0 == g_LinuxDebug)
+    {
+        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
+   
+    }
+    //for ubuntu linux test 
+    else
+    {
+        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
+   
+    }
+     /*senond tar event file*/
+    if(0 == g_LinuxDebug)
+    {
+        TarDir(RrdXml_p -> Rec_Event_ST.RecPath,File_Directory_U8);
+    }
+    else
+    {
+        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",File_Directory_U8);
+    }   
+    /*last RealOprt dir*/
+    memset(File_Directory_U8,0,sizeof(File_Directory_U8));
+     if(0 == g_LinuxDebug)
+    {
+        sprintf(File_Directory_U8,"%s%8.8s",OPRTFILE_DIR,TimeString_U8); 
+   
+    }
+    //for ubuntu linux test 
+    else
+    {
+        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",TimeString_U8);//for ubuntu linux test  
+   
+    }
+     /*last tar event file*/
+    if(0 == g_LinuxDebug)
+    {
+        TarDir(OPRTFILE_DIR,File_Directory_U8);
+    }
+    else
+    {
+        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",File_Directory_U8);
+    }
+    return err;
+}
+/**********************************************************************
+*Name     	  :   FileWriteWithTry
+*Function     :   write with try 调用fwrite函数对文件进行写数据，并进行判断，若失败则进行尝试（3次）
+*Para         :  
+*
+*Return       :   int8_t 0,success;-1 false.
+*Version      :   REV1.0.0       
+*Author:      :   feng
+*History:
+*REV1.0.0     feng    2020/8/26  Create
+*********************************************************************/
+int8_t FileWriteWithTry(const void *Indata,uint16_t WriteSize,uint8_t WriteLength,FILE *fd)
+{
+
+    uint8_t TryNum = 0,i;
+    int8_t  Err = 0;
+    uint8_t FileWrite = 0;
+    char loginfo[LOG_INFO_LENG] = {0};
+
+    if(NULL ==  fd)
+    {
+        perror("File fp  is NULL");
+        snprintf(loginfo, sizeof(loginfo)-1, "fp is NULL");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+        return CODE_ERR;
+    }
+    FileWrite = fwrite(Indata,WriteSize,WriteLength,fd);
+    if(FileWrite == WriteLength)
+    {
+        Err = CODE_OK;
+    }
+    else
+    {
+        TryNum++;
     }
     
+    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
+    {
+        FileWrite = fwrite(Indata,WriteSize,WriteLength,fd);  
+        if(FileWrite != WriteLength)
+        {
+            TryNum ++;
+            perror("File data Write failde ,try again");
+            snprintf(loginfo, sizeof(loginfo)-1, "File data Write failed,try again %m");
+            WRITELOGFILE(LOG_WARN_1,loginfo);
+        }
+        else
+        {
+            TryNum = 0;/*quit the while*/
+        }
+    }
+    if(TryNum >= FILETRY_NUM)
+    {
+        perror("File data Write failde");
+        snprintf(loginfo, sizeof(loginfo)-1, "File data Write failed");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+        Err  = CODE_ERR; 
+    }
+    return Err;
+}
+/**********************************************************************
+*Name     :   EventFileTopSet
+*Function       :   Set the Event File Top Data According Record.xml 
+*Para         :   (TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FILE_TOP  *DriveTop_ST_p)
+*
+*Return       :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2020/3/7  Create
+*********************************************************************/
+int8_t EventFileTopSet(TRAIN_INFO * TranInfo_ST_p, RECORD_XML * RecXm_p,DRIVE_FILE_TOP  *DriveTop_ST_p)
+{   
+    int i;
+    time_t timep_ST;
+    struct tm *now_time_p_ST;
+    time(&timep_ST); 
+    now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
+
+    DriveTop_ST_p ->RecEnDianType_U16 = 0x01; //small End
+    DriveTop_ST_p ->RecHeadSize_U16=0x82; // the top size by byte
+    DriveTop_ST_p ->RecHeadVer_U16=100; 
+    DriveTop_ST_p ->RecordType_U16 = RecXm_p -> Rec_Event_ST.RecTypeIdx; //  TYPE 1=Event 2=Log 3=Fast 4=Real
+    DriveTop_ST_p ->ProjectNo_U16 = 0x00;
+    DriveTop_ST_p ->DCUType_U16 = 0x00;
+    DriveTop_ST_p ->VehicleNo_U16 = TranInfo_ST_p -> CoachNum_U8;
+    DriveTop_ST_p ->DCUNO_U16 = 0x00;
+    DriveTop_ST_p ->RecordTotalChnNum_U16 = RecXm_p -> Rec_Event_ST.RecTotalChn_U8; //96 number
+    DriveTop_ST_p ->RecordChnNum_U16 = RecXm_p -> Rec_Event_ST.RecChnNum_U8 ;      //Event chanal num is 8 +70=78
+    DriveTop_ST_p ->RecordInterval_U16= RecXm_p -> Rec_Event_ST.RecInterval;
+      
+    DriveTop_ST_p ->ChnMask1_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask1; 
+    DriveTop_ST_p ->ChnMask2_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask2;// Analog signal
+    DriveTop_ST_p ->ChnMask3_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask3;
+    DriveTop_ST_p ->ChnMask4_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask4;
+    DriveTop_ST_p ->ChnMask5_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask5;
+    DriveTop_ST_p ->ChnMask6_U16 = RecXm_p -> Rec_Event_ST.RecChnBitMask6;
+
+    DriveTop_ST_p ->RecordBefore_U16= RecXm_p -> Rec_Event_ST.RecBeforeNum;  //fault-before point number
+    DriveTop_ST_p ->RecordAfter_U16= RecXm_p ->  Rec_Event_ST.RecAfterNum;    //fault-after point number
+    DriveTop_ST_p ->RecordTotal_U16= RecXm_p -> Rec_Event_ST.RecToTalNum;   //wave count number/ log count number /not event count number
+
+     //uint8_T
+    DriveTop_ST_p ->RecordTime_MT= (1 + now_time_p_ST->tm_mon);
+    DriveTop_ST_p ->RecordTime_YY = (uint8_t)((1900 + now_time_p_ST->tm_year) - 2000);
+    DriveTop_ST_p ->RecordTime_HH = (now_time_p_ST->tm_hour);
+    DriveTop_ST_p ->RecordTime_DD = (now_time_p_ST->tm_mday);
+    DriveTop_ST_p ->RecordTime_SS = (now_time_p_ST->tm_sec);
+    DriveTop_ST_p ->RecordTime_MN = (now_time_p_ST->tm_min);
+    for(i=0;i<16;i++)
+    {
+      DriveTop_ST_p ->EnvData_U16[i] = 0x00;
+      DriveTop_ST_p ->FaultCode_U16[i] = 0x00;
+    }
+
+    DriveTop_ST_p ->HavePulse_U16=0x00;
+    DriveTop_ST_p ->RecordTotalChnNumPulse_U16=0x00;
+    DriveTop_ST_p ->RecordChnNumPulse_U16=0x00;;
+    DriveTop_ST_p ->RecordIntervalPulse_U16=0x00;
+
+    DriveTop_ST_p ->PulseChnMask1_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask2_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask3_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask4_U16=0x00;
+    DriveTop_ST_p ->PulseChnMask5_U16=0xEEEE;
+    DriveTop_ST_p ->PulseChnMask6_U16=0xEEEE;
     return CODE_OK;
+}
+
+/**********************************************************************
+*Name     :   int8_t EventFileTopSave(void)
+*Function       :   Save Event File Top  to event file
+*               :   
+*Para         :   
+*Return       :   uint8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*
+*History:
+*REV1.0.0     feng    2020/1/7  Create
+*********************************************************************/
+int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML * RecXm_p,TRAIN_INFO * TranInfo_ST_p)
+{
+    int8_t fwerr = 0;
+    DRIVE_FILE_TOP DriveEventTop_ST = {0};
+    char loginfo[LOG_INFO_LENG] = {0};
+    EventFileTopSet(TranInfo_ST_p,RecXm_p,&DriveEventTop_ST);
+
+    fwerr = FileWriteWithTry(&DriveEventTop_ST,sizeof(DRIVE_FILE_TOP),1,Fd_p);
+    if(CODE_OK != fwerr)
+    {
+        printf("fwrite Event Top error");
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  Event Top error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }
+    fflush(Fd_p);
+    return fwerr;
 }
 /**********************************************************************
 *Name     :   int8_t OprtRealFileCreat(uint8_t ChanName)
@@ -2566,32 +2572,33 @@ int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
 //       GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
 //   }   	
    return err;
-}     
-
-
+}
 /**********************************************************************
-*Name     :   int8_t DirFileTar
-*Function       :   tar the Event ,RealFlt,RealOprt directory which create before today
+*Name         :   int8_t EventFileCreateByNum(void)
+*Function     :   Creat Event file by Eventsave Num,For PTU analysis
+                  if the remain mmc space not enough  will delete the earliest file 
 *Para         :   void 
 *
 *Return       :   int8_t 0,success;else false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
+*Version      :   REV1.0.0       
+*Author:      :   feng
 *
 *History:
 *REV1.0.0     feng    2020/6/29  Create
-*note Para  can improve with Freesize
 *********************************************************************/
-int8_t DirFileTar(RECORD_XML * RrdXml_p)
+int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
 { 
     //FILE *fd;
     uint8_t File_EventName_U8[200] = {0};
     uint8_t File_Directory_U8[200] = {0};
     uint8_t TimeString_U8[40] = {0};
     int8_t err = 0;
+    uint8_t TryNum = 0;
+    uint32_t TotalSizeMB_U32 = 0,FreeSizeMB_U32 = 0;
     time_t timep_ST;   
     struct tm *now_time_p_ST;
     char loginfo[LOG_INFO_LENG] = {0};
+    static uint8_t s_EventPowOnDataString[10] = {0};
 
     time(&timep_ST);
     now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
@@ -2600,32 +2607,6 @@ int8_t DirFileTar(RECORD_XML * RrdXml_p)
           (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,
           now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec); 
         // add year month folder
-	
-	/*firsttar Realflt dir*/
-	memset(File_Directory_U8,0,sizeof(File_Directory_U8));
-	if(0 == g_LinuxDebug)
-	{
-		sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Real_ST.RecPath,TimeString_U8); 
-		
-	}
-	//for ubuntu linux test 
-	else
-	{
-		sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",TimeString_U8);//for ubuntu linux test	
-	
-	}  
-		
-	/*first tar Realflt file*/
-	if(0 == g_LinuxDebug)
-	{
-		TarDir(RrdXml_p -> Rec_Real_ST.RecPath,File_Directory_U8);
-	}
-	else
-	{
-		TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",File_Directory_U8);
-	}
-
-    /*senond tar event dir*/
     if(0 == g_LinuxDebug)
     {
         sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
@@ -2637,89 +2618,103 @@ int8_t DirFileTar(RECORD_XML * RrdXml_p)
         sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
    
     }  
+    /*a new day*/
+    if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
+    {
+        //powon not run
+        if(strlen(s_EventPowOnDataString) != 0) 
+        {
+			FileSpaceProc(&g_Rec_XML_ST);//for new day
+			LogFileCreatePowOn();
+            printf("after LogFileCreatePowOn\n");
 
-     /*senond tar event file*/
-    if(0 == g_LinuxDebug)
-    {
-        TarDir(RrdXml_p -> Rec_Event_ST.RecPath,File_Directory_U8);
-    }
-    else
-    {
-        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",File_Directory_U8);
-    }
+        }
+        memcpy(s_EventPowOnDataString,TimeString_U8,8);        
 
-   
-    /*last RealOprt dir*/
-    memset(File_Directory_U8,0,sizeof(File_Directory_U8));
-     if(0 == g_LinuxDebug)
-    {
-        sprintf(File_Directory_U8,"%s%8.8s",OPRTFILE_DIR,TimeString_U8); 
-   
+         //should make sure
+        if(0 == g_LinuxDebug)
+        {
+            GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
+            if(FreeSizeMB_U32 < g_SpaceJudge_ST.EVENT_RESER_SPACE)//whether alway delete until the size is meet the size 
+            {
+               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               WRITELOGFILE(LOG_WARN_1,loginfo);
+			   err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
+		       if(REC_FILE_TYPE == err)
+		       {
+		           DeleteEarliestFile(RrdXml_p -> Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
+
+		       }
+		       else if(REC_DIR_TYPE == err)
+		       {
+		           DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
+
+		       }
+     
+               // DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
+            }
+        }
+        //for ubuntu linux test 
+        else
+        {
+            //DeleteEarliestDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA");
+            DeleteEarliestFile("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",RECORD_FILE_TYPE);
+
+        }
+        err = MultiDircCreate(File_Directory_U8);
+        if(CODE_CREAT == err)
+        {
+            memset(loginfo,0,sizeof(loginfo));
+            snprintf(loginfo, sizeof(loginfo)-1, "make Dir %s success",File_Directory_U8);
+            WRITELOGFILE(LOG_INFO_1,loginfo); 
+        }
     }
-    //for ubuntu linux test 
+    snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,
+        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
+
+    //g_fd_EventName = fopen(File_EventName_U8, "a+"); 
+    file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");
+    if(NULL ==  file_p ->EventFile_fd)
+    {
+        TryNum ++;
+        perror("creat Eventfile.dat file failed");
+    }
     else
     {
-        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",TimeString_U8);//for ubuntu linux test  
-   
-    }
-     /*last tar event file*/
-    if(0 == g_LinuxDebug)
+        EADSErrInfo_ST -> EADSErr = 0;
+        printf("creat file %s\n",File_EventName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s",File_EventName_U8);
+        WRITELOGFILE(LOG_INFO_1,loginfo);        
+    } 
+    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
     {
-        TarDir(OPRTFILE_DIR,File_Directory_U8);
+        file_p -> EventFile_fd = fopen(File_EventName_U8, "a+"); //every time creat the file and write replace   
+        if(NULL ==  file_p -> EventFile_fd )
+        {
+            TryNum ++;
+            perror("creat Eventfile.dat File failed again");
+        }
+        else
+        {
+            TryNum = 0;/*quit the while*/
+            EADSErrInfo_ST -> EADSErr = 0;
+            printf("creat file %s\n",File_EventName_U8);
+            snprintf(loginfo, sizeof(loginfo)-1, "creat  file %s",File_EventName_U8);
+            WRITELOGFILE(LOG_INFO_1,loginfo);    
+        }
+
     }
-    else
+    if(TryNum >= FILETRY_NUM)
     {
-        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",File_Directory_U8);
+        
+        EADSErrInfo_ST -> EADSErr = 1;
+        snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed %m");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+        err  = CODE_ERR;
+        return err;
     }
+    err = EventFileTopSave(file_p ->EventFile_fd,RrdXml_p,TranInfo_p);
     return err;
 
 }
-
-/*!
- * Function:文件记录功能
- * @param Device_Type_enum -设备类型
- * @param device_FP -文件流（二级指针）
- * @param databuf -记录的数据
- * @param datalength -数据长度
- * @param REC_TYPE -xml中的REC_TYPE
- * @param Record_Num_U32 -记录帧数
- */
-void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
-                 uint32_t Record_Num_U32) 
-{
-    struct timeval A_Time_ST,A_TimeEnd_ST;
-    DRIVE_FILE_DATA Record_Data={0};
-    uint8_t i = 0;        
-    int8_t ret_fd = 0;
-    if(TIME_DEBUG  == g_DebugType_EU)
-    {
-        gettimeofday(&A_Time_ST,NULL);
-    } 
-    if(Record_Num_U32 >= REC_TYPE->RecToTalNum)
-    {                
-        printf("s_FrameSaveNum_U32:%d\n",Record_Num_U32);
-        fflush(*device_FP);
-        ret_fd = fileno(*device_FP);
-        fsync(ret_fd);
-        fclose(*device_FP);
-        *device_FP = NULL;
-        peripheralFileCreate(Device_Type_enum,device_FP,REC_TYPE,&g_TrainInfo_ST,&g_EADSErrInfo_ST);                  
-    }
-	else if(0 == (Record_Num_U32 % Peri_FILE_SYNC_NUM ))//每50次记录刷新缓存,理论是5s
-    {
-		fflush(*device_FP);
-        ret_fd = fileno(*device_FP);
-        fsync(ret_fd);
-	}
-    memcpy(&Record_Data,databuf,datalength);
-    peripheralDataSave(*device_FP,&Record_Data);
-       
-    //保存数组至记录文件中    
-    if(TIME_DEBUG  == g_DebugType_EU)
-    {
-            gettimeofday(&A_TimeEnd_ST,NULL);
-            printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
-            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
-    }
-} 
-#endif

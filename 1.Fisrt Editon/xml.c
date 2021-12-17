@@ -286,7 +286,6 @@ int8_t RecordCFGXml(char *xmlFilePath,RECORD_XML *RecordXml_p,VERSION *Versionp)
         snprintf(loginfo, sizeof(loginfo)-1, "open %s file failed",xmlFilePath);
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         return CODE_ERR;
-
     }	
 	mxml_node_t *xml = mxmlLoadFile(NULL,fp,MXML_NO_CALLBACK);
 	fclose(fp);
@@ -301,367 +300,88 @@ int8_t RecordCFGXml(char *xmlFilePath,RECORD_XML *RecordXml_p,VERSION *Versionp)
 	//记录文件配置信息
 	tmp=mxmlFindElement(xml, xml, "RecTypeCfg", NULL, NULL, MXML_DESCEND);
 	elem_tmp=mxmlFindElement(tmp, xml, "RecType", NULL, NULL, MXML_DESCEND);
-    for(i= 0; i< 6;i++)//i代表向下读取次数，若TypeIndex有6个，则要读6次
-    {
-		tmp=mxmlFindElement(elem_tmp, xml, "RecTypeIdx", NULL, NULL, MXML_DESCEND);
-		memset(xmlarray,0,ZONE);
-		memcpy(xmlarray,mxmlGetText(tmp, 0),strlen(mxmlGetText(tmp, 0)));
-		TypeIndex = atoi(xmlarray);
-		
-		if(EVENT_FILE == TypeIndex)
-		{
-            RecordXml_p -> Rec_Event_ST.RecTypeIdx = TypeIndex;
-
-			elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_Event_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_Event_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecTotalChn_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnNum_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecInterval = strtol(xmlarray,NULL,10);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecAfterNum = strtol(xmlarray,NULL,10); 		
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Event_ST.RecToTalNum = strtol(xmlarray,NULL,10);
-		}
-		else if(FAST_FILE == TypeIndex)
-		{
-			RecordXml_p -> Rec_Fast_ST.RecTypeIdx = TypeIndex;
-			
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
-			 memcpy(&RecordXml_p -> Rec_Fast_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
-			 memcpy(&RecordXml_p -> Rec_Fast_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecTotalChn_U8 = atoi(xmlarray);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnNum_U8 = atoi(xmlarray);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecInterval = strtol(xmlarray,NULL,10);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			 
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecAfterNum = strtol(xmlarray,NULL,10);		 
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecToTalNum = strtol(xmlarray,NULL,10);
-		}
-		else if(REAL_FILE == TypeIndex)
-		{
-			 RecordXml_p -> Rec_Real_ST.RecTypeIdx = TypeIndex;			
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
-			 memcpy(&RecordXml_p -> Rec_Real_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
-			 memcpy(&RecordXml_p -> Rec_Real_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecTotalChn_U8 = atoi(xmlarray);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnNum_U8 = atoi(xmlarray);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Fast_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecInterval = strtol(xmlarray,NULL,10);
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			 
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecAfterNum = strtol(xmlarray,NULL,10);		 
-			 
-			 elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
-			 memset(xmlarray,0,ZONE);
-			 memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));	 
-			 RecordXml_p -> Rec_Real_ST.RecToTalNum = strtol(xmlarray,NULL,10);
+   
+	tmp=mxmlFindElement(elem_tmp, xml, "RecTypeIdx", NULL, NULL, MXML_DESCEND);
+	memset(xmlarray,0,ZONE);
+	memcpy(xmlarray,mxmlGetText(tmp, 0),strlen(mxmlGetText(tmp, 0)));
+	TypeIndex = atoi(xmlarray);
 	
-		}
-		else if(CAN_FILE == TypeIndex)
-		{
-            RecordXml_p -> Rec_CAN_ST.RecTypeIdx = TypeIndex;
-
-			elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_CAN_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_CAN_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecTotalChn_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnNum_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecInterval = strtol(xmlarray,NULL,10);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecAfterNum = strtol(xmlarray,NULL,10); 		
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_CAN_ST.RecToTalNum = strtol(xmlarray,NULL,10);
-		}
-		else if(UART_FILE == TypeIndex)
-		{
-            RecordXml_p -> Rec_Uart_ST.RecTypeIdx = TypeIndex;
-
-			elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_Uart_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
-			memcpy(&RecordXml_p -> Rec_Uart_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecTotalChn_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnNum_U8 = atoi(xmlarray);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecInterval = strtol(xmlarray,NULL,10);
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecAfterNum = strtol(xmlarray,NULL,10); 		
-			
-			elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
-			memset(xmlarray,0,ZONE);
-			memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
-			RecordXml_p -> Rec_Uart_ST.RecToTalNum = strtol(xmlarray,NULL,10);
-		}
-		else
-		{
-			  elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);			
-		}
-	}
-	mxmlDelete(xml);
-
-	if(XML_DEBUG == g_DebugType_EU)
+	if(EVENT_FILE == TypeIndex)
 	{
+		RecordXml_p -> Rec_Event_ST.RecTypeIdx = TypeIndex;
+
+		elem_tmp=mxmlFindElement(tmp, xml, "RecPath",NULL, NULL, MXML_DESCEND);
+		memcpy(&RecordXml_p -> Rec_Event_ST.RecPath,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
+		elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);
+		memcpy(&RecordXml_p -> Rec_Event_ST.RecFileHead,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0)));
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecTotalChn",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecTotalChn_U8 = atoi(xmlarray);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnNum",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnNum_U8 = atoi(xmlarray);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask1",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask1 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask2",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask2 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask3",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask3 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask4",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask4 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask5",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask5 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecChnBitMask6",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecChnBitMask6 = strtol(xmlarray,NULL,16);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecInterval",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecInterval = strtol(xmlarray,NULL,10);
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecBeforeNum",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecBeforeNum = strtol(xmlarray,NULL,10);			
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecAfterNum",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecAfterNum = strtol(xmlarray,NULL,10); 		
+		
+		elem_tmp=mxmlFindElement(tmp, xml, "RecToTalNum",NULL, NULL, MXML_DESCEND);
+		memset(xmlarray,0,ZONE);
+		memcpy(xmlarray,mxmlGetText(elem_tmp, 0),strlen(mxmlGetText(elem_tmp, 0))); 	
+		RecordXml_p -> Rec_Event_ST.RecToTalNum = strtol(xmlarray,NULL,10);
+	}
+	else
+	{
+			elem_tmp=mxmlFindElement(tmp, xml, "RecFileHead",NULL, NULL, MXML_DESCEND);			
+	}	
+	mxmlDelete(xml);
+	if(XML_DEBUG == g_DebugType_EU)
+	{	
 		printf("Rec_Event_ST\n");
 		printf("CFG xml Versionp %d\n", Versionp -> RrdCfgFile_Ver_U16);
 		printf("RecChnNum_U8 %d\n", RecordXml_p -> Rec_Event_ST.RecChnNum_U8);
@@ -675,59 +395,6 @@ int8_t RecordCFGXml(char *xmlFilePath,RECORD_XML *RecordXml_p,VERSION *Versionp)
 		printf("RecBeforeNum %d\n", RecordXml_p -> Rec_Event_ST.RecBeforeNum);
 		printf("RecAfterNum %d\n", RecordXml_p -> Rec_Event_ST.RecAfterNum);
 		printf("RecToTalNum %u\n", RecordXml_p -> Rec_Event_ST.RecToTalNum);
-
-		printf("Rec_Fast_ST\n");
-		printf("RecChnNum_U8 %d\n", RecordXml_p -> Rec_Fast_ST.RecChnNum_U8);
-		printf("RecChnBitMask1 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask1);
-		printf("RecChnBitMask2 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask2);
-		printf("RecChnBitMask3 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask3);
-		printf("RecChnBitMask4 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask4);
-		printf("RecChnBitMask5 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask5);
-		printf("RecChnBitMask6 %x\n", RecordXml_p -> Rec_Fast_ST.RecChnBitMask6);
-		printf("RecInterval %d\n", RecordXml_p -> Rec_Fast_ST.RecInterval);
-		printf("RecBeforeNum %d\n", RecordXml_p -> Rec_Fast_ST.RecBeforeNum);
-		printf("RecAfterNum %d\n", RecordXml_p -> Rec_Fast_ST.RecAfterNum);
-		printf("RecToTalNum %u\n", RecordXml_p -> Rec_Fast_ST.RecToTalNum);
-
-		printf("Rec_Real_ST\n");
-		printf("RecChnNum_U8 %d\n", RecordXml_p -> Rec_Real_ST.RecChnNum_U8);
-		printf("RecChnBitMask1 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask1);
-		printf("RecChnBitMask2 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask2);
-		printf("RecChnBitMask3 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask3);
-		printf("RecChnBitMask4 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask4);
-		printf("RecChnBitMask5 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask5);
-		printf("RecChnBitMask6 %x\n", RecordXml_p -> Rec_Real_ST.RecChnBitMask6);
-		printf("RecInterval %d\n", RecordXml_p -> Rec_Real_ST.RecInterval);
-		printf("RecBeforeNum %d\n", RecordXml_p -> Rec_Real_ST.RecBeforeNum);
-		printf("RecAfterNum %d\n", RecordXml_p -> Rec_Real_ST.RecAfterNum);
-		printf("RecToTalNum %u\n", RecordXml_p -> Rec_Real_ST.RecToTalNum);
-
-		printf("Rec_CAN_ST\n");
-		printf("RecChnNum_U8 %d\n", RecordXml_p -> Rec_CAN_ST.RecChnNum_U8);
-		printf("RecChnBitMask1 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask1);
-		printf("RecChnBitMask2 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask2);
-		printf("RecChnBitMask3 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask3);
-		printf("RecChnBitMask4 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask4);
-		printf("RecChnBitMask5 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask5);
-		printf("RecChnBitMask6 %x\n", RecordXml_p -> Rec_CAN_ST.RecChnBitMask6);
-		printf("RecInterval %d\n", RecordXml_p -> Rec_CAN_ST.RecInterval);
-		printf("RecBeforeNum %d\n", RecordXml_p -> Rec_CAN_ST.RecBeforeNum);
-		printf("RecAfterNum %d\n", RecordXml_p -> Rec_CAN_ST.RecAfterNum);
-		printf("RecToTalNum %u\n", RecordXml_p -> Rec_CAN_ST.RecToTalNum);
-
-		printf("Rec_Uart_ST\n");
-		printf("RecChnNum_U8 %d\n", RecordXml_p -> Rec_Uart_ST.RecChnNum_U8);
-		printf("RecChnBitMask1 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask1);
-		printf("RecChnBitMask2 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask2);
-		printf("RecChnBitMask3 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask3);
-		printf("RecChnBitMask4 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask4);
-		printf("RecChnBitMask5 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask5);
-		printf("RecChnBitMask6 %x\n", RecordXml_p -> Rec_Uart_ST.RecChnBitMask6);
-		printf("RecInterval %d\n", RecordXml_p -> Rec_Uart_ST.RecInterval);
-		printf("RecBeforeNum %d\n", RecordXml_p -> Rec_Uart_ST.RecBeforeNum);
-		printf("RecAfterNum %d\n", RecordXml_p -> Rec_Uart_ST.RecAfterNum);
-		printf("RecToTalNum %u\n", RecordXml_p -> Rec_Uart_ST.RecToTalNum);
-
 	}
 	return CODE_OK;
 }
@@ -749,9 +416,7 @@ int8_t SysXmlParInit(char *xmlFilePath,RECORD_XML *RecordXml_p,VERSION *Version_
 	{
 		printf("xml file %s \n", xmlFilePath);
 	}
-
     RecordCFGXml(xmlFilePath,RecordXml_p,Version_p);
-
 }
 
 /**********************************************************************
@@ -767,21 +432,11 @@ int8_t SysXmlParInit(char *xmlFilePath,RECORD_XML *RecordXml_p,VERSION *Version_
 *********************************************************************/
 int8_t XmlParJudge(RECORD_XML *RecordXml_p)
 {
-   if((! RecordXml_p ->Rec_Event_ST.RecInterval) || (! RecordXml_p ->Rec_Event_ST.RecToTalNum)) //
+   if((! RecordXml_p ->Rec_Event_ST.RecInterval) || (! RecordXml_p ->Rec_Event_ST.RecToTalNum)) 
    {
 	   RecordXml_p ->Rec_Event_ST.RecInterval = XML_EVENT_REC_INTEVAL_MIN;
 	   RecordXml_p ->Rec_Event_ST.RecToTalNum  = XML_EVENT_REC_TOTAL_MIN;
-	   sprintf(RecordXml_p ->Rec_Event_ST.RecPath,"%s", "/yaffs/REC_EVTDATA/");
-	   sprintf(RecordXml_p ->Rec_Fast_ST.RecPath,"%s", "/yaffs/REC_FASTFLT/");
-
-   }
-   if(! RecordXml_p ->Rec_Real_ST.RecToTalNum)
-   {
-	   RecordXml_p ->Rec_Real_ST.RecToTalNum  = XML_REAL_REC_TOTAL_MIN;
-	   RecordXml_p ->Rec_Real_ST.RecBeforeNum = XML_REAL_BEFOR_NUM;
-	   RecordXml_p ->Rec_Fast_ST.RecToTalNum  = XML_REAL_REC_TOTAL_MIN;
-	   RecordXml_p ->Rec_Fast_ST.RecBeforeNum = XML_REAL_BEFOR_NUM;
-	   sprintf(RecordXml_p ->Rec_Real_ST.RecPath,"%s", "/yaffs/REC_REALFLT/");
+	   sprintf(RecordXml_p ->Rec_Event_ST.RecPath,"%s", "/yaffs/REC_EVTDATA/"); 
    }	
 }
 
