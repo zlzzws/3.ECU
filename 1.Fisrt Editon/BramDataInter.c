@@ -77,37 +77,36 @@ static uint8_t s_bram_ReadCRCErrNum_U8 = 0;
 *REV1.0.1     feng    2020/7/31 use crc as life
 *REV1.0.2     feng    2020/8/26   only the  length is > 12, can read the PackeCrcValue_U32
 *********************************************************************/
-int8_t BramReadDataWithCRC(uint32_t * Inbuff)
+int8_t BramReadDataWithCRC(uint32_t *Inbuff)
 {
     uint16_t PacketLength = 0;
     int8_t err = 0;
     uint8_t i =0;
-    uint32_t TempCrcValue_U32 = 0,PackeCrcValue_U32 = 0,LifeNum_U32 = 0;
+    uint32_t Calculate_CrcValue_U32 = 0,PackeCrcValue_U32 = 0,LifeNum_U32 = 0;
     
     BRAM_PACKET_DATA *BramPacketData_ST_p;
     BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-    PacketLength = (BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF;//获取帧数据长度
-    /*change to 32bit length*/
+    PacketLength = (BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF;    
     PacketLength = PacketLength >> 2;
-   //如果数据长度大于包头12字节长度
+   
     if(PacketLength >= BRAM_PCKT_TOP_LNGTH_U32)
     {
-        TempCrcValue_U32 = Crc32CalU32Bit(Inbuff,PacketLength);
+        Calculate_CrcValue_U32 = Crc32CalU32Bit(Inbuff,PacketLength);
         PackeCrcValue_U32 = (BramPacketData_ST_p -> BLVDSData_U32[PacketLength - BRAM_PCKT_TOP_LNGTH_U32]);
-         /*use crc as life extradate时会判断*/
+        /*use crc as life_signal*/
         BramPacketData_ST_p -> BLVDSReser_U32[0] = PackeCrcValue_U32;
-        if(TempCrcValue_U32 == PackeCrcValue_U32)
+        if(Calculate_CrcValue_U32 == PackeCrcValue_U32)
         {
             err = CODE_OK;
         }
         else
         {
-            if(BRAM_DEBUG == g_DebugType_EU)
+            if(BRAM_CRC_DEBUG == g_DebugType_EU)
             {
                 printf("Bram read Crc failed\n");
-                printf("TempCrcValue_U32 %08x,PackeCrcValue_U32 %08x \n",TempCrcValue_U32,PackeCrcValue_U32);    
+                printf("Calculate_CrcValue_U32:%08x,PackeCrcValue_U32 %08x \n",Calculate_CrcValue_U32,PackeCrcValue_U32);   
             }
-            err =  CODE_ERR;       
+            err =  CODE_ERR;
         }
     }
     else
@@ -119,15 +118,14 @@ int8_t BramReadDataWithCRC(uint32_t * Inbuff)
         printf("BramReadDataWithCRC:\n");
         if(PacketLength != 0)
         {
-            for(i = 0; i < (PacketLength+1); i++)
+            for(i=0;i<(PacketLength+1);i++)
             {
-                printf("Bram Byte %u data %08x\n",i, *Inbuff); 
-                Inbuff++; 
+                printf("Bram Byte %u data %08x\n",i,*Inbuff);
+                Inbuff++;
             }
         }
     }
-    return err;
-    
+    return err;    
 }
 /**********************************************************************
 *Name           :   int8_t BramBlockFlagWait
@@ -147,7 +145,7 @@ int8_t BramBlockRDFlagWait(BRAM_ADDRS *BramAddrs_p)
     uint32_t ChanAddress = 0,ChanFlagAddr = 0,ChanFedFlagAddr = 0;
     uint8_t RDFlagInt = 0,RDFlagBit = 0;
     uint8_t RDFlagTemp = 0,RDFlagValue = 0;
-    uint16_t WaitFlagClerNum = 0,i;
+    uint16_t WaitFlagClerNum = 500,i;
     struct timeval TimeStar,TimeEnd;
     uint8_t ChanNum = 0;
     ChanNum = BramAddrs_p -> ChanNum_U8;
@@ -158,8 +156,7 @@ int8_t BramBlockRDFlagWait(BRAM_ADDRS *BramAddrs_p)
     ChanFlagAddr = BramAddrs_p -> BramBlckFlgAddr + RDFlagInt;
     ChanFedFlagAddr = ChanFlagAddr + BRAM_PCKT_LNGTH_U8;
 
-     /*Wait the 570 write flag clear*/ 
-    WaitFlagClerNum = 500;
+     /*Wait the  write flag clear*/   
 
     for(i = 0;i < WaitFlagClerNum;i++)
     {           
@@ -178,7 +175,7 @@ int8_t BramBlockRDFlagWait(BRAM_ADDRS *BramAddrs_p)
       
     }
     /*Set the ReadFlag bit*/
-    RDFlagTemp = (1 << RDFlagBit); 
+    RDFlagTemp = (1 << RDFlagBit);
     BramWriteU8(ChanFedFlagAddr,BramAddrs_p -> MapBlckFlgAddr_p,RDFlagTemp);
     return CODE_OK;
 }
@@ -251,22 +248,20 @@ int8_t BramBlockReadOpti(BRAM_ADDRS *BramAddrs_p,uint32_t *Outbuf)
         printf("BramBlockReadOpti:\n");
         for( i = 0; i < RdLength; i++)
         {
-            printf("Read Byte[%u]  data:%08x\n",i, Outbuf[i]);   
-        }  
-
-    } 
-    /*Clear the ReadFlag bit*/
+            printf("ChanNum[%d]-Read 4Bytes[%u] data:%08x\n",BramAddrs_p -> ChanNum_U8,i,Outbuf[i]);
+        }
+    }
+    
     CrcErr = BramReadDataWithCRC(Outbuf);
     /*CrcErr = 2,mean Crc error*/
     if(CODE_ERR == CrcErr)
     {
-        s_bram_ReadCRCErrNum_U8++;          
+        s_bram_ReadCRCErrNum_U8++;       
     }
     else
     {
         s_bram_ReadCRCErrNum_U8 = 0;
-    }
- 
+    } 
     return CrcErr;
 }
 /**********************************************************************
@@ -292,9 +287,9 @@ int8_t BramBlockWRFlagWait(BRAM_ADDRS *BramAddrs_p)
     struct timeval TimeStar,TimeEnd;
     uint8_t ChanNum = 0;
     ChanNum = BramAddrs_p -> ChanNum_U8;
-    WRFlagInt = ChanNum / 8;//字节
-    WRFlagBit = ChanNum % 8;//位
-    ChanFlagAddr = BramAddrs_p -> BramBlckFlgAddr + WRFlagInt;//会进行对齐4K取余数，作为页偏移附加到虚拟映射地址
+    WRFlagInt = ChanNum / 8;
+    WRFlagBit = ChanNum % 8;
+    ChanFlagAddr = BramAddrs_p -> BramBlckFlgAddr + WRFlagInt;
      /*Wait the 570 write flag clear*/ 
     WaitFlagClerNum = 500;
     for(i = 0;i < WaitFlagClerNum;i++)
@@ -306,11 +301,11 @@ int8_t BramBlockWRFlagWait(BRAM_ADDRS *BramAddrs_p)
         {
            printf("NO:%u-Read WRFlag:%02x\n",i,WRFlagValue);   
         }   
-        if(WRFlagTemp == 0)//代表570 write flag clear，A9可以发送数据
+        if(WRFlagTemp == 0)
         {
             break;
         }
-        if(i == 450)//超过450次，返回错误
+        if(i == 450)
         {
             return CODE_ERR;             
         }      
@@ -462,14 +457,11 @@ int8_t BramBlockWrite(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     int8_t ErrorRet = 0;  
     ErrorRet = BramBlockWRFlagWait(BramAddrs_p);
     if( ErrorRet == -1)
-    {
-        //FIXME:后续这句打印应该恢复
-        //printf("waiting WRflag clear error\n");
+    {       
+        printf("waiting WRflag clear error\n");
         return ErrorRet; 
     }
-
     BramBlockWriteOpti(BramAddrs_p,Inbuf);
-
     BramBlockFlagCrc(BramAddrs_p);
     return CODE_OK;
 }
@@ -497,8 +489,7 @@ int8_t BramBlockRead(BRAM_ADDRS *BramAddrs_p,uint32_t *Outbuf)
     ErrorRet = BramBlockRDFlagWait(BramAddrs_p);
     if(CODE_ERR ==  ErrorRet)
     {
-        printf("wait Flag time out error\n");
-        
+        printf("wait Flag time out error\n");        
     }
 	//3rd,read the data
     ErrorRet = BramBlockReadOpti(BramAddrs_p,Outbuf);
@@ -579,7 +570,7 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 	uint8_t DataLen = 0;
 	uint32_t Temp32Value = 0;
 	uint8_t ChanNum = 0;
-	uint32_t TempCrcValue_U32;
+	uint32_t Calculate_CrcValue_U32;
 	uint8_t i = 0;
 
 	
@@ -595,18 +586,17 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 	DataLen = Framelen - BRAM_PACKET_TOP_LENGTH_U8; 
 	memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,DataLen); 
 	Framelen = BramAddrs_p -> DataU32Length; 
-	TempCrcValue_U32 = Crc32CalU32Bit(Outbuf,Framelen);
+	Calculate_CrcValue_U32 = Crc32CalU32Bit(Outbuf,Framelen);
 	
 	DataLen = BramAddrs_p -> DataU32Length - BRAM_PCKT_TOP_LNGTH_U32;
-	BramPacketData_ST_p -> BLVDSData_U32[DataLen]= TempCrcValue_U32;
+	BramPacketData_ST_p -> BLVDSData_U32[DataLen]= Calculate_CrcValue_U32;
  
 	if(BRAM_DEBUG == g_DebugType_EU)
 	{
 		for( i = 0; i < Framelen; i++)
 		{
 			printf("Bram_DataWrite_U32 %d data %08x\n",i,Outbuf[i]);   
-		} 
-
+		}
 	}
 	return 0;
 }
@@ -655,8 +645,7 @@ int8_t BramWriteWithChek(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TO
         }
     }
     else
-    {
-        //printf("Write Bram Right");
+    {        
         ErrorCode = 0;
     }
     return ErrorCode;

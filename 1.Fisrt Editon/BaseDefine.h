@@ -431,31 +431,27 @@ typedef enum _DEBUG_TYPE
 {
     RELEASE_DEBUG   	= 0,
 	TIME_DEBUG 			= 1,
-	BRAM_DEBUG 			= 2,    			//双口RAM数据打印
-	LINECAlib_DEBUG 	= 3, 				//110V电压校准数据打印
-	DATPRO_DEBUG 		= 4,    			//过压、过流时电压、电流数值打印
+	BRAM_DEBUG 			= 2,    			
+	BRAM_CRC_DEBUG		= 3,
+	LINECAlib_DEBUG     = 4,	    			
 	ALRM_DEBUG 			= 5,
 	DEVC_DEBUG 			= 6,
 	XML_DEBUG 			= 7,
 	FILE_DEBUG 			= 8,
 	GPIO_DEBUG 			= 9,
 	POWTIME_DEBUG 		= 10,
-	TCP_DEBUG 			= 11,
-	ROMTUP_DEBUG 		= 12,
-	TRDP_DEBUG 			= 13,
+	TCP_DEBUG 			= 11,	
 	SEM_DEBUG 			= 14,
-	DOG_DEBUG 			= 15,
-	ADC_VDATE			= 16,   			//ADC电压转换数值打印   
-	ADC_IDATE 			= 17,   			//ADC电流转换数值打印
-	RTU_DEBUG 			= 18,				//Modbus_RTU电流转换数值打印
-	TMS570_BRAM_RD_DEBUG= 19,				//从Bram接收TMS570数据打印
-	TMS570_BRAM_WR_DEBUG= 20,				//将数据写入Bram发送给TMS570打印
+	DOG_DEBUG 			= 15,   			
+	RTU_DEBUG 			= 18,				
+	TMS570_BRAM_RD_DEBUG= 19,				
+	TMS570_BRAM_WR_DEBUG= 20,				
     CAN_RD_DEBUG        = 21,
     CAN_WR_DEBUG        = 22,
 	MVB_WR_DEBUG		= 23,
 	MVB_RD_DEBUG		= 24,
-	FileSave_DEBUG 		= 25,				//外设文件存储调试打印
-	socket_Debug 		= 26				//调试CSR_Drive与A9的Socket通讯
+	FileSave_DEBUG 		= 25,				
+	socket_Debug 		= 26				
 }DEBUG_TYPE_ENUM;
 
 typedef enum _COMMU_MCU

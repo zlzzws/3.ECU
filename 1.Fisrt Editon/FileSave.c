@@ -2137,6 +2137,7 @@ int8_t ChanCalibFileCreat(FILE_FD *file_p,uint8_t *path,EADS_ERROR_INFO  *EADSEr
 *History:
 *REV1.0.0     feng    2020/6/29  Create
 *********************************************************************/
+#if 0
 int8_t ChanCalibDataSave(FILE * fd,CHAN_CALIB_DATA *CalibDataSave_p)
 {
    int8_t fwerr = 0;
@@ -2169,7 +2170,7 @@ int8_t ChanCalibDataSave(FILE * fd,CHAN_CALIB_DATA *CalibDataSave_p)
 
     return fwerr;
 }
-
+#endif
 /**********************************************************************
 *Name     :   int8_t OperNumFileTopSet(DRIVE_FILE_TOP  *DriveTop_ST_p) 
 *Function       :   Set the Chan Oper Num File Top Data,use Fast file type 

@@ -1595,7 +1595,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {     
-    #if 1
+    #if 0
     uint8_t i,j,ret;    
     static errnum_timeout=0;
     int    socket_can1;
@@ -1677,7 +1677,7 @@ void *MVBThreadFunc(void *arg)
     
     while(1)
     {       
-        //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
+        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
         //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
         
@@ -1685,7 +1685,7 @@ void *MVBThreadFunc(void *arg)
 
         //TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                   
+        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                   
     }
 
     printf("exit MVBThreadFunc Function!\n");

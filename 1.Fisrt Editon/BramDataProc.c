@@ -133,7 +133,7 @@ int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
     int8_t Error = 0;
     char loginfo[LOG_INFO_LENG] = {0};    
     
-    Error = BramReadWithChek(BramAddrs_p,ReadDataBuf); 
+    Error = BramReadWithChek(BramAddrs_p,ReadDataBuf);
     if(Error == CODE_ERR)
     {
         printf("BramReadWithChek error\n");
@@ -1322,9 +1322,7 @@ int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
     for(i=0;i<MVB_READ_FRAME_NUM;i++)
-    {       
-        
-        //Attention PacktLength是帧头加数据区长度，而帧头内的第4个字节[7:0]是指数据区的长度，请注意区分
+    {        
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length =  MVB_CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 =  MVB_CmdPact_RD_ST[i].ChanNum_U8;
            
@@ -1347,8 +1345,8 @@ int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
         }
         if(MVB_RD_DEBUG == g_DebugType_EU)
         {
-            for(j=0;j<15;j++)
-                printf("MVB:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data_mvb_rd[i].buffer[j]);              
+            for(j=0;j<10;j++)
+                printf("MVB:Read Bram_data[%d][%02d]:0x%08X\n",i,j,bram_data_mvb_rd[i].buffer[j]);            
         }        
     }    
     return ReadErr;
@@ -1372,8 +1370,7 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     BRAM_PACKET_TOP TopPackST[MVB_WRITE_FRAME_NUM] = {0};
     
     for(i+0;i<MVB_WRITE_FRAME_NUM;i++)
-    {
-        
+    {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
         
@@ -1383,18 +1380,19 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
         if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
         {
             for(j=0;j<bram_data_mvb_wr[i].length;j++)
-                printf("MVB:Write to Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data_mvb_wr[i].buffer[j]);
+                printf("MVB:Write Bram_data[%d][%02d]:0x%08x\n",i,j,bram_data_mvb_wr[i].buffer[j]);
         }    
         if(0 == g_LinuxDebug)
         {
             WriteErr = BramWriteWithChek(&s_bram_WR_B_BLVDSBlckAddr_ST,bram_data_mvb_wr[i].buffer,TopPackST[i]);
             if(WriteErr == CODE_ERR)
             {
-                printf("The [%d] frame Bramdata write to MVB error!\n",i);				 
+                printf("MVB-[%d] frame write to Bramdata error!\n",i);
+                snprintf(loginfo, sizeof(loginfo)-1, "MVB-[%d] frame write to Bramdata error!",i);
+                WRITELOGFILE(LOG_ERROR_1,loginfo); 				 
             }
         }        
-    }
-    
+    }    
     Life_signal++;
     return WriteErr;
 }
