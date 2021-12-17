@@ -41,13 +41,13 @@ extern SPACE_JUDGE_VALUE  g_SpaceJudge_ST;
 extern CHAN_DATA g_ChanData_ST[CHAN_BUFFER_NUM];
 extern CHAN_DATA  g_ChanRealBuf_ST[REAL_BUFFER_NUM];
 extern CHAN_DATA  g_ChanSendBuf_ST[CHAN_BUFFER_NUM];  /*304 byte*/
-extern CHAN_LG_INFO g_ChanLgInfo_ST;
+//extern CHAN_LG_INFO g_ChanLgInfo_ST;
 
 extern EADS_ERROR_INFO     g_EADSErrInfo_ST;
-extern VECH_EADS_INFO      g_CCU_EADsInfo_ST;
+//extern VECH_EADS_INFO      g_CCU_EADsInfo_ST;
 
 extern uint32_t g_LinuxDebug;
-extern uint32_t g_RealBufNum_U32;
+//extern uint32_t g_RealBufNum_U32;
 
 /**********************************************************************
 *
@@ -79,7 +79,7 @@ extern uint32_t g_RealBufNum_U32;
 *Function Define Section
 *
 *********************************************************************/
-
+#if 0
 /**********************************************************************
 *Name     	  :   FileWriteWithTry
 *Function     :   write with try 调用fwrite函数对文件进行写数据，并进行判断，若失败则进行尝试（3次）
@@ -1597,6 +1597,7 @@ int8_t RealFileBeforWarnSave(FILE * file_p, CHAN_DATA inChanData[],uint16_t Save
     }
     return fwerr;
 }
+#if 0
 /**********************************************************************
 *Name         :   int8_t FltRealFileProc(uint8_t ChanName,uint8_t ChanNumTmp)
 *Function     :   the realfile save when happen warn  
@@ -1712,6 +1713,7 @@ int8_t FltRealFileProc(FILE_FD * File_p, CHAN_STATUS_INFO * InStusInfo_p,RECORD_
         }                    
     }
 }
+#endif
 /**********************************************************************
 *Name     :   OprtRealFileTopSet
 *Function       :   Set the Oprt Real File Top Data According Record.xml
@@ -1953,7 +1955,7 @@ int8_t OprtRealFileCreat(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * Tra
     err = OprtRealFileTopSave(file_p -> OprtRealFile_fd,RrdXml_p,TranInfo_p);
     return err;
 }     
-
+#if 0
 /**********************************************************************
 *Name     :   OprtRealFileProc
 *Function       :   save the Oprt real file 
@@ -2064,7 +2066,7 @@ int8_t OprtRealFileProc(FILE_FD *File_p, CHAN_STATUS_INFO *InStusInfo_p,RECORD_X
         }                    
     }
 }
-
+#endif
 /**********************************************************************
 *Name     :   int8_t ChanCalibFileCreat(void)
 *Function       :   Creat the /tffs0/ChanCalibValue.dat for save the calib value
@@ -2170,7 +2172,7 @@ int8_t ChanCalibDataSave(FILE * fd,CHAN_CALIB_DATA *CalibDataSave_p)
 
     return fwerr;
 }
-#endif
+
 /**********************************************************************
 *Name     :   int8_t OperNumFileTopSet(DRIVE_FILE_TOP  *DriveTop_ST_p) 
 *Function       :   Set the Chan Oper Num File Top Data,use Fast file type 
@@ -2441,9 +2443,7 @@ int8_t OperNumFileSave(FILE_FD * File_p, CHAN_STATUS_INFO * ChanStaInfo_p,RECORD
     }
     return CODE_OK;
 }
-
-
-
+#endif
 /**********************************************************************
 *Name     :   int8_t FileCreatePowOn(void)
 *Function       :   when application run,creat  Event file and 
@@ -2722,3 +2722,4 @@ void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *da
             printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
     }
 } 
+#endif

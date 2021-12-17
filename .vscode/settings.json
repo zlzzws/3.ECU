@@ -5,6 +5,7 @@
         "timer.h": "c",
         "bramdataproc.h": "c",
         "gpiocontrol.h": "c",
-        "modbusclientrtu.h": "c"
+        "modbusclientrtu.h": "c",
+        "bramdatainter.h": "c"
     }
 }

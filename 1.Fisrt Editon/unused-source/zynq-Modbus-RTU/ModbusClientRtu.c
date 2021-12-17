@@ -15,7 +15,7 @@
 *REV1.0.1     deng    2018/8/31 
 *
 *********************************************************************/
-
+#if 0
 /**********************************************************************
 *
 *Include file  section
@@ -948,3 +948,4 @@ int RtuReadRegister_HongWai(uint16_t *tab_rp_registers,SENSOR_NUM_ENUM SenSorNum
     }
     /* End of single register */
 }
+#endif

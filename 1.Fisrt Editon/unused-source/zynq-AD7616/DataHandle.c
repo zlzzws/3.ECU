@@ -21,7 +21,7 @@
 *
 *********************************************************************/
 
-
+#if 0
 
 /**********************************************************************
 *
@@ -44,7 +44,7 @@ extern CHAN_DATA  g_ChanData_ST[CHAN_BUFFER_NUM];
 extern CHAN_DATA  g_ChanRealBuf_ST[REAL_BUFFER_NUM];
 extern CHAN_DATA  g_ChanData_ProcBuf_ST[CHAN_BUFFER_NUM];  /*304 byte*/
 extern CHAN_DATA  g_ChanSendBuf_ST[CHAN_BUFFER_NUM];  /*304 byte*/
-extern CHAN_DIGITAL_INFO g_ChanDigitalInfo_ST;
+//extern CHAN_DIGITAL_INFO g_ChanDigitalInfo_ST;
 extern CHAN_STATUS_INFO  g_ChanStatuInfo_ST;
 extern RELAY_LIFE_CFG   g_ChanRelayCfg_ST;
 extern CHAN_CALIB_DATA  g_ChanCalib110VData_ST;
@@ -2370,5 +2370,4 @@ int8_t EADSDataBuf(uint8_t ProcNum)
 	pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
 
 }
-
-
+#endif

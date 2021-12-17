@@ -281,7 +281,7 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
  * @author: feng
  */
 
-int8_t BramOpenMap(EADS_ERROR_INFO * EADSErrInfop)
+int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
 {
     int8_t err = 0;
     uint8_t ErrNum = 0;
@@ -476,8 +476,6 @@ int8_t BramOpenMap(EADS_ERROR_INFO * EADSErrInfop)
     }
     return err;
 }
- 
-
 
 int8_t BramCloseMap(void)
 {
@@ -499,7 +497,7 @@ int8_t BramCloseMap(void)
  * @return {int8_t} ReadErr
  * @author: zlz
  */
-int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop,uint8_t EADSType)  
+int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)  
 {  
     uint16_t i = 0;
     int8_t ReadErr = 0;
@@ -540,7 +538,7 @@ int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop,uint8_t EADSType)
 
     return ReadErr;
 }
-
+#if 0
 /**
  * @description: BLVDS数据读取线程功能
  * @param {uint8_t} ReadNum_U8
@@ -598,6 +596,7 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
     }     
     return ReadErr;
 }
+#endif
 /**
  * @description: just for this page can program use!(pay attention "static")
  * @param:       void life_data,void *life_lasttime,uint8_t *errnum

@@ -1,76 +1,67 @@
 /**********************************************************************
 *File name      :   main.c
 *Copyright      :   Zhuzhou CRRC Times Electric Co. Ltd ALL Rights Reserved
-*Creat Date     :   2018/1/29
+*Creat Date     :   2021/12/03
 *Description    :   the entry of the whole program
 *Version        :   REV1.0.0       
 *Author:        :   zuolinzheng
 *
 *History:
-*REV1.0.0     feng    2021/12/03  Create
-*
+*REV1.0.0     feng    2021/12/03  Create*
 *********************************************************************/
 
 
-/**********************************************************************
-*
-*Include file  section
-*
+/***********************************************************************
+*Include file  section*
 *********************************************************************/
 #include "Socket.h"
 #include "BramDataProc.h"
 #include "ModbusSer.h"
 #include "GPIOControl.h"
 #include "FileSave.h"
-#include "ModbusClientRtu.h"
-#include "Rs232Fuctcl.h"
 #include "xml.h"
-/**********************************************************************
-*
-*Global Variable Declare Section
-*
+/***********************************************************************
+*Global Variable Declare Section*
 *********************************************************************/
+sem_t               g_RealSend_sem;
+DEBUG_TYPE_ENUM     g_DebugType_EU;
+EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};
+TRAIN_INFO          g_TrainInfo_ST = {0};
+VERSION             g_Version_ST = {0};
+RECORD_XML          g_Rec_XML_ST = {0};
+SPACE_JUDGE_VALUE   g_SpaceJudge_ST = {0};
+PTHREAD_INFO        g_Pthread_ST = {0};
+PTHREAD_LOCK        g_PthreadLock_ST= {0};
+uint8_t             g_EADSType_U8 = 0;
+uint16_t            g_PowDebug = 0;
+uint8_t             g_ProcNum_U8 = 0;
+uint32_t            g_LinuxDebug = 0; 
+int8_t              g_LifeFlag = 1;                             //to controll the pthread
+uint8_t             g_ChanRealWave[48] = {0};                   /*for the channel real wave */
+uint8_t             g_ChanRealNum = 0;                          /*for the channel real wave */
+uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus comunicate*/
+FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
+CHAN_DATA           g_ChanData_ST[CHAN_BUFFER_NUM] = {0};       /*304 byte*/
+CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
 
-struct sigaction Alarm_act;
-BLVDS_BRD_DATA g_BrdRdBufData_ST = {0};
-CHAN_DATA  g_ChanData_ST[CHAN_BUFFER_NUM] = {0};  /*304 byte*/
+#if 0
 CHAN_DATA  g_ChanRealBuf_ST[REAL_BUFFER_NUM] = {0};  /*REAL_BUFFER_NUM = 800*/
 CHAN_DATA  g_ChanSendBuf_ST[CHAN_BUFFER_NUM] = {0};  /*304 byte*/
+BLVDS_BRD_DATA g_BrdRdBufData_ST = {0};
 CHAN_CALIB_DATA  g_ChanCalib110VData_ST = {0};/*read the ChanCalibData from /tffs0/ChanCalibValue.dat"*/
 CHAN_CALIB_DATA  g_ChanCalib0VData_ST = {0};/*read the ChanCalibData from /tffs0/ChanCalibValue.dat"*/
-CHAN_STATUS_INFO  g_ChanStatuInfo_ST = {0};/*include the real file save,Chan operate num*/
 CHAN_LG_INFO g_ChanLgInfo_ST = {0};/*the chanel logic info ,for save and trdp*/
 CHAN_DIGITAL_INFO g_ChanDigitalInfo_ST = {0};/*include the digital status of vol chan ,and overVOl overCurr*/
 RELAY_LIFE_CFG   g_ChanRelayCfg_ST = {0};/*read the relay param config by xml */
-EADS_ERROR_INFO  g_EADSErrInfo_ST  = {0};
 VECH_EADS_INFO g_CCU_EADsInfo_ST = {0};//byte 1128,for even file save
-TRAIN_INFO g_TrainInfo_ST = {0};
-VERSION  g_Version_ST = {0};
-FILE_FD   g_FileFd_ST = {0};/*the save file FP*/
-RECORD_XML g_Rec_XML_ST = {0};
 RECORD_XML g_LifeRec_XML_ST = {0};
-SPACE_JUDGE_VALUE  g_SpaceJudge_ST = {0};
-PTHREAD_INFO g_Pthread_ST = {0};
-PTHREAD_LOCK g_PthreadLock_ST; 
-DEBUG_TYPE_ENUM g_DebugType_EU;
 uint32_t g_RealBufNum_U32 = 0;
-uint16_t g_PowDebug = 0;
 uint32_t g_LoopNum_U32 = 0;
-uint8_t g_ProcNum_U8 = 0;
 uint16_t g_ChanFiltNum_U16 = 0;
 uint32_t g_ADReadSleep_U32 = 0;
-uint32_t g_FltSaveSlepNum_U32 = 0;
 uint32_t g_TRDPUsec_U32 = 0;
-uint32_t g_LinuxDebug = 0;
-uint8_t g_EADSType_U8 = 0;
-int8_t g_fd_TtyPs = 0;     //文件描述符 
-int8_t g_LifeFlag = 1;     //to controll the pthread
-int8_t g_EADSType = 0;
-uint8_t g_ChanRealWave[48] = {0}; /*for the channel real wave */
-uint8_t g_ChanRealNum = 0;  /*for the channel real wave */
-uint8_t g_socket_SendFlag = 0; /*for tcp modbus comunicate*/
-sem_t g_ReadBrd_sem;
-sem_t g_RealSend_sem;
+uint32_t g_FltSaveSlepNum_U32 = 0;
+int8_t g_fd_TtyPs = 0;     //文件描述符
 // RTUThreadFun 
 SENSOR_NUM_ENUM g_DMU_Senor_num = 1;
 uint16_t g_rtu_ReadData[100] = {0};
@@ -78,18 +69,15 @@ uint16_t g_RTUBaud_U32 = 0;
 uint32_t g_RTUUsec_U32 = 0;
 RTU_SENSOR  SmartSensor_ST = {0};
 modbus_t *g_ModbusCtx = NULL;
-
-
-/**********************************************************************
-*
-*Local Macro Define Section
-*
+struct sigaction Alarm_act;
+sem_t g_ReadBrd_sem;
+#endif
+/***********************************************************************
+*Local Macro Define Section*
 *********************************************************************/
 #define WDIOC_SETTIMEOUT _IOWR(WATCHDOG_IOCTL_BASE, 6, int)
-/**********************************************************************
-*
-*Local Struct Define Section
-*
+/***********************************************************************
+*Local Struct Define Section*
 *********************************************************************/
 static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
 static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
@@ -99,10 +87,8 @@ struct can_frame s_can0_frame_RD_st[16] = {0};
 struct can_frame s_can0_frame_WR_st[8] = {0};
 struct can_frame s_can1_frame_RD_st[16] = {0};
 struct can_frame s_can1_frame_WR_st[8] = {0};
-/**********************************************************************
-*
-*Local Prototype Declare Section
-*
+/***********************************************************************
+*Local Prototype Declare Section*
 *********************************************************************/
 void    FuncUsage(void);
 void    ArgJudge(void);
@@ -120,11 +106,11 @@ void    *CAN0ThreadFunc(void *arg);
 void    *CAN1ThreadFunc(void *arg);
 
 
-/**********************************************************************
-*
-*Static Variable Define Section
-*
+/***********************************************************************
+*Static Variable Define Section*
 *********************************************************************/
+
+
 int main(int argc, char *argv[])
 {      
     struct timeval Time_ST,TimeEnd_ST;    
@@ -136,8 +122,7 @@ int main(int argc, char *argv[])
     uint16_t FifoWrTime = 0;
 	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;  
     char ArgLogInfo[LOG_INFO_LENG] = {0};
-    uint8_t BOXID =0;
-    uint8_t SLOTID =0;
+    uint8_t BOXID =0;    
 	char begin[LOG_INFO_LENG] = {0};
 	char end[LOG_INFO_LENG] = {0};
     int SemtValue = 0;	
@@ -170,54 +155,43 @@ int main(int argc, char *argv[])
 	}
     //上电创建日志文件
     LogFileCreatePowOn();
-
-    if (argc < 5)
+    if (argc < 4)
     {
         FuncUsage();
-        snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "arg Num: %u,arg1 %s,arg2 %s,arg3 %s,arg4 %s,arg5 %s",
-        argc,argv[1],argv[2],argv[3],argv[4],argv[5]);
+        snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "arg Num:%u,arg1 %s,arg2 %s,arg3 %s",argc,argv[1],argv[2],argv[3]);
         WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);
         LogFileSync();
-    }    
+    }
+
     g_LifeFlag = 1;                                                         //生命信号标志位  
     g_EADSType_U8 = 0;                                                      //暂时强制type为1，避免程序出现错误  
     g_Version_ST.EADS_RunVer_U16 = EADS_VERSION_PTU;                        //EADS软件版本，可通过PTU查看
     g_ProcNum_U8 = 4;  
-    g_DebugType_EU =        (DEBUG_TYPE_ENUM)strtoul(argv[1], NULL, 10);    //Debug类型    
-    g_FltSaveSlepNum_U32 =  (uint32_t)strtoul(argv[2], NULL, 10);           //文件存储延时
-    g_PowDebug =            (uint16_t)strtoul(argv[3], NULL, 10);           //电源选项，涉及到掉电监测    
-    g_LinuxDebug =          (uint16_t)strtoul(argv[4], NULL, 10);           //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_DebugType_EU = (DEBUG_TYPE_ENUM)strtoul(argv[1], NULL, 10);           //Debug类型              
+    g_PowDebug = (uint16_t)strtoul(argv[2], NULL, 10);                      //电源选项，涉及到掉电监测    
+    g_LinuxDebug = (uint16_t)strtoul(argv[3], NULL, 10);                    //软件运行环境:0:ZYNQ 1:Ubuntu
     
-    ArgJudge();//对输入参数的合法性进行判断，超过量程的数据会进行修正
-
-    snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,EventSaveSlepNum %u,g_PowDebug %u,TRDPUsec %u",
-        g_ProcNum_U8,g_DebugType_EU,g_FltSaveSlepNum_U32,g_PowDebug,g_TRDPUsec_U32);
-    WRITELOGFILE(LOG_INFO_1,ArgLogInfo);	
-    
-    printf("g_ProcNum_U8 %u\n",g_ProcNum_U8);
-    printf("g_DebugType_EU %u\n",g_DebugType_EU);    
-    printf("g_FltSaveSlepNum_U32 %u\n",g_FltSaveSlepNum_U32);
-    printf("g_PowDebug %u\n",g_PowDebug);
-    printf("g_TRDPUsec_U32 %u\n",g_TRDPUsec_U32);    
+    ArgJudge();
+    snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
+            g_ProcNum_U8,g_DebugType_EU,g_PowDebug,g_LinuxDebug);
+    WRITELOGFILE(LOG_INFO_1,ArgLogInfo);      
 	
-    if (0 == g_LinuxDebug) 
+    if (0 == g_LinuxDebug)
     {
-       Bram_Mapping_Init(&g_EADSErrInfo_ST,g_EADSType_U8);        
+       Bram_Mapping_Init(&g_EADSErrInfo_ST);      
     }
-
-    RTCTesT(); //TODO:考虑在此函数中增加上电RTC打印时间信息（是否有意义？）
-    /**拨码开关-I2C功能*/
+    RTCTesT();
+    /**I2C*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
     i2c_read(i2cbus_fd,0X20,0,&BOXID,1);
     printf("BOXID is %x\n",BOXID);    
     printf("DataProcPowerOn!\n");
     //DataProcPowerOn(&g_ChanStatuInfo_ST,&g_ChanCalib0VData_ST,&g_ChanCalib110VData_ST,g_ProcNum_U8,g_EADSType_U8);    
-    FileCreatePowOn(&g_FileFd_ST,&g_Rec_XML_ST,&g_LifeRec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);       
-    VersionInit(&g_Version_ST);                 //程序版本
-    VersionSave(&g_Version_ST);                 //程序版本
-    ThreadInit(&g_Pthread_ST);                //线程初始化
-
-    /*****创建守护进程通讯管道*****/
+    //FileCreatePowOn(&g_FileFd_ST,&g_Rec_XML_ST,&g_LifeRec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);      
+    VersionInit(&g_Version_ST);                
+    VersionSave(&g_Version_ST);               
+    ThreadInit(&g_Pthread_ST);
+    /*****open fifo tunnel*****/
     fifofd = open(FIFO_FILE,O_WRONLY|O_NONBLOCK,0); 
     if(fifofd == -1)
     {
@@ -228,29 +202,14 @@ int main(int argc, char *argv[])
         FifoErr =  1;
     }
     
-
-    /*****监视掉电信息*****/
     if (1 == g_PowDebug)
     {
         GPIO_PowDownIoCreat();
-        GPIO_PowDowOpen();    
+        GPIO_PowDowOpen();   
     }
     
     while(1)
-    {                         
-		/*******取消此信号量*******
-        res = sem_wait(&g_ReadBrd_sem);
-        if (res != 0) 
-        {
-            printf("errno of sem_wait  %d\n",errno);  
-            snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "errno of sem_wait  %d",errno);
-            WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);              
-        }
-        if(g_DebugType_EU == SEM_DEBUG)        
-        {            
-            printf("g_ReadBrd_sem wait:%x\n",g_ReadBrd_sem);               
-        }
-        **************************/
+    {
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&Time_ST,NULL);                
@@ -260,11 +219,7 @@ int main(int argc, char *argv[])
         {
           PowDownFun();
         }
-        /***********取消数据处理        
-        EADSDataProc(g_ProcNum_U8,g_EADSType_U8,&g_EADSErrInfo_ST);               
-        EADSDataBuf(g_ProcNum_U8);
-        ***********************/
-        //csr_driver波形实时显示线程的自旋锁++
+        // Used in Real Wave Thread Fun++
         if(1 == g_socket_SendFlag)
         {   
             sem_post(&g_RealSend_sem);
@@ -273,14 +228,13 @@ int main(int argc, char *argv[])
                 printf("g_RealSend_sem post:%x\n",g_RealSend_sem);               
             }
         }
-        /*与守护进程管道通讯*/
+        /*fifo tunnel*/
         FifoWrTime++;
         if((FifoWrTime >= 20) && (FifoErr != 1)) /*20ms*/
         {  
             
             FifoWrTime = 0;
             BinLife++;
-
             if((FifoWrNum = write(fifofd,&BinLife,1)) == -1)
             {
                 perror("FIFO has not been read yet \n");
@@ -297,15 +251,6 @@ int main(int argc, char *argv[])
 
             }              
         }
-        /***********取消故障波形记录及动作波形记录
-		pthread_rwlock_rdlock(&g_PthreadLock_ST.ChanInfolock);
-        //故障波形记录
-        FltRealFileProc(&g_FileFd_ST,&g_ChanStatuInfo_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,g_ProcNum_U8,g_EADSType_U8);
-        //动作波形记录
-		OprtRealFileProc(&g_FileFd_ST,&g_ChanStatuInfo_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,g_ProcNum_U8,g_EADSType_U8);        
-        pthread_rwlock_unlock(&g_PthreadLock_ST.ChanInfolock);
-        *****************************************/
-
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&TimeEnd_ST,NULL);
@@ -314,8 +259,7 @@ int main(int argc, char *argv[])
         }        
     }
     printf("Waiting for all threads to power off...\n");
-    ThreadOff(&g_FileFd_ST,&g_Pthread_ST);
-    
+    ThreadOff(&g_FileFd_ST,&g_Pthread_ST);    
     if(0 == g_LinuxDebug)
     {
         BramCloseMap(); 
@@ -329,7 +273,7 @@ int main(int argc, char *argv[])
 void FuncUsage(void)
 {
     printf("For example:\n");
-    printf("you can type such command: ./Demo_Run_bin  <DebugTest_EU> <g_FltSaveSlepNum_U32> <g_PowDebug> <g_TRDPUsec_U32> <g_LinuxDebug>\n");   
+    printf("you can type such command: /tffs0/Demo_Run_bin <DebugTest_EU> <g_PowDebug> <g_LinuxDebug>\n");   
 }
 
 void ArgJudge(void)
@@ -342,16 +286,15 @@ void ArgJudge(void)
     {
         g_DebugType_EU = 0;
     }
-    if((g_TRDPUsec_U32 < 10000) || ( g_TRDPUsec_U32 > 2000000))
-    {
-        g_TRDPUsec_U32 = 10000;
-    }
     if(g_LinuxDebug > 1)
     {
         g_LinuxDebug = 0;
     }
+    if(g_PowDebug > 1)
+    {
+        g_PowDebug = 0;
+    }
 }
-
 
 /**********************************************************************
 *Name           :    ThreadInit  
@@ -603,7 +546,7 @@ int8_t PowDownFun(void)
 				snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff happen,start sync File");
                 WRITELOGFILE(LOG_INFO_1,LogInfo);
 				LogFileSync();                
-                OperNumFileSave(&g_FileFd_ST,&g_ChanStatuInfo_ST,&g_Rec_XML_ST,&g_TrainInfo_ST);
+               //OperNumFileSave(&g_FileFd_ST,&g_ChanStatuInfo_ST,&g_Rec_XML_ST,&g_TrainInfo_ST);
                 if(NULL != g_FileFd_ST.FltRealFile_fd)
                 {
                     fflush(g_FileFd_ST.FltRealFile_fd);
@@ -1228,7 +1171,7 @@ void *FileSaveThreaFunc(void *arg)
     printf("exit File Write thread\n");
     pthread_exit(NULL);    
 }
-#endif
+
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
 *Function       :    tar the Event ,RealFlt,RealOprt directory which create before today
@@ -1243,7 +1186,6 @@ void *FileSaveThreaFunc(void *arg)
 void *DirTarThreadFunc(void *arg) 
 {
     char loginfo[LOG_INFO_LENG] = {0};
-
     sleep(10);/*when pow on have many chan oprt*/
     printf("start DirTar thread\n");
     snprintf(loginfo, sizeof(loginfo)-1, "start DirTar thread");
@@ -1259,6 +1201,7 @@ void *DirTarThreadFunc(void *arg)
     WRITELOGFILE(LOG_INFO_1,loginfo);
     pthread_exit(NULL);
 }
+#endif
 #if 0
 /**********************************************************************
 *Name           :    LEDWachDogPthreadFunc  
@@ -1685,7 +1628,7 @@ void *MVBThreadFunc(void *arg)
 
         //TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                   
+        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                  
     }
 
     printf("exit MVBThreadFunc Function!\n");

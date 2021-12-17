@@ -308,16 +308,12 @@ int8_t LogClose(void)
 *********************************************************************/
 int8_t LogFileSync(void)
 {
-
     int8_t fd;
     fflush(s_LogFile_fd);     // 刷新文件
     fd = fileno(s_LogFile_fd);
     fsync(fd);
     printf("finish LogFileSync!\n");
 }
-
-
-
 /**********************************************************************
  * 功能描述： 获取对应的日志等级
  * 输入参数： iLogLevel-日志等级
@@ -373,7 +369,6 @@ static uint8_t *LogLevel(uint32_t iLogLevel)
         }
     }
 }
-
 /**********************************************************************
  * 功能描述： 获取日志配置项的值
  * 输入参数： 无
@@ -394,8 +389,6 @@ static void GetConfigValue(uint8_t * Logdirp)
     // 日志文件存放目录
    // GetConfigFileStringValue("LOG", "LogDir", "", Logdirp, LOG_PATH_LENG,LOG_CFG);
 }
-
-
 /**********************************************************************
 * 功能描述： 获取具体的字符串值
 * 输入参数： fp-配置文件指针

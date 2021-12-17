@@ -67,7 +67,7 @@
 
 /*EADS Versionasd History*/
 #define EADS_VERSION 100 
-#define EADS_VERSION_PTU 102
+#define EADS_VERSION_PTU 100
 #define TOTAL_VERSION 100
 #define LINUX_VERSION 440
 #define BOOT_VERSION 100
@@ -84,28 +84,25 @@
 #define UPSURE_BLOCKNUM 0xDDDD
 #define UPSTAR_BLOCKNUM 0xEEEE
 #define UPSUCC_BLOCKNUM 0xFFFF
-//20200326
- #define CHAN_BUFFER_NUM 5  //maybe is CHAN_BUFFER_NUM = 5;casue threshold change
- #define REAL_BUFFER_NUM 500 //the   
+#define CHAN_BUFFER_NUM 5
+#define REAL_BUFFER_NUM 500   
 /*Board Date LengthID*/
-#define ADU_BRD_RD_LENGTH_U32  29 ///
-#define CTU_BRD_RD_LENGTH_U32  29 // include top,but not include the crc
-
+#define ADU_BRD_RD_LENGTH_U32  29 
+#define CTU_BRD_RD_LENGTH_U32  29
 #define COACH1 1
 #define COACH2 2
 #define COACH3 3
 #define COACH4 4
 #define COACH16 16
 #define COACHZP 5
-
 #define ADU_BOARD_ID 0
 #define CTU_BOARD_ID 1
 #define CAN_CHAN 8
 
 /*the number of channel  have voltage and current*/
-#define VOL_CHAN_NUM 40  //ADU插件通道40采集点,Bram数据转换过程中使用48个通道，需要丢弃[41]-[48]
-#define CURR_CHAN_NUM 14 ///CTU插件通道14采集点,Bram数据转换过程中使用16个通道，需要丢弃[15]-[16]
-#define ALL_CHAN_NUM 80  /*for File save, !!!! note  not include the oprte time */
+#define VOL_CHAN_NUM 40  
+#define CURR_CHAN_NUM 14 
+#define ALL_CHAN_NUM 80  /*for File save, !!!! note / not include the oprte time */
 #define peri_WriteSize 16
 
 #define  CODE_CREAT  2
