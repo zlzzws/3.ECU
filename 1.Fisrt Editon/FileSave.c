@@ -2695,3 +2695,130 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     return err;
 
 }
+
+/**********************************************************************
+*Name       :   int8_t EventDataSet
+*Function   :   Set the Event data,include vol digital statue,volwarn,currwarn,
+                        EADS err info,Logic info ,ccu info,
+                        oprt up and oprt down time
+*Para       :   DRIVE_FILE_DATA  *Drive_ST_p   the address of Save DriveEventST
+*                   CHAN_DATA *g_ChanData_ST_p   the address of Save ChanData_ST
+                EADSType:CTU_BOARD_ID 1
+                         ADU_BOARD_ID 0
+*Return     :   int8_t 0,success;else false.
+*Version    :   REV1.0.0       
+*Author:    :   feng
+
+*History:
+*REV1.0.0     feng    2020/8/29  Create
+*REV1.0.1     feng    2020/5/11  vol and curr Change to mencpy
+                                 add Digital save
+*REV1.0.2     feng    2021/4/14  optimize the volwarnFlag save for save  CCU data
+                                                              
+*********************************************************************/
+int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,const EADS_ERROR_INFO EADSErrInfoST)
+{ 
+    #if 0
+    uint8_t j= 0;
+    uint8_t i = 0;
+    	
+    memcpy(&Drive_ST_p -> DriveDigital_U8[0],ChanDigitalInfo_ST.VolChanStat_8CH,VOL_STATUE_NUM);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[5],ChanDigitalInfo_ST.VolWarnFlag_8CH,VOL_STATUE_NUM);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[10],ChanDigitalInfo_ST.CurrWarnFlag_8CH,CURR_STATUE_NUM);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[12],&EADSErrInfoST,1);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[14],&LgInfoST,8);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[22],&g_CCU_EADsInfo_ST,sizeof(VECH_EADS_INFO));
+    if(g_DebugType_EU == FILE_DEBUG)
+    {
+        for(j = 0;j < DIGITAL_NUM_BYTE;j++)
+        { 
+            printf("Event DriveDigital_U8 %u : %u \n",j,Drive_ST_p -> DriveDigital_U8[j]);   
+        }
+    }
+    /*note DriveAnalog_U16[] number is  51 , !!!! note  not include the oprte time */
+    Drive_ST_p -> DriveAnalog_U16[0] = ChanInfop.OprtUpTime_U16[CONT_CHAN_T883] ;
+    Drive_ST_p -> DriveAnalog_U16[1] = ChanInfop.OprtUpTime_U16[CONT_CHAN_106K] ;    
+    Drive_ST_p -> DriveAnalog_U16[2] = ChanInfop.OprtUpTime_U16[CONT_CHAN_123A] ;
+    Drive_ST_p -> DriveAnalog_U16[3] = ChanInfop.OprtUpTime_U16[CONT_CHAN_103B] ;
+    Drive_ST_p -> DriveAnalog_U16[4] = ChanInfop.OprtUpTime_U16[CONT_CHAN_103D] ;
+    Drive_ST_p -> DriveAnalog_U16[5] = ChanInfop.OprtDownTime_U16[CONT_CHAN_T883] ;
+    Drive_ST_p -> DriveAnalog_U16[6] = ChanInfop.OprtDownTime_U16[CONT_CHAN_106K] ;    
+    Drive_ST_p -> DriveAnalog_U16[7] = ChanInfop.OprtDownTime_U16[CONT_CHAN_123A] ;
+    Drive_ST_p -> DriveAnalog_U16[8] = ChanInfop.OprtDownTime_U16[CONT_CHAN_103B] ;
+    Drive_ST_p -> DriveAnalog_U16[9] = ChanInfop.OprtDownTime_U16[CONT_CHAN_103D] ;
+    return CODE_OK;
+    #endif
+}
+
+/**********************************************************************
+*Name       :   int8_t EventDataSave
+*Function   :   Save the Event data  to event file
+*Para       :   (FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO  EADSErrInfoST,
+                   const CHAN_LG_INFO LgInfoST,const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,uint16_t InOpTime[])
+
+*Return     :   int8_t 0,success;else false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2020/1/29  Create
+*********************************************************************/
+int8_t ECU_EventDataSave(FILE_FD *file_p,const DRIVE_FILE_DATA *Drive_ST_p)
+{
+    #if 0
+    uint8_t i;
+    int16_t fwerr = 0;
+    uint16_t WriteSize_U16 = 0;
+    DRIVE_FILE_DATA DriveEventData_ST = {0};
+    char loginfo[LOG_INFO_LENG] = {0};
+
+    if(NULL == file_p -> EventFile_fd)
+    {
+        perror("EventFile fp  is NULL");
+        snprintf(loginfo, sizeof(loginfo)-1, "EventFile fp is NULL");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+        return CODE_ERR;
+    }
+    if(g_DebugType_EU == FILE_DEBUG)
+    {
+        printf("EventFilefp %d \n",file_p -> EventFile_fd);
+    }    
+    //when save digital data,should change the DriveEventData_ST[0].Analog[0]
+    fwerr = FileWriteWithTry(&DriveEventData_ST.DriveDigital_U8[0],DIGITAL_NUM_BYTE,1,file_p -> EventFile_fd);
+     if(CODE_OK != fwerr)
+    {
+        printf("fwrite Digital data  error");
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  Digital data error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }   
+    if(CTU_BOARD_ID == EADSType)
+    {
+         WriteSize_U16 = (VOL_CHAN_NUM + CURR_CHAN_NUM) << 1;
+    }
+    else
+    {
+        WriteSize_U16 = (VOL_CHAN_NUM) << 1;
+    }
+    //记录通道电压、电流经过处理后的模拟量
+    fwerr = FileWriteWithTry(ChanDatap,WriteSize_U16,1,file_p -> EventFile_fd);
+    if(CODE_OK != fwerr)
+    {
+        printf("fwrite ChanData error");
+        memset(loginfo,0,LOG_INFO_LENG);
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite ChanData error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }
+    //save oprt time
+    WriteSize_U16 = (10 << 1);    
+    fwerr = FileWriteWithTry(&DriveEventData_ST.DriveAnalog_U16[0],WriteSize_U16,1,file_p -> EventFile_fd);
+    if(CODE_OK != fwerr)
+    {
+        printf("fwrite  oprt time error");
+        memset(loginfo,0,LOG_INFO_LENG);
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  oprt time error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+
+    }
+    fflush(file_p -> EventFile_fd);
+    return fwerr;
+    #endif
+}

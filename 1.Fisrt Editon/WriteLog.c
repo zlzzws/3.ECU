@@ -205,7 +205,7 @@ int32_t VersionSave(VERSION * Ver_p)
     // 先打印版本相关信息
     snprintf(LogContent,sizeof(LogContent)-1, "Total_Ver %d,Linux_Ver %d,EADS_Ver %d, Build time[%s %s].",Ver_p -> Total_Ver_U16,
     Ver_p -> Linux_Ver_U16,
-    Ver_p -> EADS_RunVer_U16,
+    Ver_p -> ECU_RunVer_U16,
      __DATE__, __TIME__);
 
     WRITELOGFILE(LOG_INFO_1, LogContent);

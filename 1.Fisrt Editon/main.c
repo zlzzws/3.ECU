@@ -162,17 +162,17 @@ int main(int argc, char *argv[])
         LogFileSync();
     }
 
-    g_LifeFlag = 1;                                                         //生命信号标志位  
-    g_EADSType_U8 = 0;                                                      //强制type为0
-    g_Version_ST.EADS_RunVer_U16 = EADS_VERSION_PTU;                        //EADS软件版本，可通过PTU查看
-    g_ProcNum_U8 = 4;  
-    g_DebugType_EU = (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);             //Debug类型              
-    g_PowDebug = (uint16_t)strtoul(argv[2],NULL,10);                        //电源选项，1-使能掉电监测    
-    g_LinuxDebug = (uint16_t)strtoul(argv[3],NULL,10);                      //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_LifeFlag      = 1;                                                    //生命信号标志位  
+    g_EADSType_U8   = 0;                                                    //本程序此变量无意义,强制为4
+    g_ProcNum_U8    = 4;                                                    //本程序此变量无意义,强制为0
+    g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;                          //EADS软件版本，可通过PTU查看                                                           
+    g_DebugType_EU =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);          //Debug类型              
+    g_PowDebug =        (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测    
+    g_LinuxDebug =      (uint16_t)strtoul(argv[3],NULL,10);                 //软件运行环境:0:ZYNQ 1:Ubuntu
     
     ArgJudge();
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
-            g_ProcNum_U8,g_DebugType_EU,g_PowDebug,g_LinuxDebug);
+    g_ProcNum_U8,g_DebugType_EU,g_PowDebug,g_LinuxDebug);
     WRITELOGFILE(LOG_INFO_1,ArgLogInfo);      
 	
     if (0 == g_LinuxDebug)
@@ -311,7 +311,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     char loginfo[LOG_INFO_LENG] = {0};
     struct sched_param param;
     int policy;
-    #if 0
+   
     /*********取消
     res = sem_init(&g_ReadBrd_sem, 0, 0);
     if (res != 0) 
@@ -320,7 +320,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "ReadBrd_sem init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-    ***/
+    
     res = sem_init(&g_RealSend_sem, 0, 0);
     if (res != 0) 
     {
@@ -328,6 +328,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "RealSend_sem init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
+    ***/    
     res = pthread_rwlock_init(&g_PthreadLock_ST.BramDatalock,NULL);
     if(res != 0)
     {
@@ -335,7 +336,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "BramDatalock init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);        
     }
-    
+    #if 0
     res = pthread_rwlock_init(&g_PthreadLock_ST.ChanDatalock,NULL);
     if(res != 0)
     {
@@ -358,19 +359,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);        
     }
     
-    /*Create the Pthread*/
-    res = pthread_create(&pthread_ST_p -> ReadDataThread, NULL, DataReadThreadFunc, NULL);
-    if (res != 0) 
-    {
-        perror("create ReadDataThread failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create ReadDataThread failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);     
-       // exit(EXIT_FAILURE);
-    }
-    param.sched_priority = 10;
-    policy = SCHED_FIFO;
-    pthread_setschedparam(pthread_ST_p -> ReadDataThread, policy, &param);
-    
+    /*Create the Pthread*/   
     res = pthread_create(&pthread_ST_p -> RealWaveThread, NULL, RealWaveThreadFunc, NULL);
     if (res != 0) 
     {
@@ -378,15 +367,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create RealWaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);    
     }
-    
-    res = pthread_create(&pthread_ST_p -> TRDPThread, NULL, TRDPThreadFunc, NULL);
-    if (res != 0) 
-    {
 
-        perror("create TRDPThreadFunc  failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create TRDPThreadFunc failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);    
-    }
     res = pthread_create(&pthread_ST_p -> FileSaveThread, NULL, FileSaveThreaFunc, NULL);
     if (res != 0) 
     { 
@@ -444,8 +425,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     }    
  
     /*pthread_detach(pthread_ST_p -> DirTarThread);
-    pthread_detach(pthread_ST_p -> RealWaveThread);
-    pthread_detach(pthread_ST_p -> TRDPThread);
+    pthread_detach(pthread_ST_p -> RealWaveThread);    
     pthread_detach(pthread_ST_p -> ModbusThread);*/       
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
@@ -476,16 +456,6 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
     else 
     {
         perror("pthread_join FileSaveThread failed\n");           
-    }
-     
-    res = pthread_join(pthread_ST_p ->ReadDataThread, &thread_result);
-    if (res == 0)
-    {
-        printf("thread_join ReadDataThread success\n");
-    }
-    else 
-    {
-        perror("pthread_join ReadDataThread failed\n");           
     }
     
     res = pthread_join(pthread_ST_p -> LedThread, &thread_result);
@@ -594,10 +564,11 @@ int8_t PowDownFun(void)
             }
             s_ClearPowNum = 0;
         }
-        s_PowDownNum = 0;
-        
+        s_PowDownNum = 0;` ASD        
     }
 }
+
+#if 0
 /**********************************************************************
 *Name           :    RealWaveThreadFunc  
 *Function       :    communicate with CSR_drive real wave display
@@ -778,7 +749,7 @@ void *RealWaveThreadFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/1/6  Create
 *********************************************************************/
-#if 0
+
 void *ModbusThreadFunc(void *arg)
 {
     
@@ -1027,7 +998,7 @@ void *ModbusThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Modbus close\n");
 }
-
+#endif
 /**********************************************************************
 *Name           :  FileSaveThreaFunc
 *Function       :  the thread for Event ,RealFlt,RealOprt,OprtNum File save.
@@ -1041,134 +1012,66 @@ void *ModbusThreadFunc(void *arg)
 *REV1.0.1     feng    2020/6/29  Add Chan Filt for Eventsave 
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
-{
-    
-    struct timeval A_Time_ST,A_TimeEnd_ST;
-    uint8_t i = 0;
-    CHAN_DATA FiltChanData_ST = {0};
-    static uint16_t s_FltLoopNum_U16 = 0;
-	static uint16_t s_LifeLoopNum_U16 = 0;
-    static uint32_t s_OprtLoopNum_U32 = 0;
-    static uint32_t s_EventFileSaveNum_U32 = 0;
-	static uint16_t s_EventLifeFileSaveNum_U16 = 0;
-     uint16_t EventLifeFileSaveInterNum_U16 = 0;
-	uint32_t Delayus_U32= 0;
+{    
     int SemValue = 0;
+    uint8_t i = 0;
     int8_t fd = 0;
+    uint32_t Delayus_U32= 0;
+    DRIVE_FILE_DATA save_to_csr_driver={0};    
+    static uint32_t s_EventFileSaveNum_U32 = 0;   
+    struct timeval A_Time_ST,A_TimeEnd_ST;
 
-    Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//50ms
-	if(Delayus_U32 > g_FltSaveSlepNum_U32)
-	{
-		Delayus_U32 -= g_FltSaveSlepNum_U32;
-        //60000/50=1200
-		EventLifeFileSaveInterNum_U16 = g_LifeRec_XML_ST.Rec_Event_ST.RecInterval / g_Rec_XML_ST.Rec_Event_ST.RecInterval;
-	}
-	else
-	{
-		EventLifeFileSaveInterNum_U16 = g_LifeRec_XML_ST.Rec_Event_ST.RecInterval;
-
-	}
+    Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//100ms
 	sleep(1);
+    if(g_DebugType_EU == DEVC_DEBUG)
+    {
+        printf("Start EventFileSave\n");      
+    }
     while(g_LifeFlag > 0)
     {
-        threadDelay(0,Delayus_U32);//50ms
+        threadDelay(0,Delayus_U32);
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&A_Time_ST,NULL);                    
-        }
+        }    
         
-        if(g_DebugType_EU == DEVC_DEBUG)
-        {
-            printf("STart FileSave\n");       
-        }
-        //稳态数据
         if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
-        {
-                //close the open file and creat new event file
-                printf("s_EventFileSaveNum_U32 %d\n",s_EventFileSaveNum_U32);
+        {                
+                printf("EVENTFILE:Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
                 fflush(g_FileFd_ST.EventFile_fd);
                 fd = fileno(g_FileFd_ST.EventFile_fd);
                 fsync(fd);
                 fclose(g_FileFd_ST.EventFile_fd);
                 g_FileFd_ST.EventFile_fd = NULL;
                 EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
-                s_EventFileSaveNum_U32 = 0;
-            
+                s_EventFileSaveNum_U32 = 0;            
         }
-		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM))
+		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM)) //5min
         {
 			fflush(g_FileFd_ST.EventFile_fd);
             fd = fileno(g_FileFd_ST.EventFile_fd);
             fsync(fd);
 		}
-         if(g_DebugType_EU == FILE_DEBUG)
-        {
-            printf(" STart EventDataSave\n");               
-        }
-        pthread_rwlock_rdlock(&g_PthreadLock_ST.ChanDatalock);
-        //对四包数据取平均值
-		ChanDataFilt(&g_ChanData_ST[0],&FiltChanData_ST,g_ProcNum_U8,g_EADSType_U8);
-        //按照csr_driver规定格式保存数据
-        EventDataSave(&g_FileFd_ST,&FiltChanData_ST,g_EADSType_U8, g_EADSErrInfo_ST,\
-                   g_ChanLgInfo_ST,g_ChanDigitalInfo_ST,g_ChanStatuInfo_ST);           
-        pthread_rwlock_unlock(&g_PthreadLock_ST.ChanDatalock);            
-        s_EventFileSaveNum_U32++;
-        //寿命分析 
-		if(s_LifeLoopNum_U16 >= EventLifeFileSaveInterNum_U16)
-        {
-            s_LifeLoopNum_U16 = 0;
-            if(s_EventLifeFileSaveNum_U16 >= g_LifeRec_XML_ST.Rec_Event_ST.RecToTalNum)//10000
-            {
-                //close the open file and creat new event file
-                printf("s_EventLifeFileSaveNum_U16 %d\n",s_EventLifeFileSaveNum_U16);
-                fflush(g_FileFd_ST.EventLifeFile_fd);
-                fd = fileno(g_FileFd_ST.EventLifeFile_fd);
-                fsync(fd);
-                fclose(g_FileFd_ST.EventLifeFile_fd);
-                g_FileFd_ST.EventLifeFile_fd = NULL;		
-				EventLifeFileCreateByNum(&g_FileFd_ST,&g_LifeRec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
-                s_EventLifeFileSaveNum_U16 = 0;            
-            }
-		    else if(0 == (s_EventLifeFileSaveNum_U16 % FILE_SYNC_NUM))
-            {
-			    fflush(g_FileFd_ST.EventLifeFile_fd);
-                fd = fileno(g_FileFd_ST.EventLifeFile_fd);
-                fsync(fd);
-		    }
-            if(g_DebugType_EU == FILE_DEBUG)
-            {
-                printf(" STart EventLifeDataSave\n");               
-            } 		
-			EventRelayLifeSave(&g_FileFd_ST,g_EADSType_U8,g_ChanStatuInfo_ST);
-            s_EventLifeFileSaveNum_U16++;
-        }
-        
-        if(s_OprtLoopNum_U32 >= OPERT_SAVE_TIME)
-        {
-            s_OprtLoopNum_U32 = 0;
-            pthread_rwlock_rdlock(&g_PthreadLock_ST.ChanInfolock);
-            if(g_DebugType_EU == FILE_DEBUG)
-            {
-                printf(" STart Opert Num Data Save\n");               
-            }
-            OperNumFileSave(&g_FileFd_ST,&g_ChanStatuInfo_ST,&g_Rec_XML_ST,&g_TrainInfo_ST);
-            pthread_rwlock_unlock(&g_PthreadLock_ST.ChanInfolock);
-        }
 
-        s_OprtLoopNum_U32++;
-		s_LifeLoopNum_U16++;
+        pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
+		ECU_Record_Data_Pro_Fun(&save_to_csr_driver,&s_tms570_bram_RD_data_st[0],&s_tms570_bram_WR_data_st[0],g_EADSErrInfo_ST);        
+        ECU_EventDataSave(&g_FileFd_ST,&save_to_csr_driver);
+        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
+
+        s_EventFileSaveNum_U32++;
+
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&A_TimeEnd_ST,NULL);
             printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
-            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec); 
-                    
+            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
         }    
     }
     printf("exit File Write thread\n");
     pthread_exit(NULL);    
 }
 
+#if 0
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
 *Function       :    tar the Event ,RealFlt,RealOprt directory which create before today
@@ -1198,8 +1101,7 @@ void *DirTarThreadFunc(void *arg)
     WRITELOGFILE(LOG_INFO_1,loginfo);
     pthread_exit(NULL);
 }
-#endif
-#if 0
+
 /**********************************************************************
 *Name           :    LEDWachDogPthreadFunc  
 *Function       :    Blink the led, life led and error led
@@ -1617,15 +1519,16 @@ void *MVBThreadFunc(void *arg)
     
     while(1)
     {       
+        pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);
+        //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);        
         
-        usleep(100000);
-
         //TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);                  
+        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
+        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
+        usleep(100000);                  
     }
 
     printf("exit MVBThreadFunc Function!\n");

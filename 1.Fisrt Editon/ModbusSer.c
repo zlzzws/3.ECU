@@ -159,7 +159,7 @@ void VersionSet(modbus_mapping_t *mb_mapping,VERSION *Versi_p)
     mb_mapping->tab_input_registers[212]=Versi_p -> SftCfgFile_Ver_U16;/*boot Version of MCU1*/
     mb_mapping->tab_input_registers[213]=Versi_p -> RrdCfgFile_Ver_U16;/*OMAP_NEXT Version of MCU1*/
     mb_mapping->tab_input_registers[214]=Versi_p -> SysPrmFile_Ver_U16;/*System configure file Version of MCU1*/
-    mb_mapping->tab_input_registers[215]=Versi_p -> EADS_RunVer_U16;/*Software configure file Version of MCU1*/
+    mb_mapping->tab_input_registers[215]=Versi_p -> ECU_RunVer_U16;/*Software configure file Version of MCU1*/
     mb_mapping->tab_input_registers[216]=Versi_p -> Boot_Ver_U16;/*Falut log set of MCU1*/
 
     mb_mapping->tab_input_registers[223]=Versi_p -> FPGA_Ver_U16;/*OS Version of MCU2*/
@@ -201,7 +201,7 @@ int8_t VersionInit(VERSION *Versi_p)
     Versi_p -> Linux_Ver_U16 =  LINUX_VERSION;/*OS Version of MCU1*/
     Versi_p -> SySCfgFile_Ver_U16 = 100;/*eclr.out Version of MCU1*/
     Versi_p -> SftCfgFile_Ver_U16 = 100;/*boot Version of MCU1*/
-    Versi_p -> EADS_RunVer_U16 = EADS_VERSION_PTU;/*Software configure file Version of MCU1*/
+    Versi_p -> ECU_RunVer_U16 = EADS_VERSION_PTU;/*Software configure file Version of MCU1*/
     Versi_p -> Boot_Ver_U16 = BOOT_VERSION;/*Falut log set of MCU1*/
     Versi_p -> FPGA_Ver_U16 = FPGA_VERSION;/*OS Version of MCU2*/
     Versi_p -> Urmdik_Ver_U16 = RAMDISK_VERSION;/*OMAP_NEXT Version of MCU2*/

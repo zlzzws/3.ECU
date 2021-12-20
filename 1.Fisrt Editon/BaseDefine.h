@@ -76,6 +76,7 @@
 #define FPGA_VERSION 100
 #define BRAM_BLOCK_LENGTH 256
 #define BRAM_BLOCK_NUM 128
+#define ECU_VERSION_PTU 100
 /*the channel number of once judgea */
 //570 channel
 #define OUTIO570_CHAN 1
@@ -489,7 +490,7 @@ typedef struct
 	uint16_t SftCfgFile_Ver_U16;
 	uint16_t RrdCfgFile_Ver_U16;
 	uint16_t SysPrmFile_Ver_U16;
-	uint16_t EADS_RunVer_U16;
+	uint16_t ECU_RunVer_U16;
 	uint16_t Boot_Ver_U16;
 	uint16_t FPGA_Ver_U16;
 	uint16_t Urmdik_Ver_U16;

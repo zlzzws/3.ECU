@@ -45,7 +45,7 @@
 #define EVENT_SAVE_NUM 		60000 	// big than 65535,csr drive cannot export to excel
 #define OPERT_SAVE_TIME 	36000 	//* 1800s save fot test*/
 #define EVENT_MAX_NUM 		60000
-#define FILE_SYNC_NUM 		5000 	//for file sync
+#define FILE_SYNC_NUM 		3000 	//for file sync
 #define Peri_FILE_SYNC_NUM 	50 
 #define POWOFF_SAVE_NUM 	10000
 #define DIGITAL_NUM_BYTE 	32  	//byte //0 digital signal tube = 0 digital signals 
@@ -142,8 +142,8 @@ int8_t EventLifeFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INF
 void   FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *databuf,uint8_t datalength,RECORD_TYPE_CFG *REC_TYPE,\
                  uint32_t Record_Num_U32);*/
 int8_t FileSpaceProc(RECORD_XML * RrdXml_p);
-int8_t EventDataSave(FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO  EADSErrInfoST,const CHAN_LG_INFO LgInfoST,
-		const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,const CHAN_STATUS_INFO  ChanInfop);				 
+int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,const EADS_ERROR_INFO EADSErrInfoST);
+int8_t ECU_EventDataSave(FILE_FD *file_p,const DRIVE_FILE_DATA *Drive_ST_p);				 
 int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);				 
 int8_t DirFileTar(RECORD_XML * RrdXml_p);
 /**********************************************************************
