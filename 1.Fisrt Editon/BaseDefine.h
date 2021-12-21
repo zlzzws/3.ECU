@@ -116,63 +116,6 @@
 #define CURR_STATUE_NUM  2
 #define FPGA_TIME_BYTE  20
 
-/*on train use*/
-#define COIL_CHAN_T066 30 //real  channel 31
-#define CONT_CHAN_123A 31 //real  channel 32
-
-#define COIL_CHAN_T96  7 //real   channel 8
-#define CONT_CHAN_106K 25 //real   channel 26
-
-#define COIL_CHAN_T085 14 //real   channel 15
-#define CONT_CHAN_T883 16 //real   channel 17 
-
-#define COIL_CHAN_175H1 36 //real   channel 37
-#define CONT_CHAN_103B  37 //real   channel 38
-
-#define COIL_CHAN_175H3 38 //real   channel 39
-#define CONT_CHAN_103D  39 //real   channel 40
-
-/*20201202, for relay test*/
-#define CONT_CHAN_0 0 //for 3RH2140test 
-#define CONT_CHAN_1 1 //for 3RH2140test 
-#define CONT_CHAN_2 2 //for 3RH2140test
-#define CONT_CHAN_3 3 //for 3RH2140test 
-#define CONT_CHAN_4 4 //for 3RH2140test
-#define CONT_CHAN_5 5 //for 3RH2140test 
-#define CONT_CHAN_6 6 //for 3RH2140test
-#define CONT_CHAN_7 7 //for 3RH2140test 
-#define CONT_CHAN_8 8 //for 3RH2140test
-#define CONT_CHAN_9 9 //for 3RH2140test 
-#define CONT_CHAN_10 10 //for 3RH2140test
-
-#define COIL_CHAN_12 12
-#define COIL_CHAN_13 13
-#define COIL_CHAN_14 14
-
-#define CONT_CHAN_20 20 //for 3RH2140test 
-#define CONT_CHAN_21 21 //for 3RH2140test
-#define CONT_CHAN_22 22
-#define CONT_CHAN_23 23
-#define CONT_CHAN_24 24
-#define CONT_CHAN_25 25
-#define CONT_CHAN_26 26
-#define CONT_CHAN_27 27
-#define CONT_CHAN_28 28
-#define CONT_CHAN_29 29
-#define CONT_CHAN_30 30
-#define CONT_CHAN_31 31
-
-#define COIL_CHAN_32 32
-#define COIL_CHAN_33 33
-#define COIL_CHAN_34 34 //real   channel 35
-#define COIL_CHAN_35 35 //real   channel 36
-#define COIL_CHAN_36 36 //real   channel 37
-#define COIL_CHAN_37 37 //real   channel 38
-#define COIL_CHAN_38 38 //real   channel 39
-#define COIL_CHAN_39 39 //real   channel 40
-
-#define CAL_TIME_CHANL 20 //for relay test
-
 //20200326
 /*ADC data Trans Type*/
 #define NORMTRANTYPE 0

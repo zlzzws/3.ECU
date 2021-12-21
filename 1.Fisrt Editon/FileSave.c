@@ -2717,37 +2717,49 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
                                                               
 *********************************************************************/
 int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,const EADS_ERROR_INFO EADSErrInfoST)
-{ 
-    #if 0
+{  
+    //TODO 大小端转换
     uint8_t j= 0;
     uint8_t i = 0;
-    	
-    memcpy(&Drive_ST_p -> DriveDigital_U8[0],ChanDigitalInfo_ST.VolChanStat_8CH,VOL_STATUE_NUM);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[5],ChanDigitalInfo_ST.VolWarnFlag_8CH,VOL_STATUE_NUM);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[10],ChanDigitalInfo_ST.CurrWarnFlag_8CH,CURR_STATUE_NUM);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[12],&EADSErrInfoST,1);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[14],&LgInfoST,8);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[22],&g_CCU_EADsInfo_ST,sizeof(VECH_EADS_INFO));
-    if(g_DebugType_EU == FILE_DEBUG)
+    /*数字量处理*/	
+    Drive_ST_p -> DriveDigital_U8[0] = bram_data_wr[2] | bram_data_wr[3] << 2 | bram_data_wr[35] | bram_data_wr[48] << 7;
+    Drive_ST_p -> DriveDigital_U8[1] = bram_data_rd[2];
+    Drive_ST_p -> DriveDigital_U8[2] = bram_data_rd[3];
+    memcpy(&Drive_ST_p -> DriveDigital_U8[3],&bram_data_rd[50],11);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[14],&bram_data_rd[62],18);
+    /*模拟量处理*/
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[0],&bram_data_wr[36],6);
+    Drive_ST_p -> DriveAnalog_U16[3] = bram_data_wr[42] & 0XFFFF;
+    Drive_ST_p -> DriveAnalog_U16[4] = bram_data_wr[43] & 0XFFFF;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[5],&bram_data_wr[44],4);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[7],&bram_data_rd[4],14);
+    for(i=0;i<12;i++)
     {
-        for(j = 0;j < DIGITAL_NUM_BYTE;j++)
-        { 
-            printf("Event DriveDigital_U8 %u : %u \n",j,Drive_ST_p -> DriveDigital_U8[j]);   
-        }
+        Drive_ST_p -> DriveAnalog_U16[13+i] = bram_data_wr[18+i] & 0XFFFF;
     }
-    /*note DriveAnalog_U16[] number is  51 , !!!! note  not include the oprte time */
-    Drive_ST_p -> DriveAnalog_U16[0] = ChanInfop.OprtUpTime_U16[CONT_CHAN_T883] ;
-    Drive_ST_p -> DriveAnalog_U16[1] = ChanInfop.OprtUpTime_U16[CONT_CHAN_106K] ;    
-    Drive_ST_p -> DriveAnalog_U16[2] = ChanInfop.OprtUpTime_U16[CONT_CHAN_123A] ;
-    Drive_ST_p -> DriveAnalog_U16[3] = ChanInfop.OprtUpTime_U16[CONT_CHAN_103B] ;
-    Drive_ST_p -> DriveAnalog_U16[4] = ChanInfop.OprtUpTime_U16[CONT_CHAN_103D] ;
-    Drive_ST_p -> DriveAnalog_U16[5] = ChanInfop.OprtDownTime_U16[CONT_CHAN_T883] ;
-    Drive_ST_p -> DriveAnalog_U16[6] = ChanInfop.OprtDownTime_U16[CONT_CHAN_106K] ;    
-    Drive_ST_p -> DriveAnalog_U16[7] = ChanInfop.OprtDownTime_U16[CONT_CHAN_123A] ;
-    Drive_ST_p -> DriveAnalog_U16[8] = ChanInfop.OprtDownTime_U16[CONT_CHAN_103B] ;
-    Drive_ST_p -> DriveAnalog_U16[9] = ChanInfop.OprtDownTime_U16[CONT_CHAN_103D] ;
-    return CODE_OK;
-    #endif
+    Drive_ST_p -> DriveAnalog_U16[25] = bram_data_wr[30] <<8 | bram_data_wr[31];
+    Drive_ST_p -> DriveAnalog_U16[26] = bram_data_wr[32] & 0XFFFF;
+    Drive_ST_p -> DriveAnalog_U16[27] = bram_data_wr[33] & 0XFFFF;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[28],&bram_data_rd[34],6);
+    for(i=0;i<7;i++)
+    {
+        Drive_ST_p -> DriveAnalog_U16[31+i] = bram_data_wr[41+i] & 0XFFFF;
+    }
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[38],&bram_data_rd[82],16);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[46],&bram_data_rd[100],4);
+    for(i=0;i<8;i++)
+    {
+        Drive_ST_p -> DriveAnalog_U16[48+i] = bram_data_wr[104+i] & 0XFFFF;
+    }
+    for(i=0;i<13;i++)
+    {
+        Drive_ST_p -> DriveAnalog_U16[56+i] = bram_data_wr[130+i] & 0XFFFF;
+    }
+    Drive_ST_p -> DriveAnalog_U16[69] = bram_data_wr[146] & 0XFFFF;
+    Drive_ST_p -> DriveAnalog_U16[70] = bram_data_wr[147] & 0XFFFF;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[71],&bram_data_rd[148],18);
+    big_to_small_endian_fun();
+    return CODE_OK;    
 }
 
 /**********************************************************************
