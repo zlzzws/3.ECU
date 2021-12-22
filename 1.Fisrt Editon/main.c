@@ -1359,7 +1359,7 @@ void *LEDWachDogPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{    
+{   
     #if 0
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
@@ -1428,8 +1428,8 @@ void *CAN0ThreadFunc(void *arg)
         usleep(100000);
     }
     close(socket_can0);
-    return 0;
-    #endif    
+    return 0;  
+     #endif     
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1519,6 +1519,7 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {
+    
     int8_t  ret = 0;
     uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
@@ -1534,7 +1535,7 @@ void *MVBThreadFunc(void *arg)
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);        
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);    
         
         TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
@@ -1544,5 +1545,6 @@ void *MVBThreadFunc(void *arg)
     }
 
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);   
+    pthread_exit(NULL);
+      
 }

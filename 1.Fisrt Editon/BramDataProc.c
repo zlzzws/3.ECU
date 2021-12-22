@@ -1106,11 +1106,7 @@ void TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype)
     //Attention:数据区长度不包含CRC32，PacktLength需要在总长度上-1
     switch (can_devtype)
     {
-        case CAN0_TYPE:       
-            /*MVB A9->570*/
-            CmdPact_WR_ST[0].protocol_version =0x11c2;
-            CmdPact_WR_ST[0].ChanNum_U8 = 8;
-            CmdPact_WR_ST[0].PacktLength_U32 = 16;
+        case CAN0_TYPE:
             /*CAN-BMS A9->570*/
             CmdPact_WR_ST[1].protocol_version =0x11c2;
             CmdPact_WR_ST[1].ChanNum_U8 = 9;
@@ -1122,10 +1118,7 @@ void TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype)
             /*CAN-FC A9->570*/
             CmdPact_WR_ST[3].protocol_version =0x11c2;
             CmdPact_WR_ST[3].ChanNum_U8 = 11;
-            CmdPact_WR_ST[3].PacktLength_U32 = 18;    
-            /*MVB 570->A9*/
-            CmdPact_RD_ST[0].ChanNum_U8 = 8;
-            CmdPact_RD_ST[0].PacktLength_U32 = 47;
+            CmdPact_WR_ST[3].PacktLength_U32 = 18;
             /*CAN-BMS 570->A9*/
             CmdPact_RD_ST[1].ChanNum_U8 = 9;
             CmdPact_RD_ST[1].PacktLength_U32 = 6;
@@ -1268,7 +1261,14 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
     uint32_t fdback_Addr_wrch=0X4000E01C,fdback_Addr_rdch=0X4000E018;        
     uint8_t fdback_wrch,fdback_rdch;    
     char loginfo[LOG_INFO_LENG]={0}; 
-    
+    /*MVB A9->570*/
+    CmdPact_WR_ST[0].protocol_version =0x11c2;
+    CmdPact_WR_ST[0].ChanNum_U8 = 8;
+    CmdPact_WR_ST[0].PacktLength_U32 = 16;
+    /*MVB 570->A9*/
+    CmdPact_RD_ST[0].ChanNum_U8 = 8;
+    CmdPact_RD_ST[0].PacktLength_U32 = 47;   
+
     for (i=0;i<6;i++)
     {
         MVB_CmdPact_WR_ST[i].protocol_version =0x11c2;

@@ -246,12 +246,11 @@ int8_t BramBlockReadOpti(BRAM_ADDRS *BramAddrs_p,uint32_t *Outbuf)
     if(BRAM_RD_DEBUG == g_DebugType_EU)
     {            
         printf("BramBlockReadOpti:\n");
-        for( i = 0; i < RdLength; i++)
+        for(i=0;i<RdLength;i++)
         {
-            printf("ChanNum[%d]-Read 4Bytes[%u] data:%08x\n",BramAddrs_p -> ChanNum_U8,i,Outbuf[i]);
+            printf("ChanNum[%02d]-Read BramData[%02u]:0x%08x\n",BramAddrs_p -> ChanNum_U8,i,Outbuf[i]);
         }
-    }
-    
+    }   
     CrcErr = BramReadDataWithCRC(Outbuf);
     /*CrcErr = 2,mean Crc error*/
     if(CODE_ERR == CrcErr)
@@ -299,7 +298,7 @@ int8_t BramBlockWRFlagWait(BRAM_ADDRS *BramAddrs_p)
         WRFlagTemp = WRFlagTemp & 1; 
         if(BRAM_WR_DEBUG  == g_DebugType_EU)
         {
-           printf("NO:%u-Read WRFlag:%02x\n",i,WRFlagValue);   
+           printf("NO:%u-Read WRFlag:%02x\n",BramAddrs_p -> ChanNum_U8,WRFlagValue);   
         }   
         if(WRFlagTemp == 0)
         {
@@ -369,13 +368,12 @@ int8_t BramBlockFlagCrc(BRAM_ADDRS *BramAddrs_p)
       
     }
 
-     /*Read the  FPGA crc error */ 
+    /*Read the  FPGA crc error */ 
     FPGACrcErr = BramReadU8(ChanFedFlagAddr,BramAddrs_p -> MapBlckFlgAddr_p);
     if(BRAM_WR_DEBUG == g_DebugType_EU)
     {
-        printf("the FPGACrcErr 0x%02x\n",FPGACrcErr);
-    }
-    
+        printf("WR-Readback FPGACrcErr:0x%02x\n",FPGACrcErr);
+    }    
     FPGACrcErTemp = FPGACrcErr >> WRFlagBit;
     FPGACrcErTemp = FPGACrcErTemp & 1; 
     /*CRC error*/
@@ -427,11 +425,10 @@ int8_t BramBlockWriteOpti(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     BramPackWriteU32(ChanAddress,BramAddrs_p -> MapBlckAddr_p,Inbuf,WrLength);
     if(BRAM_WR_DEBUG == g_DebugType_EU)
     {    
-        BramPackReadU32(ChanAddress,BramAddrs_p -> MapBlckAddr_p,RdBuf,WrLength);
-        printf("ChanNum:%d->write bram and readback\n",BramAddrs_p -> ChanNum_U8);
+        BramPackReadU32(ChanAddress,BramAddrs_p -> MapBlckAddr_p,RdBuf,WrLength);        
         for( i = 0; i < WrLength; i++)
         {
-            printf("Write Byte %u data %08x\n",i, RdBuf[i]);   
+            printf("ChanNum[%02d]-Write BramData Readback-[%02u]:0x%08x\n",BramAddrs_p -> ChanNum_U8,i,RdBuf[i]);  
         } 
     }  
     return CODE_OK;
@@ -591,11 +588,10 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 	BramPacketData_ST_p -> BLVDSData_U32[DataLen]= Calculate_CrcValue_U32;
  
 	if(BRAM_WR_DEBUG == g_DebugType_EU)
-	{
-		printf("CHanNum:%d\n",BramAddrs_p -> ChanNum_U8);
+	{		
         for( i = 0; i < Framelen; i++)
 		{
-			printf("Bram_DataWrite_U32 %d data %08x\n",i,Outbuf[i]);   
+			printf("CHanNum:[%02d]-Write BramData Set-[%02u]:0x%08x\n",BramAddrs_p -> ChanNum_U8,i,Outbuf[i]);   
 		}
 	}
 	return 0;
