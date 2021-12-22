@@ -2695,7 +2695,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     return err;
 
 }
-
+#if 0
 /**********************************************************************
 *Name       :   int8_t EventDataSet
 *Function   :   Set the Event data,include vol digital statue,volwarn,currwarn,
@@ -2761,7 +2761,7 @@ int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bra
     big_to_small_endian_fun();
     return CODE_OK;    
 }
-
+#endif
 /**********************************************************************
 *Name       :   int8_t EventDataSave
 *Function   :   Save the Event data  to event file

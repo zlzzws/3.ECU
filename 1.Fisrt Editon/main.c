@@ -564,7 +564,7 @@ int8_t PowDownFun(void)
             }
             s_ClearPowNum = 0;
         }
-        s_PowDownNum = 0;` ASD        
+        s_PowDownNum = 0;       
     }
 }
 
@@ -998,7 +998,7 @@ void *ModbusThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Modbus close\n");
 }
-#endif
+
 /**********************************************************************
 *Name           :  FileSaveThreaFunc
 *Function       :  the thread for Event ,RealFlt,RealOprt,OprtNum File save.
@@ -1070,7 +1070,7 @@ void *FileSaveThreaFunc(void *arg)
     printf("exit File Write thread\n");
     pthread_exit(NULL);    
 }
-
+#endif
 #if 0
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
