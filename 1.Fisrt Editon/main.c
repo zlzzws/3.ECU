@@ -1360,6 +1360,7 @@ void *LEDWachDogPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {    
+    #if 0
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
@@ -1427,7 +1428,8 @@ void *CAN0ThreadFunc(void *arg)
         usleep(100000);
     }
     close(socket_can0);
-    return 0;    
+    return 0;
+    #endif    
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1467,7 +1469,7 @@ void *CAN1ThreadFunc(void *arg)
     
     while(g_LifeFlag>0)
     {        
-        TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[4],4,4);
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
         CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
         //FD_ZERO(&rfds);
@@ -1483,7 +1485,7 @@ void *CAN1ThreadFunc(void *arg)
                 for (j = 0; j < 25; j++)
                     printf("A9->570 BramData[4][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[4].buffer[j]);
             }
-            TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[4],4,4);
+            TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
         }
         /*else
         {
@@ -1526,16 +1528,17 @@ void *MVBThreadFunc(void *arg)
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
     memcpy(&s_mvb_bram_WR_data_st[0].buffer[0],testbuff,32);
     memcpy(&s_mvb_bram_WR_data_st[1].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[0].buffer[0],testbuff,32);
     while(1)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
-        MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
+        //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        //TMS570_Bram_Write_Func(&s_tms570_bram_WR_data_st[0],1,1);        
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);        
         
-        //TMS570_Bram_Read_Func(&s_tms570_bram_RD_data_st[0],1,1);
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
+        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
         usleep(100000);                  
     }
