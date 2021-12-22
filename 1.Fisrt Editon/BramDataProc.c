@@ -1191,9 +1191,9 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[],uint8_t begin_index,ui
                 DataErrNum = 0;
             }
         }
-        if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+        if(TMS570_BRAM_RD_DEBUG == g_DebugType_EU)
         {
-            for(j=0;j<bram_data[i].length;j++)
+            for(j=0;j<25;j++)
                 printf("TMS570:Read from Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
         } 
         
@@ -1234,7 +1234,7 @@ int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data,uint8_t begin_index,ui
 
         if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
         {
-            for(j=0;j<bram_data[i].length;j++)
+            for(j=0;j<25;j++)
                 printf("TMS570:Write to Bram bram_data[%d][%d-4BYTES]:0x%08u\n",i,j,bram_data[i].buffer[j]);
         }    
         if(0 == g_LinuxDebug)
@@ -1368,18 +1368,19 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     static uint16_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST[MVB_WRITE_FRAME_NUM] = {0};
     
-    for(i+0;i<MVB_WRITE_FRAME_NUM;i++)
+    for(i=0;i<MVB_WRITE_FRAME_NUM;i++)
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
         
         s_bram_WR_B_BLVDSBlckAddr_ST.DataU32Length = MVB_CmdPact_WR_ST[i].PacktLength_U32;
         s_bram_WR_B_BLVDSBlckAddr_ST.ChanNum_U8 = MVB_CmdPact_WR_ST[i].ChanNum_U8;
-
-        if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
+        
+        if(MVB_WR_DEBUG == g_DebugType_EU)
         {
-            for(j=0;j<bram_data_mvb_wr[i].length;j++)
-                printf("MVB:Write Bram_data[%d][%02d]:0x%08x\n",i,j,bram_data_mvb_wr[i].buffer[j]);
+            printf("NO:%d->mvb_channel_number:%d\n",i,MVB_CmdPact_WR_ST[i].ChanNum_U8);
+            for(j=0;j<8;j++)
+                printf("MVB:Write Bram_data[%d][%d]:0x%08x\n",i,j,bram_data_mvb_wr[i].buffer[j]);
         }    
         if(0 == g_LinuxDebug)
         {

@@ -428,12 +428,11 @@ int8_t BramBlockWriteOpti(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     if(BRAM_DEBUG == g_DebugType_EU)
     {    
         BramPackReadU32(ChanAddress,BramAddrs_p -> MapBlckAddr_p,RdBuf,WrLength);
-        printf("write bram and readback\n");
+        printf("ChanNum:%d->write bram and readback\n",BramAddrs_p -> ChanNum_U8);
         for( i = 0; i < WrLength; i++)
         {
             printf("Write Byte %u data %08x\n",i, RdBuf[i]);   
-        }  
-
+        } 
     }  
     return CODE_OK;
 }
@@ -593,7 +592,8 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
  
 	if(BRAM_DEBUG == g_DebugType_EU)
 	{
-		for( i = 0; i < Framelen; i++)
+		printf("CHanNum:%d\n",BramAddrs_p -> ChanNum_U8);
+        for( i = 0; i < Framelen; i++)
 		{
 			printf("Bram_DataWrite_U32 %d data %08x\n",i,Outbuf[i]);   
 		}
