@@ -461,13 +461,16 @@ int8_t BramBlockWrite(BRAM_ADDRS *BramAddrs_p,uint32_t *Inbuf)
     BramBlockWriteOpti(BramAddrs_p,Inbuf);
 
     ErrorRet = BramBlockFlagCrc(BramAddrs_p);
-    if(ErrorRet == CODE_ERR)
+    if (g_DebugType_EU == BRAM_WR_DEBUG)
     {
-        printf("Readback-WriteData FlagCRCerr happened!\n");
-    }
-    else if(ErrorRet == CODE_WARN)
-    {
-        printf("Finish write-FPGA didn't set writeFlag to 0!\n");
+        if(ErrorRet == CODE_ERR)
+        {
+            printf("Readback-WriteData FlagCRCerr happened!\n");
+        }
+        else if(ErrorRet == CODE_WARN)
+        {
+            printf("Finish write-FPGA didn't set writeFlag to 0!\n");
+        }
     }
     return ErrorRet;
 }

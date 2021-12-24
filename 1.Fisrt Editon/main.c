@@ -1377,6 +1377,10 @@ void *CAN0ThreadFunc(void *arg)
     memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
     memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
     memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);
+    for (i=0;i<4;i++)
+    {
+        memcpy(&s_can0_frame_WR_st[i].data[0],testbuff,8);
+    } 
     //Attention 测试时序
     /*bind*/
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -1392,27 +1396,18 @@ void *CAN0ThreadFunc(void *arg)
     
     while(g_LifeFlag>0)
     {        
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
+        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
         //CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
-        //CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM);
+        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM);
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
         //if(ret>0)
         //{
             //errnum_timeout=0;
-            //CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM);               
+            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM);               
             //CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {            
-                for (i=1;i<4;i++)
-                {                
-                    for (j = 0; j < 25; j++)
-                        printf("A9->570 BramData[%d][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[i].buffer[j]);
-                }
-            }
-
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
+            //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
         //}
         /*else
         {
@@ -1431,7 +1426,7 @@ void *CAN0ThreadFunc(void *arg)
     }
     close(socket_can0);
     return 0;  
-    #endif 
+    #endif
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1444,8 +1439,8 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{    
-    #if 0
+{
+    
     uint8_t i,j,ret;    
     static errnum_timeout=0;
     int    socket_can1;
@@ -1473,12 +1468,16 @@ void *CAN1ThreadFunc(void *arg)
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                     0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
     memcpy(&s_tms570_bram_WR_data_st[4].buffer[0],testbuff,32);
+    for (i=0;i<3;i++)
+    {
+        memcpy(&s_can1_frame_WR_st[i].data[0],testbuff,8);
+    }    
     
     while(g_LifeFlag>0)
     {        
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
+        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
         //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        //CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
+        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
@@ -1487,12 +1486,7 @@ void *CAN1ThreadFunc(void *arg)
             //errnum_timeout=0;
             //CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM);                       
             //CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
-            if(g_DebugType_EU == CAN_RD_DEBUG)
-            {            
-                for (j = 0; j < 25; j++)
-                    printf("A9->570 BramData[4][%d]:0x%08x\n",j,s_tms570_bram_WR_data_st[4].buffer[j]);
-            }
-            TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
+            //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
         }
         /*else
         {
@@ -1511,7 +1505,7 @@ void *CAN1ThreadFunc(void *arg)
     }
     close(socket_can1);
     return 0; 
-    #endif  
+      
 }
 
 /**********************************************************************
@@ -1525,18 +1519,17 @@ void *CAN1ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
-{
-    
-    int8_t  ret = 0,i;
+{    
+    int8_t  ret = 0,i,j;
     uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
-    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                        0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                        0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                        0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
+    uint8_t testbuff[32]={0};
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
     for(i=0;i<32;i++)
     {
-        testbuff[0] += 1;
+        for(j=0;j<32;j++)
+        {
+            testbuff[j] = i;
+        }
         memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff,32);
     }
     
@@ -1555,6 +1548,5 @@ void *MVBThreadFunc(void *arg)
         usleep(100000);                  
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);
-      
+    pthread_exit(NULL);      
 }

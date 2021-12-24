@@ -1367,7 +1367,7 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     static uint16_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY!
     
-    for(i=1;i<3;i++) //TODO just for test ! Please verify to MVB_WRITE_FRAME_NUM
+    for(i=0;i<3;i++) //TODO just for test ! Please verify to MVB_WRITE_FRAME_NUM
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
@@ -1383,6 +1383,7 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
         }    
         if(0 == g_LinuxDebug)
         {
+            bram_data_mvb_wr[i].buffer[0]= (Life_signal+100)<<16;
             WriteErr = BramWriteWithChek(&s_bram_WR_B_BLVDSBlckAddr_ST,bram_data_mvb_wr[i].buffer,TopPackST[i]);
             if(WriteErr == CODE_ERR)
             {
