@@ -5,7 +5,7 @@ TARGET       := Demo_Run
 SOURCE       := ./*.c
 all:$(TARGET)
 $(TARGET):$(SOURCE)  libmxml.a
-	$(CROSS_COMPILE)gcc $^ -o $@ -lpthread -L$(MODBUS_LIB) -lmodbus 
+	$(CROSS_COMPILE)gcc $^ -o $@ -lpthread -L$(MODBUS_LIB) -lmodbus	
 clean:
 	rm -rf ./*.o $(TARGET) ./Demo*
 install:

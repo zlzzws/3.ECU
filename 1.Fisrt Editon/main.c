@@ -81,8 +81,8 @@ sem_t g_ReadBrd_sem;
 *********************************************************************/
 static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
 static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
-static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
-static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
+static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY
+static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY
 struct can_frame s_can0_frame_RD_st[16] = {0};
 struct can_frame s_can0_frame_WR_st[8] = {0};
 struct can_frame s_can1_frame_RD_st[16] = {0};
@@ -1375,6 +1375,8 @@ void *CAN0ThreadFunc(void *arg)
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                     0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
     memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);
     //Attention 测试时序
     /*bind*/
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -1410,7 +1412,7 @@ void *CAN0ThreadFunc(void *arg)
                 }
             }
 
-            TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
         //}
         /*else
         {
@@ -1429,7 +1431,7 @@ void *CAN0ThreadFunc(void *arg)
     }
     close(socket_can0);
     return 0;  
-     #endif     
+    #endif 
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1442,7 +1444,7 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{     
+{    
     #if 0
     uint8_t i,j,ret;    
     static errnum_timeout=0;
@@ -1466,20 +1468,25 @@ void *CAN1ThreadFunc(void *arg)
     TMS570_Bram_TopPackDataSetFun(CAN1_TYPE);
     /*Filter*/
     setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
+    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                    0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
+                    0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
+                    0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
+    memcpy(&s_tms570_bram_WR_data_st[4].buffer[0],testbuff,32);
     
     while(g_LifeFlag>0)
     {        
         TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
-        CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
+        //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
+        //CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
         //if(ret>0)
         {
             //errnum_timeout=0;
-            CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM);                       
-            CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
+            //CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM);                       
+            //CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
             if(g_DebugType_EU == CAN_RD_DEBUG)
             {            
                 for (j = 0; j < 25; j++)
@@ -1504,7 +1511,7 @@ void *CAN1ThreadFunc(void *arg)
     }
     close(socket_can1);
     return 0; 
-    #endif     
+    #endif  
 }
 
 /**********************************************************************
@@ -1520,30 +1527,33 @@ void *CAN1ThreadFunc(void *arg)
 void *MVBThreadFunc(void *arg)
 {
     
-    int8_t  ret = 0;
+    int8_t  ret = 0,i;
     uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                         0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                         0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                         0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
     ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
-    memcpy(&s_mvb_bram_WR_data_st[0].buffer[0],testbuff,32);
-    memcpy(&s_mvb_bram_WR_data_st[1].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[0].buffer[0],testbuff,32);
+    for(i=0;i<32;i++)
+    {
+        testbuff[0] += 1;
+        memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff,32);
+    }
+    
+    //memcpy(&s_tms570_bram_WR_data_st[0].buffer[0],testbuff,32);
     while(1)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
         //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);    
+        //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);    
         
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
+        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
+        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
         usleep(100000);                  
     }
-
     printf("exit MVBThreadFunc Function!\n");
     pthread_exit(NULL);
       

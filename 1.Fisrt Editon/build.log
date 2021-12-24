@@ -1,0 +1,1494 @@
+arm-xilinx-linux-gnueabi-gcc Socket.c BcdTrans.c WriteLog.c Crc.c Timer.c xml.c ModbusSer.c GPIOControl.c Bram.c ModifConfig.c main.c BramDataProc.c FileSave.c DircMng.c BramDataInter.c libmxml.a -o Demo_Run -lpthread -L/usr/local/lib/lib_feng -lmodbus -Wall	
+Socket.c: In function 'RealWaveData':
+Socket.c:146:25: warning: unused variable 'k' [-Wunused-variable]
+     uint8_t i = 0,j = 0,k=0;
+                         ^
+Socket.c:145:13: warning: unused variable 'V_ChanName' [-Wunused-variable]
+     uint8_t V_ChanName = 0;
+             ^
+Socket.c:144:32: warning: unused variable 'VI_ChanNameRe' [-Wunused-variable]
+     uint8_t VI_ChanNameInt = 0,VI_ChanNameRe = 0;
+                                ^
+Socket.c:144:13: warning: unused variable 'VI_ChanNameInt' [-Wunused-variable]
+     uint8_t VI_ChanNameInt = 0,VI_ChanNameRe = 0;
+             ^
+Socket.c:142:14: warning: unused variable 'ChanBitTem' [-Wunused-variable]
+     uint16_t ChanBitTem = 0;
+              ^
+Socket.c:141:13: warning: unused variable 'RecTotalNum' [-Wunused-variable]
+     uint8_t RecTotalNum = 0;
+             ^
+Socket.c: In function 'RealTimeWaveExtr':
+Socket.c:125:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+WriteLog.c: In function 'LogFileCreate':
+WriteLog.c:147:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(TimeString_U8,"%04d%02d%02d",
+             ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+WriteLog.c:152:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(File_LogName_U8,"%s%s_%s.txt",path,LOG_FILE_HEAD,TimeString_U8);
+             ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+WriteLog.c:158:26: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+     s_LogFile_fd = fopen(File_LogName_U8, "at+");
+                          ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+WriteLog.c:174:30: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+         s_LogFile_fd = fopen(File_LogName_U8, "at+"); //every time creat the file and write replace   
+                              ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+WriteLog.c: In function 'WriteLogFile':
+WriteLog.c:251:9: warning: 'return' with no value, in function returning non-void [-Wreturn-type]
+         return;
+         ^
+WriteLog.c:256:9: warning: 'return' with no value, in function returning non-void [-Wreturn-type]
+         return;
+         ^
+WriteLog.c:261:11: warning: pointer targets in passing argument 1 of 'fputs' differ in signedness [-Wpointer-sign]
+     fputs(TimeStr,s_LogFile_fd);
+           ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:689:12: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern int fputs (const char *__restrict __s, FILE *__restrict __stream);
+            ^
+WriteLog.c: In function 'LogLevel':
+WriteLog.c:333:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "FATAL";
+             ^
+WriteLog.c:338:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "ERROR";
+             ^
+WriteLog.c:343:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "WARN";
+             ^
+WriteLog.c:348:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "INFO";
+             ^
+WriteLog.c:353:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "TRACE";
+             ^
+WriteLog.c:358:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "DEBUG";
+             ^
+WriteLog.c:363:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "ALL";
+             ^
+WriteLog.c:368:13: warning: pointer targets in return differ in signedness [-Wpointer-sign]
+             return "OTHER";
+             ^
+WriteLog.c: In function 'GetConfigValue':
+WriteLog.c:386:40: warning: pointer targets in passing argument 1 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+     s_LogLevel = GetConfigFileIntValue("LOG", "LogLevel", 5, LOG_CFG);
+                                        ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+WriteLog.c:386:47: warning: pointer targets in passing argument 2 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+     s_LogLevel = GetConfigFileIntValue("LOG", "LogLevel", 5, LOG_CFG);
+                                               ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+In file included from WriteLog.c:18:0:
+WriteLog.h:45:18: warning: pointer targets in passing argument 4 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+ #define LOG_CFG  "/tffs0/LogConFig.ini"
+                  ^
+WriteLog.c:386:62: note: in expansion of macro 'LOG_CFG'
+     s_LogLevel = GetConfigFileIntValue("LOG", "LogLevel", 5, LOG_CFG);
+                                                              ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+WriteLog.c:388:43: warning: pointer targets in passing argument 1 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+     s_LogShowLine = GetConfigFileIntValue("LOG", "LogPosition", 1, LOG_CFG);
+                                           ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+WriteLog.c:388:50: warning: pointer targets in passing argument 2 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+     s_LogShowLine = GetConfigFileIntValue("LOG", "LogPosition", 1, LOG_CFG);
+                                                  ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+In file included from WriteLog.c:18:0:
+WriteLog.h:45:18: warning: pointer targets in passing argument 4 of 'GetConfigFileIntValue' differ in signedness [-Wpointer-sign]
+ #define LOG_CFG  "/tffs0/LogConFig.ini"
+                  ^
+WriteLog.c:388:68: note: in expansion of macro 'LOG_CFG'
+     s_LogShowLine = GetConfigFileIntValue("LOG", "LogPosition", 1, LOG_CFG);
+                                                                    ^
+WriteLog.c:83:17: note: expected 'uint8_t *' but argument is of type 'char *'
+ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyName, uint32_t iDefaultVal, uint8_t *pszConfigFileName);
+                 ^
+WriteLog.c: In function 'GetStringContentValue':
+WriteLog.c:421:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(szSectionName, "[%s]", pszSectionName);
+             ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+WriteLog.c:422:12: warning: pointer targets in passing argument 1 of 'strcpy' differ in signedness [-Wpointer-sign]
+     strcpy(szKeyName, pszKeyName);
+            ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:422:23: warning: pointer targets in passing argument 2 of 'strcpy' differ in signedness [-Wpointer-sign]
+     strcpy(szKeyName, pszKeyName);
+                       ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:427:15: warning: pointer targets in passing argument 1 of 'fgets' differ in signedness [-Wpointer-sign]
+         fgets(szContentLine, sizeof(szContentLine), fp);      // 获取段名
+               ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:622:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *fgets (char *__restrict __s, int __n, FILE *__restrict __stream)
+              ^
+WriteLog.c:436:62: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+         if (strncasecmp(szSectionName, szContentLine, strlen(szSectionName)) == 0)     
+                                                              ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:436:25: warning: pointer targets in passing argument 1 of 'strncasecmp' differ in signedness [-Wpointer-sign]
+         if (strncasecmp(szSectionName, szContentLine, strlen(szSectionName)) == 0)     
+                         ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:537:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+WriteLog.c:436:40: warning: pointer targets in passing argument 2 of 'strncasecmp' differ in signedness [-Wpointer-sign]
+         if (strncasecmp(szSectionName, szContentLine, strlen(szSectionName)) == 0)     
+                                        ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:537:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+WriteLog.c:442:23: warning: pointer targets in passing argument 1 of 'fgets' differ in signedness [-Wpointer-sign]
+                 fgets(szContentLine, sizeof(szContentLine), fp);     // 获取字段值
+                       ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:622:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *fgets (char *__restrict __s, int __n, FILE *__restrict __stream)
+              ^
+WriteLog.c:450:64: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 memcpy(szContentLineBak, szContentLine, strlen(szContentLine));
+                                                                ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:453:69: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 if (strncasecmp(szKeyName, szContentLineBak, strlen(szKeyName)) == 0)     
+                                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:453:33: warning: pointer targets in passing argument 1 of 'strncasecmp' differ in signedness [-Wpointer-sign]
+                 if (strncasecmp(szKeyName, szContentLineBak, strlen(szKeyName)) == 0)     
+                                 ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:537:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+WriteLog.c:453:44: warning: pointer targets in passing argument 2 of 'strncasecmp' differ in signedness [-Wpointer-sign]
+                 if (strncasecmp(szKeyName, szContentLineBak, strlen(szKeyName)) == 0)     
+                                            ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:537:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+WriteLog.c:455:46: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                     iContentLineLen = strlen(szContentLine);
+                                              ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:456:49: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                     for (iPositionFlag = strlen(szKeyName); iPositionFlag <= iContentLineLen; iPositionFlag ++)
+                                                 ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:479:28: warning: pointer targets in passing argument 1 of 'strcpy' differ in signedness [-Wpointer-sign]
+                     strcpy(szContentLine, szContentLineBak + iPositionFlag);
+                            ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:479:43: warning: pointer targets in passing argument 2 of 'strcpy' differ in signedness [-Wpointer-sign]
+                     strcpy(szContentLine, szContentLineBak + iPositionFlag);
+                                           ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:482:68: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                     for (iPositionFlag = 0; iPositionFlag < strlen(szContentLine); iPositionFlag ++)
+                                                                    ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+WriteLog.c:492:29: warning: pointer targets in passing argument 1 of 'strncpy' differ in signedness [-Wpointer-sign]
+                     strncpy(pszOutput, szContentLine, iOutputLen-1);
+                             ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:132:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strncpy (char *__restrict __dest,
+              ^
+WriteLog.c:492:40: warning: pointer targets in passing argument 2 of 'strncpy' differ in signedness [-Wpointer-sign]
+                     strncpy(pszOutput, szContentLine, iOutputLen-1);
+                                        ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:132:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strncpy (char *__restrict __dest,
+              ^
+WriteLog.c: In function 'GetConfigFileStringValue':
+WriteLog.c:531:16: warning: pointer targets in passing argument 1 of 'strcpy' differ in signedness [-Wpointer-sign]
+         strcpy(pszOutput, "");
+                ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:535:16: warning: pointer targets in passing argument 1 of 'strcpy' differ in signedness [-Wpointer-sign]
+         strcpy(pszOutput, pDefaultVal);
+                ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:535:27: warning: pointer targets in passing argument 2 of 'strcpy' differ in signedness [-Wpointer-sign]
+         strcpy(pszOutput, pDefaultVal);
+                           ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:129:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+              ^
+WriteLog.c:538:16: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+     fp = fopen(pszConfigFileName, "r");
+                ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+WriteLog.c: In function 'GetConfigFileIntValue':
+WriteLog.c:585:26: warning: pointer targets in passing argument 1 of 'atoi' differ in signedness [-Wpointer-sign]
+         iGetValue = atoi(szGetValue);
+                          ^
+In file included from BaseDefine.h:37:0,
+                 from Timer.h:30,
+                 from WriteLog.h:30,
+                 from WriteLog.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdlib.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int atoi (const char *__nptr)
+            ^
+WriteLog.c: In function 'LogFileSync':
+WriteLog.c:316:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+Timer.c: In function 'GetTime':
+Timer.c:269:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(szUsec, "%06d", (uint32_t)tTimeVal.tv_usec);  // 获取微秒
+             ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from Timer.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+Timer.c:270:13: warning: pointer targets in passing argument 1 of 'strncpy' differ in signedness [-Wpointer-sign]
+     strncpy(szMsec, szUsec, 3);                // 微秒的前3位为毫秒(1毫秒=1000微秒)
+             ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from Timer.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:132:14: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strncpy (char *__restrict __dest,
+              ^
+Timer.c:270:21: warning: pointer targets in passing argument 2 of 'strncpy' differ in signedness [-Wpointer-sign]
+     strncpy(szMsec, szUsec, 3);                // 微秒的前3位为毫秒(1毫秒=1000微秒)
+                     ^
+In file included from BaseDefine.h:35:0,
+                 from Timer.h:30,
+                 from Timer.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:132:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strncpy (char *__restrict __dest,
+              ^
+Timer.c:272:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(pszTimeStr, "[%04d.%02d.%02d %02d:%02d:%02d.%3.3s]", 
+             ^
+In file included from BaseDefine.h:36:0,
+                 from Timer.h:30,
+                 from Timer.c:18:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+Timer.c: In function 'i2c_write':
+Timer.c:320:15: warning: pointer targets in assignment differ in signedness [-Wpointer-sign]
+  i2cmsg.buf   = _buf;
+               ^
+Timer.c: In function 'set_timer':
+Timer.c:52:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }  
+ ^
+Timer.c: In function 'RTCTesT':
+Timer.c:182:32: warning: 'Year_U16' is used uninitialized in this function [-Wuninitialized]
+     Time_ST.tm_year = Year_U16 - 1900; 
+                                ^
+Timer.c: In function 'i2c_read':
+Timer.c:364:6: warning: 'i' may be used uninitialized in this function [-Wmaybe-uninitialized]
+      fprintf(stderr,"ioctl WR returned %d\n",i);
+      ^
+xml.c: In function 'RecordCFGXml':
+xml.c:279:12: warning: unused variable 'i' [-Wunused-variable]
+    uint8_t i =0; 
+            ^
+xml.c: In function 'XmlParJudge':
+xml.c:439:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(RecordXml_p ->Rec_Event_ST.RecPath,"%s", "/yaffs/REC_EVTDATA/"); 
+             ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from xml.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+xml.c: In function 'SysXmlParInit':
+xml.c:420:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+xml.c: In function 'XmlParJudge':
+xml.c:441:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+ModbusSer.c: In function 'VersionInit':
+ModbusSer.c:212:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+GPIOControl.c: In function 'GPIO_PowDowOpen':
+GPIOControl.c:241:12: warning: variable 'err' set but not used [-Wunused-but-set-variable]
+     int8_t err = 0;
+            ^
+GPIOControl.c: In function 'GPIO_PowDownIoCreat':
+GPIOControl.c:171:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+GPIOControl.c: In function 'GPIO_RS485EnIOCreat':
+GPIOControl.c:226:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+GPIOControl.c: In function 'GPIO_RS485Open':
+GPIOControl.c:309:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+GPIOControl.c: In function 'GPIO_SysFlWrLow':
+GPIOControl.c:501:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+Bram.c: In function 'BramOpen':
+Bram.c:54:9: warning: unused variable 'err' [-Wunused-variable]
+  int8_t err = 0;
+         ^
+Bram.c: In function 'BramPackReadU32':
+Bram.c:108:11: warning: unused variable 'val' [-Wunused-variable]
+  uint32_t val;
+           ^
+Bram.c:107:11: warning: unused variable 'i' [-Wunused-variable]
+  uint16_t i;
+           ^
+Bram.c: In function 'BramReadU8':
+Bram.c:151:13: warning: unused variable 'j' [-Wunused-variable]
+  uint16_t i,j;
+             ^
+Bram.c:151:11: warning: unused variable 'i' [-Wunused-variable]
+  uint16_t i,j;
+           ^
+Bram.c: In function 'BramWriteU8':
+Bram.c:172:13: warning: unused variable 'j' [-Wunused-variable]
+  uint16_t i,j;
+             ^
+Bram.c:172:11: warning: unused variable 'i' [-Wunused-variable]
+  uint16_t i,j;
+           ^
+ModifConfig.c: In function 'GetChanCalibData':
+ModifConfig.c:82:26: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+     fd_CalibName = fopen(Path, "r+"); //every time creat the file and write replace
+                          ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from ModifConfig.c:28:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+ModifConfig.c: In function 'GetChanOperateNum':
+ModifConfig.c:114:14: warning: variable 'freadNum' set but not used [-Wunused-but-set-variable]
+     uint32_t freadNum = 0;
+              ^
+ModifConfig.c: In function 'GetPTUChanThresholdValue':
+ModifConfig.c:164:22: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+     FILE *fp = fopen(ConfPath_p, "r+");
+                      ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from ModifConfig.c:28:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+main.c:31:1: warning: missing braces around initializer [-Wmissing-braces]
+ RECORD_XML          g_Rec_XML_ST = {0};
+ ^
+main.c:31:1: warning: (near initialization for 'g_Rec_XML_ST.Rec_Event_ST') [-Wmissing-braces]
+main.c:34:1: warning: missing braces around initializer [-Wmissing-braces]
+ PTHREAD_LOCK        g_PthreadLock_ST= {0};
+ ^
+main.c:34:1: warning: (near initialization for 'g_PthreadLock_ST.BramDatalock') [-Wmissing-braces]
+main.c:44:1: warning: missing braces around initializer [-Wmissing-braces]
+ CHAN_DATA           g_ChanData_ST[CHAN_BUFFER_NUM] = {0};       /*304 byte*/
+ ^
+main.c:44:1: warning: (near initialization for 'g_ChanData_ST[0]') [-Wmissing-braces]
+main.c:82:1: warning: missing braces around initializer [-Wmissing-braces]
+ static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
+ ^
+main.c:82:1: warning: (near initialization for 's_tms570_bram_RD_data_st[0]') [-Wmissing-braces]
+main.c:83:1: warning: missing braces around initializer [-Wmissing-braces]
+ static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
+ ^
+main.c:83:1: warning: (near initialization for 's_tms570_bram_WR_data_st[0]') [-Wmissing-braces]
+main.c:84:1: warning: missing braces around initializer [-Wmissing-braces]
+ static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+ ^
+main.c:84:1: warning: (near initialization for 's_mvb_bram_RD_data_st[0]') [-Wmissing-braces]
+main.c:85:1: warning: missing braces around initializer [-Wmissing-braces]
+ static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
+ ^
+main.c:85:1: warning: (near initialization for 's_mvb_bram_WR_data_st[0]') [-Wmissing-braces]
+main.c:86:8: warning: missing braces around initializer [-Wmissing-braces]
+ struct can_frame s_can0_frame_RD_st[16] = {0};
+        ^
+main.c:86:8: warning: (near initialization for 's_can0_frame_RD_st[0]') [-Wmissing-braces]
+main.c:87:8: warning: missing braces around initializer [-Wmissing-braces]
+ struct can_frame s_can0_frame_WR_st[8] = {0};
+        ^
+main.c:87:8: warning: (near initialization for 's_can0_frame_WR_st[0]') [-Wmissing-braces]
+main.c:88:8: warning: missing braces around initializer [-Wmissing-braces]
+ struct can_frame s_can1_frame_RD_st[16] = {0};
+        ^
+main.c:88:8: warning: (near initialization for 's_can1_frame_RD_st[0]') [-Wmissing-braces]
+main.c:89:8: warning: missing braces around initializer [-Wmissing-braces]
+ struct can_frame s_can1_frame_WR_st[8] = {0};
+        ^
+main.c:89:8: warning: (near initialization for 's_can1_frame_WR_st[0]') [-Wmissing-braces]
+main.c: In function 'main':
+main.c:133:2: warning: implicit declaration of function 'GetMemSize' [-Wimplicit-function-declaration]
+  GetMemSize("/yaffs/",&EmmcTotalSizeMB_U32,&EmmcFreeSizeMB_U32);
+  ^
+main.c:162:9: warning: implicit declaration of function 'LogFileSync' [-Wimplicit-function-declaration]
+         LogFileSync();
+         ^
+main.c:185:5: warning: implicit declaration of function 'i2c_read' [-Wimplicit-function-declaration]
+     i2c_read(i2cbus_fd,0X20,0,&BOXID,1);
+     ^
+main.c:227:17: warning: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'sem_t' [-Wformat=]
+                 printf("g_RealSend_sem post:%x\n",g_RealSend_sem);               
+                 ^
+main.c:124:13: warning: unused variable 'i' [-Wunused-variable]
+     uint8_t i = 0;
+             ^
+main.c:123:12: warning: unused variable 'fd' [-Wunused-variable]
+     int8_t fd = 0;
+            ^
+main.c:121:12: warning: unused variable 'res' [-Wunused-variable]
+     int8_t res=0;
+            ^
+main.c:119:9: warning: unused variable 'SemtValue' [-Wunused-variable]
+     int SemtValue = 0;
+         ^
+main.c:118:9: warning: unused variable 'SemValue' [-Wunused-variable]
+     int SemValue = 0;
+         ^
+main.c:117:30: warning: unused variable 'A_TimeEnd_ST' [-Wunused-variable]
+     struct timeval A_Time_ST,A_TimeEnd_ST;
+                              ^
+main.c:117:20: warning: unused variable 'A_Time_ST' [-Wunused-variable]
+     struct timeval A_Time_ST,A_TimeEnd_ST;
+                    ^
+main.c: In function 'ThreadInit':
+main.c:313:9: warning: unused variable 'policy' [-Wunused-variable]
+     int policy;
+         ^
+main.c:312:24: warning: unused variable 'param' [-Wunused-variable]
+     struct sched_param param;
+                        ^
+main.c: In function 'ThreadOff':
+main.c:449:12: warning: unused variable 'res' [-Wunused-variable]
+     int8_t res=0;
+            ^
+main.c:448:11: warning: unused variable 'thread_result' [-Wunused-variable]
+     void *thread_result;
+           ^
+main.c: In function 'PowDownFun':
+main.c:491:14: warning: unused variable 'i' [-Wunused-variable]
+     uint16_t i= 0;
+              ^
+main.c: In function 'MVBThreadFunc':
+main.c:1523:13: warning: variable 'ret' set but not used [-Wunused-but-set-variable]
+     int8_t  ret = 0;
+             ^
+main.c: At top level:
+main.c:84:25: warning: 's_mvb_bram_RD_data_st' defined but not used [-Wunused-variable]
+ static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+                         ^
+main.c: In function 'ThreadInit':
+main.c:433:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+main.c: In function 'ThreadOff':
+main.c:473:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+main.c: In function 'PowDownFun':
+main.c:569:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+main.c: In function 'CAN0ThreadFunc':
+main.c:1433:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+main.c: In function 'CAN1ThreadFunc':
+main.c:1508:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataProc.c:78:1: warning: missing braces around initializer [-Wmissing-braces]
+ static BRAM_CMD_PACKET CmdPact_RD_ST[5] = {0};
+ ^
+BramDataProc.c:78:1: warning: (near initialization for 'CmdPact_RD_ST[0]') [-Wmissing-braces]
+BramDataProc.c:79:1: warning: missing braces around initializer [-Wmissing-braces]
+ static BRAM_CMD_PACKET CmdPact_WR_ST[5] = {0};
+ ^
+BramDataProc.c:79:1: warning: (near initialization for 'CmdPact_WR_ST[0]') [-Wmissing-braces]
+BramDataProc.c:80:1: warning: missing braces around initializer [-Wmissing-braces]
+ static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[2] = {0};
+ ^
+BramDataProc.c:80:1: warning: (near initialization for 'MVB_CmdPact_RD_ST[0]') [-Wmissing-braces]
+BramDataProc.c:81:1: warning: missing braces around initializer [-Wmissing-braces]
+ static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[6] = {0};
+ ^
+BramDataProc.c:81:1: warning: (near initialization for 'MVB_CmdPact_WR_ST[0]') [-Wmissing-braces]
+BramDataProc.c: In function 'BramReadDataExtraCMD':
+BramDataProc.c:164:13: warning: unused variable 'UpDateTypeTemp' [-Wunused-variable]
+     uint8_t UpDateTypeTemp = 0,UpDateStatTemp = 0,UpDateStat = 0;
+             ^
+BramDataProc.c:163:14: warning: unused variable 'TotalPackNumTemp' [-Wunused-variable]
+     uint16_t TotalPackNumTemp = 0,CurrPackNumTemp = 0;
+              ^
+BramDataProc.c: In function 'BramWriteAssigVal':
+BramDataProc.c:233:14: warning: unused variable 'i' [-Wunused-variable]
+     uint16_t i = 0;
+              ^
+BramDataProc.c: In function 'Bram_Mapping_Init':
+BramDataProc.c:502:14: warning: unused variable 'i' [-Wunused-variable]
+     uint16_t i = 0;
+              ^
+BramDataProc.c: In function 'Life_Judge_Fun':
+BramDataProc.c:610:9: warning: value computed is not used [-Wunused-value]
+         *errnum++;
+         ^
+BramDataProc.c: In function 'CAN_Read_Option':
+BramDataProc.c:878:5: warning: missing braces around initializer [-Wmissing-braces]
+     fd_set rdfs={0};
+     ^
+BramDataProc.c:878:5: warning: (near initialization for 'rdfs.__fds_bits') [-Wmissing-braces]
+BramDataProc.c:879:20: warning: unused variable 'tv_select' [-Wunused-variable]
+     struct timeval tv_select={0,1000};
+                    ^
+BramDataProc.c:878:12: warning: unused variable 'rdfs' [-Wunused-variable]
+     fd_set rdfs={0};
+            ^
+BramDataProc.c:876:32: warning: variable 'errnum_timeout' set but not used [-Wunused-but-set-variable]
+     static uint8_t errnum_rd=0,errnum_timeout=0;
+                                ^
+BramDataProc.c: In function 'CAN_ReadData_Pro':
+BramDataProc.c:997:13: warning: unused variable 'tempdata' [-Wunused-variable]
+     uint8_t tempdata[240]={0};
+             ^
+BramDataProc.c:996:15: warning: unused variable 'j' [-Wunused-variable]
+     uint8_t i,j;
+               ^
+BramDataProc.c: In function 'TMS570_Bram_Write_Func':
+BramDataProc.c:1211:5: warning: missing braces around initializer [-Wmissing-braces]
+     BRAM_PACKET_TOP TopPackST[5] = {0};
+     ^
+BramDataProc.c:1211:5: warning: (near initialization for 'TopPackST[0]') [-Wmissing-braces]
+BramDataProc.c:1209:13: warning: unused variable 'DataErrNum' [-Wunused-variable]
+     uint8_t DataErrNum  = 0;     
+             ^
+BramDataProc.c:1208:13: warning: unused variable 'DataErrFlag' [-Wunused-variable]
+     uint8_t DataErrFlag = 0;
+             ^
+BramDataProc.c:1207:10: warning: unused variable 'loginfo' [-Wunused-variable]
+     char loginfo[LOG_INFO_LENG] = {0};
+          ^
+BramDataProc.c: In function 'MVB_Bram_Init':
+BramDataProc.c:1263:10: warning: unused variable 'loginfo' [-Wunused-variable]
+     char loginfo[LOG_INFO_LENG]={0}; 
+          ^
+BramDataProc.c:1262:25: warning: unused variable 'fdback_rdch' [-Wunused-variable]
+     uint8_t fdback_wrch,fdback_rdch;    
+                         ^
+BramDataProc.c:1262:13: warning: unused variable 'fdback_wrch' [-Wunused-variable]
+     uint8_t fdback_wrch,fdback_rdch;    
+             ^
+BramDataProc.c:1261:42: warning: unused variable 'fdback_Addr_rdch' [-Wunused-variable]
+     uint32_t fdback_Addr_wrch=0X4000E01C,fdback_Addr_rdch=0X4000E018;        
+                                          ^
+BramDataProc.c:1261:14: warning: unused variable 'fdback_Addr_wrch' [-Wunused-variable]
+     uint32_t fdback_Addr_wrch=0X4000E01C,fdback_Addr_rdch=0X4000E018;        
+              ^
+BramDataProc.c:1260:35: warning: unused variable 'Addr_rdch' [-Wunused-variable]
+     uint32_t Addr_wrch=0X8000E01C,Addr_rdch=0X8000E018;
+                                   ^
+BramDataProc.c:1260:14: warning: unused variable 'Addr_wrch' [-Wunused-variable]
+     uint32_t Addr_wrch=0X8000E01C,Addr_rdch=0X8000E018;
+              ^
+BramDataProc.c: In function 'MVB_Bram_Write_Func':
+BramDataProc.c:1373:5: warning: missing braces around initializer [-Wmissing-braces]
+     BRAM_PACKET_TOP TopPackST[MVB_WRITE_FRAME_NUM] = {0};
+     ^
+BramDataProc.c:1373:5: warning: (near initialization for 'TopPackST[0]') [-Wmissing-braces]
+BramDataProc.c:1371:13: warning: unused variable 'DataErrNum' [-Wunused-variable]
+     uint8_t DataErrNum  = 0;     
+             ^
+BramDataProc.c:1370:13: warning: unused variable 'DataErrFlag' [-Wunused-variable]
+     uint8_t DataErrFlag = 0;
+             ^
+BramDataProc.c: In function 'Life_Judge_Fun':
+BramDataProc.c:624:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataProc.c: In function 'CAN_Read_Option':
+BramDataProc.c:930:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataProc.c: In function 'MVB_Bram_Init':
+BramDataProc.c:1313:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataProc.c: In function 'MVB_WR_Data_Proc':
+BramDataProc.c:1413:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataProc.c: In function 'MVB_RD_Data_Proc':
+BramDataProc.c:1424:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+FileSave.c: In function 'DirFileTar':
+FileSave.c:2251:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",
+             ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2261:11: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+   sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Real_ST.RecPath,TimeString_U8); 
+           ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2267:11: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+   sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",TimeString_U8);//for ubuntu linux test 
+           ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2276:10: warning: pointer targets in passing argument 1 of 'TarDir' differ in signedness [-Wpointer-sign]
+   TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",File_Directory_U8);
+          ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:69:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah);
+        ^
+FileSave.c:2281:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2287:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2297:16: warning: pointer targets in passing argument 1 of 'TarDir' differ in signedness [-Wpointer-sign]
+         TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",File_Directory_U8);
+                ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:69:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah);
+        ^
+FileSave.c:2303:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(File_Directory_U8,"%s%8.8s",OPRTFILE_DIR,TimeString_U8); 
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2309:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",TimeString_U8);//for ubuntu linux test  
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+In file included from FileSave.c:25:0:
+FileSave.h:52:28: warning: pointer targets in passing argument 1 of 'TarDir' differ in signedness [-Wpointer-sign]
+ #define OPRTFILE_DIR       "/yaffs/REC_REALOPRT/" 
+                            ^
+FileSave.c:2315:16: note: in expansion of macro 'OPRTFILE_DIR'
+         TarDir(OPRTFILE_DIR,File_Directory_U8);
+                ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:69:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah);
+        ^
+FileSave.c:2319:16: warning: pointer targets in passing argument 1 of 'TarDir' differ in signedness [-Wpointer-sign]
+         TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",File_Directory_U8);
+                ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:69:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah);
+        ^
+FileSave.c:2247:10: warning: unused variable 'loginfo' [-Wunused-variable]
+     char loginfo[LOG_INFO_LENG] = {0};
+          ^
+FileSave.c:2241:13: warning: unused variable 'File_EventName_U8' [-Wunused-variable]
+     uint8_t File_EventName_U8[200] = {0};
+             ^
+FileSave.c: In function 'FileWriteWithTry':
+FileSave.c:2337:24: warning: unused variable 'i' [-Wunused-variable]
+     uint8_t TryNum = 0,i;
+                        ^
+FileSave.c: In function 'FileSpaceProc':
+FileSave.c:2503:4: warning: implicit declaration of function 'GetMemSize' [-Wimplicit-function-declaration]
+    GetMemSize(OPRTFILE_DIR,&TotalSizeMB_U32,&FreeSizeMB_U32);
+    ^
+In file included from FileSave.c:25:0:
+FileSave.h:52:28: warning: pointer targets in passing argument 1 of 'FileDirJudge' differ in signedness [-Wpointer-sign]
+ #define OPRTFILE_DIR       "/yaffs/REC_REALOPRT/" 
+                            ^
+FileSave.c:2510:27: note: in expansion of macro 'OPRTFILE_DIR'
+        err = FileDirJudge(OPRTFILE_DIR);
+                           ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:70:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t FileDirJudge(uint8_t *FilePath_p);
+        ^
+In file included from FileSave.c:25:0:
+FileSave.h:52:28: warning: pointer targets in passing argument 1 of 'DeleteEarliestFile' differ in signedness [-Wpointer-sign]
+ #define OPRTFILE_DIR       "/yaffs/REC_REALOPRT/" 
+                            ^
+FileSave.c:2513:31: note: in expansion of macro 'OPRTFILE_DIR'
+            DeleteEarliestFile(OPRTFILE_DIR,RECORD_FILE_TYPE);
+                               ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:68:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t DeleteEarliestFile(uint8_t *FilePath_p,uint8_t FileType);
+        ^
+In file included from FileSave.c:25:0:
+FileSave.h:52:28: warning: pointer targets in passing argument 1 of 'DeleteEarliestDir' differ in signedness [-Wpointer-sign]
+ #define OPRTFILE_DIR       "/yaffs/REC_REALOPRT/" 
+                            ^
+FileSave.c:2518:30: note: in expansion of macro 'OPRTFILE_DIR'
+            DeleteEarliestDir(OPRTFILE_DIR);
+                              ^
+In file included from WriteLog.h:31:0,
+                 from xml.h:35,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+DircMng.h:67:8: note: expected 'uint8_t *' but argument is of type 'char *'
+ int8_t DeleteEarliestDir(uint8_t *FilePath_p);
+        ^
+FileSave.c: In function 'EventFileCreateByNum':
+FileSave.c:2603:13: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+     sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",(1900 + now_time_p_ST->tm_year),\
+             ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2609:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8);   
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+FileSave.c:2612:16: warning: pointer targets in passing argument 1 of 'strncmp' differ in signedness [-Wpointer-sign]
+     if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
+                ^
+In file included from BaseDefine.h:35:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+FileSave.c:2612:39: warning: pointer targets in passing argument 2 of 'strncmp' differ in signedness [-Wpointer-sign]
+     if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
+                                       ^
+In file included from BaseDefine.h:35:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+FileSave.c:2615:19: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+         if(strlen(s_EventPowOnDataString) != 0) 
+                   ^
+In file included from BaseDefine.h:35:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+FileSave.c:2651:14: warning: pointer targets in passing argument 1 of 'snprintf' differ in signedness [-Wpointer-sign]
+     snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,
+              ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:386:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int snprintf (char *__restrict __s, size_t __maxlen,
+            ^
+FileSave.c:2654:36: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+     file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");
+                                    ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+FileSave.c:2661:44: warning: pointer targets in passing argument 1 of 'fopen' differ in signedness [-Wpointer-sign]
+             file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");   
+                                            ^
+In file included from BaseDefine.h:36:0,
+                 from xml.h:34,
+                 from ModifConfig.h:33,
+                 from FileSave.h:36,
+                 from FileSave.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:272:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern FILE *fopen (const char *__restrict __filename,
+              ^
+FileSave.c: In function 'ECU_EventDataSave':
+FileSave.c:2836:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+DircMng.c: In function 'MultiDircCreate':
+DircMng.c:90:16: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+     Len=strlen(DirPath);       
+                ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:91:18: warning: pointer targets in passing argument 2 of 'strncpy' differ in signedness [-Wpointer-sign]
+     strncpy(Str, DirPath, Len);
+                  ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:132:14: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern char *strncpy (char *__restrict __dest,
+              ^
+DircMng.c:88:10: warning: unused variable 'loginfo' [-Wunused-variable]
+     char loginfo[LOG_INFO_LENG] = {0};
+          ^
+DircMng.c: In function 'DirectCreat':
+DircMng.c:159:21: warning: pointer targets in passing argument 1 of 'access' differ in signedness [-Wpointer-sign]
+     status = access(DirPath,F_OK);
+                     ^
+In file included from BaseDefine.h:40:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/unistd.h:287:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int access (const char *__name, int __type) __THROW __nonnull ((1));
+            ^
+DircMng.c:164:24: warning: pointer targets in passing argument 1 of 'mkdir' differ in signedness [-Wpointer-sign]
+         status = mkdir(DirPath,S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH);
+                        ^
+In file included from BaseDefine.h:45:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/stat.h:320:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int mkdir (const char *__path, __mode_t __mode)
+            ^
+DircMng.c: In function 'GetMemSize':
+DircMng.c:225:15: warning: pointer targets in passing argument 1 of 'statfs' differ in signedness [-Wpointer-sign]
+     if(statfs(Path, &DiskInfo) == -1) 
+               ^
+In file included from /usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/vfs.h:4:0,
+                 from DircMng.h:37,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/statfs.h:31:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int statfs (const char *__file, struct statfs *__buf)
+            ^
+DircMng.c: In function 'RemoveDirWithFile':
+DircMng.c:259:10: warning: unused variable 'dirp' [-Wunused-variable]
+     DIR *dirp;
+          ^
+DircMng.c: In function 'FileDirJudge':
+DircMng.c:343:33: warning: pointer targets in passing argument 1 of 'opendir' differ in signedness [-Wpointer-sign]
+     if((DirOpenInfo_p = opendir(FilePath_p)) == NULL)
+                                 ^
+In file included from DircMng.h:38:0,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/dirent.h:134:13: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern DIR *opendir (const char *__name) __nonnull ((1));
+             ^
+DircMng.c:358:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/* /datfile/20180308 */
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+DircMng.c:360:14: warning: pointer targets in passing argument 1 of 'stat' differ in signedness [-Wpointer-sign]
+         stat(FileFullName,&FileStat);/*get file infomation*/
+              ^
+In file included from BaseDefine.h:45:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/stat.h:208:12: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern int stat (const char *__restrict __file,
+            ^
+DircMng.c:338:12: warning: unused variable 'err' [-Wunused-variable]
+     int8_t err = 0;
+            ^
+DircMng.c:335:14: warning: unused variable 'EarlDirc' [-Wunused-variable]
+     uint8_t  EarlDirc[100] = {0};
+              ^
+DircMng.c: In function 'DeleteEarliestDir':
+DircMng.c:422:33: warning: pointer targets in passing argument 1 of 'opendir' differ in signedness [-Wpointer-sign]
+     if((DirOpenInfo_p = opendir(FilePath_p)) == NULL)
+                                 ^
+In file included from DircMng.h:38:0,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/dirent.h:134:13: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern DIR *opendir (const char *__name) __nonnull ((1));
+             ^
+DircMng.c:437:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/* /datfile/20180308 */
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+DircMng.c:439:14: warning: pointer targets in passing argument 1 of 'stat' differ in signedness [-Wpointer-sign]
+         stat(FileFullName,&FileStat);/*get file infomation*/
+              ^
+In file included from BaseDefine.h:45:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/stat.h:208:12: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern int stat (const char *__restrict __file,
+            ^
+DircMng.c:453:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 memcpy(EarlDirc,FileFullName,strlen(FileFullName));
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:458:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlDirc,strlen(FileFullName)) < 0)
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:458:24: warning: pointer targets in passing argument 1 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlDirc,strlen(FileFullName)) < 0)
+                        ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:458:37: warning: pointer targets in passing argument 2 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlDirc,strlen(FileFullName)) < 0)
+                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:460:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 memcpy(EarlDirc,FileFullName,strlen(FileFullName)); 
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:471:33: warning: pointer targets in passing argument 1 of 'RemoveDirWithFile' differ in signedness [-Wpointer-sign]
+         err = RemoveDirWithFile(EarlDirc);
+                                 ^
+DircMng.c:253:8: note: expected 'char *' but argument is of type 'uint8_t *'
+ int8_t RemoveDirWithFile(char *DirPath)
+        ^
+DircMng.c: In function 'DeleteEarliestFile':
+DircMng.c:516:33: warning: pointer targets in passing argument 1 of 'opendir' differ in signedness [-Wpointer-sign]
+     if((DirOpenInfo_p = opendir(FilePath_p)) == NULL)
+                                 ^
+In file included from DircMng.h:38:0,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/dirent.h:134:13: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern DIR *opendir (const char *__name) __nonnull ((1));
+             ^
+DircMng.c:524:29: warning: pointer targets in passing argument 1 of 'opendir' differ in signedness [-Wpointer-sign]
+     DirOpenInfo_p = opendir(FilePath_p);/* /datfile */
+                             ^
+In file included from DircMng.h:38:0,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/dirent.h:134:13: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern DIR *opendir (const char *__name) __nonnull ((1));
+             ^
+DircMng.c:531:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/* /datfile/20180308 */
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+DircMng.c:533:14: warning: pointer targets in passing argument 1 of 'stat' differ in signedness [-Wpointer-sign]
+         stat(FileFullName,&FileStat);/*get file infomation*/
+              ^
+In file included from BaseDefine.h:45:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/stat.h:208:12: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern int stat (const char *__restrict __file,
+            ^
+DircMng.c:547:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 memcpy(EarlFile,FileFullName,strlen(FileFullName));
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:552:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlFile,strlen(FileFullName)) < 0)
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:552:24: warning: pointer targets in passing argument 1 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlFile,strlen(FileFullName)) < 0)
+                        ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:552:37: warning: pointer targets in passing argument 2 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if(strncmp(FileFullName,EarlFile,strlen(FileFullName)) < 0)
+                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:555:53: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+                 memcpy(EarlFile,FileFullName,strlen(FileFullName)); 
+                                                     ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:569:30: warning: pointer targets in passing argument 1 of 'remove' differ in signedness [-Wpointer-sign]
+                 err = remove(EarlFile);
+                              ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:178:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int remove (const char *__filename) __THROW;
+            ^
+DircMng.c:574:26: warning: pointer targets in passing argument 1 of 'remove' differ in signedness [-Wpointer-sign]
+             err = remove(EarlFile);
+                          ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:178:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int remove (const char *__filename) __THROW;
+            ^
+DircMng.c: In function 'TarDir':
+DircMng.c:623:16: warning: pointer targets in passing argument 1 of 'strlen' differ in signedness [-Wpointer-sign]
+     Len=strlen(NowFilePah);     
+                ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:398:15: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern size_t strlen (const char *__s)
+               ^
+DircMng.c:629:33: warning: pointer targets in passing argument 1 of 'opendir' differ in signedness [-Wpointer-sign]
+     if((DirOpenInfo_p = opendir(FilePath_p)) == NULL)
+                                 ^
+In file included from DircMng.h:38:0,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/dirent.h:134:13: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern DIR *opendir (const char *__name) __nonnull ((1));
+             ^
+DircMng.c:646:17: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/*  /yaffs/REC_EVTDATA */
+                 ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+DircMng.c:648:14: warning: pointer targets in passing argument 1 of 'stat' differ in signedness [-Wpointer-sign]
+         stat(FileFullName,&FileStat);/*get file infomation*/
+              ^
+In file included from BaseDefine.h:45:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/sys/stat.h:208:12: note: expected 'const char * __restrict__' but argument is of type 'uint8_t *'
+ extern int stat (const char *__restrict __file,
+            ^
+DircMng.c:653:112: warning: pointer targets in passing argument 1 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if((0 == strcmp(DirInfo_p->d_name,".")) || (0 == strcmp(DirInfo_p->d_name,"..")) ||  (0 == strncmp(FileFullName, NowFilePah, Len))) /*the dir is today,so not tar */
+                                                                                                                ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:653:126: warning: pointer targets in passing argument 2 of 'strncmp' differ in signedness [-Wpointer-sign]
+             if((0 == strcmp(DirInfo_p->d_name,".")) || (0 == strcmp(DirInfo_p->d_name,"..")) ||  (0 == strncmp(FileFullName, NowFilePah, Len))) /*the dir is today,so not tar */
+                                                                                                                              ^
+In file included from BaseDefine.h:35:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/string.h:147:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+            ^
+DircMng.c:659:21: warning: pointer targets in passing argument 1 of 'sprintf' differ in signedness [-Wpointer-sign]
+             sprintf(SystemCmd,"tar zcvf %s.tar.gz -C %s %s",FileFullName,FilePath_p,DirInfo_p->d_name);/* / //20180308 */
+                     ^
+In file included from BaseDefine.h:36:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdio.h:364:12: note: expected 'char * __restrict__' but argument is of type 'uint8_t *'
+ extern int sprintf (char *__restrict __s,
+            ^
+DircMng.c:663:32: warning: pointer targets in passing argument 1 of 'system' differ in signedness [-Wpointer-sign]
+             sysstatus = system(SystemCmd);
+                                ^
+In file included from BaseDefine.h:37:0,
+                 from DircMng.h:35,
+                 from DircMng.c:25:
+/usr/local/arm/xilinx_gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include/stdlib.h:716:12: note: expected 'const char *' but argument is of type 'uint8_t *'
+ extern int system (const char *__command) __wur;
+            ^
+DircMng.c:670:29: warning: pointer targets in passing argument 1 of 'RemoveDirWithFile' differ in signedness [-Wpointer-sign]
+     err = RemoveDirWithFile(FileFullName);
+                             ^
+DircMng.c:253:8: note: expected 'char *' but argument is of type 'uint8_t *'
+ int8_t RemoveDirWithFile(char *DirPath)
+        ^
+DircMng.c:617:14: warning: unused variable 'DirCompNum' [-Wunused-variable]
+     uint8_t  DirCompNum = 0;
+              ^
+DircMng.c: In function 'DirectCreat':
+DircMng.c:178:1: warning: control reaches end of non-void function [-Wreturn-type]
+ }
+ ^
+BramDataInter.c: In function 'BramReadDataWithCRC':
+BramDataInter.c:85:63: warning: unused variable 'LifeNum_U32' [-Wunused-variable]
+     uint32_t Calculate_CrcValue_U32 = 0,PackeCrcValue_U32 = 0,LifeNum_U32 = 0;
+                                                               ^
+BramDataInter.c: In function 'BramBlockRDFlagWait':
+BramDataInter.c:149:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:149:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c:145:14: warning: unused variable 'ChanAddress' [-Wunused-variable]
+     uint32_t ChanAddress = 0,ChanFlagAddr = 0,ChanFedFlagAddr = 0;
+              ^
+BramDataInter.c: In function 'BramBlockFlagClear':
+BramDataInter.c:199:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:199:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c:198:28: warning: unused variable 'i' [-Wunused-variable]
+     uint8_t WRFlagTemp = 0,i;
+                            ^
+BramDataInter.c:197:27: warning: variable 'WRFlagBit' set but not used [-Wunused-but-set-variable]
+     uint8_t WRFlagInt = 0,WRFlagBit = 0;
+                           ^
+BramDataInter.c: In function 'BramBlockReadOpti':
+BramDataInter.c:234:14: warning: unused variable 'BlockMapAddr_p' [-Wunused-variable]
+     uint8_t *BlockMapAddr_p;
+              ^
+BramDataInter.c:233:13: warning: unused variable 'BlockNum' [-Wunused-variable]
+     uint8_t BlockNum = 0;
+             ^
+BramDataInter.c:231:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:231:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c: In function 'BramBlockWRFlagWait':
+BramDataInter.c:286:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:286:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c:282:47: warning: unused variable 'ChanFedFlagAddr' [-Wunused-variable]
+     uint32_t ChanAddress = 0,ChanFlagAddr = 0,ChanFedFlagAddr = 0;
+                                               ^
+BramDataInter.c:282:14: warning: unused variable 'ChanAddress' [-Wunused-variable]
+     uint32_t ChanAddress = 0,ChanFlagAddr = 0,ChanFedFlagAddr = 0;
+              ^
+BramDataInter.c: In function 'BramBlockFlagCrc':
+BramDataInter.c:335:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:335:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c: In function 'BramBlockWriteOpti':
+BramDataInter.c:413:29: warning: unused variable 'TimeEnd' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                             ^
+BramDataInter.c:413:20: warning: unused variable 'TimeStar' [-Wunused-variable]
+     struct timeval TimeStar,TimeEnd;
+                    ^
+BramDataInter.c:411:12: warning: unused variable 'CrcErr' [-Wunused-variable]
+     int8_t CrcErr = 0;
+            ^
+/usr/local/arm/xilinx_gnu/arm/lin/bin/../lib/gcc/arm-xilinx-linux-gnueabi/4.9.2/../../../../arm-xilinx-linux-gnueabi/bin/ld: warning: library search path "/usr/local/lib/lib_feng" is unsafe for cross-compilation

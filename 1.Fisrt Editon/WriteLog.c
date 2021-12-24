@@ -239,7 +239,7 @@ int32_t VersionSave(VERSION * Ver_p)
  * -------------------------------------------------------------------
  * 20200421        V1.0       feng      创建
  ********************************************************************/    
-int8_t WriteLogFile(uint8_t *FileName, const char * Function, uint32_t CodeLine, uint32_t inLogLevel, char * Content)
+int8_t WriteLogFile(char *FileName, const char * Function, uint32_t CodeLine, uint32_t inLogLevel, char * Content)
 {
     
     char  LogContent[512] = {0};

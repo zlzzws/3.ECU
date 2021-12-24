@@ -78,7 +78,7 @@ static uint8_t *s_bram_WR_B_BLVDSBlckAddr = NULL;
 static BRAM_CMD_PACKET CmdPact_RD_ST[5] = {0};
 static BRAM_CMD_PACKET CmdPact_WR_ST[5] = {0};
 static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[2] = {0};
-static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[6] = {0};
+static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[32] = {0}; //TODO just for test！please verify to 6！
 /**********************************************************************
 *Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
 *Function       :   Extract the data of ReadData,without the CurrePackNum judge 提取数据
@@ -94,7 +94,7 @@ static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[6] = {0};
 *********************************************************************/
 int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
 {
-    uint16_t PacketLength,CpLength;
+    uint16_t PacketLength;
     int8_t ErrorCode = 0;
     static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};
     BRAM_PACKET_DATA *BramPacketData_ST_p;
@@ -176,8 +176,7 @@ BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
     if(CurrPackNumTemp == CurrPackNum)
     {
         if(CMD_OK == UpDateStat)
-        {
-              
+        {              
             ErrorCode = RETURN_OK;
             s_bram_WRRDErrNum_U32 = 0;
         }
@@ -203,7 +202,6 @@ BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
     }
     else
     {
-
         ErrorCode = RETURN_ELSE_ERROR;
         s_bram_WRRDErrNum_U32 ++;
     }
@@ -270,9 +268,6 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
     //printf("Write CrcValue_U32 %x\n",TempCrcValue_U32); 
     return CODE_OK;
 }
-
-
-
 
 /**
  * @description: Bram内存映射
@@ -1269,7 +1264,7 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
     CmdPact_RD_ST[0].ChanNum_U8 = 8;
     CmdPact_RD_ST[0].PacktLength_U32 = 47;   
 
-    for (i=0;i<6;i++)
+    for (i=0;i<32;i++)//TODO JUST FOR TEST ! Please verify to 6 and 2 !
     {
         MVB_CmdPact_WR_ST[i].protocol_version =0x11c2;
 	    MVB_CmdPact_WR_ST[i].ChanNum_U8 = i;
@@ -1370,9 +1365,9 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;     
     static uint16_t Life_signal = 0;  
-    BRAM_PACKET_TOP TopPackST[MVB_WRITE_FRAME_NUM] = {0};
+    BRAM_PACKET_TOP TopPackST[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY!
     
-    for(i=0;i<MVB_WRITE_FRAME_NUM;i++)
+    for(i=1;i<3;i++) //TODO just for test ! Please verify to MVB_WRITE_FRAME_NUM
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
