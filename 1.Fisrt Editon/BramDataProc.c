@@ -9,57 +9,43 @@
 *Version        :   REV1.0.0       
 *Author:        :   feng
 *History:
-*REV1.0.0     feng    2018/05/16  Create
-*
+*REV1.0.0     feng    2018/05/16  Create*
 *********************************************************************/
 
-/**********************************************************************
-*
-*Debug switch  section
-*
+/***********************************************************************
+*Debug switch  section*
 *********************************************************************/
 
 
-/**********************************************************************
-*
-*Include file  section
-*
+/***********************************************************************
+*Include file  section*
 *********************************************************************/
 #include "BramDataProc.h"
-/**********************************************************************
-*
-*Global Variable Declare Section
-*
+/***********************************************************************
+*Global Variable Declare Section*
 *********************************************************************/
 extern DEBUG_TYPE_ENUM g_DebugType_EU;
 extern BLVDS_BRD_DATA g_BrdRdBufData_ST;
 extern BLVDS_BRD_DATA g_BrdBufData_ST;
 extern uint32_t g_LinuxDebug;
 extern uint32_t g_CAN_RDDate[64];
-/**********************************************************************
-*
-*Local Macro Define Section
-*
+extern uint16_t g_MVB_SendFrameNum; //TODO Just for test please verify
+/***********************************************************************
+*Local Macro Define Section*
 *********************************************************************/
 
-/**********************************************************************
-*
-*Local Struct Define Section
-*
+/***********************************************************************
+*Local Struct Define Section*
 *********************************************************************/
 
-/**********************************************************************
-*
-*Local Prototype Declare Section
-*
+/***********************************************************************
+*Local Prototype Declare Section*
 *********************************************************************/
 //20200325
 extern EADS_ERROR_INFO  g_EADSErrInfo_ST;
 
-/**********************************************************************
-*
-*Static Variable Define Section
-*
+/***********************************************************************
+*Static Variable Define Section*
 *********************************************************************/
 static uint8_t s_bram_WRRDErrNum_U32 = 0;
 static BRAM_ADDRS s_Bram_A_BLVDSBlckAddr_ST = {0};
@@ -77,7 +63,7 @@ static uint8_t *s_bram_RD_B_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_WR_B_BLVDSBlckAddr = NULL;
 static BRAM_CMD_PACKET CmdPact_RD_ST[5] = {0};
 static BRAM_CMD_PACKET CmdPact_WR_ST[5] = {0};
-static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[2] = {0};
+static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[32] = {0};
 static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[32] = {0}; //TODO just for test！please verify to 6！
 /**********************************************************************
 *Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
@@ -1270,7 +1256,7 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
 	    MVB_CmdPact_WR_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_WR_ST[i].PacktLength_U32 = 11;
     }
-    for (i=0;i<2;i++)
+    for (i=0;i<32;i++)//TODO JUST FOR TEST  PLEASE VERIFY
     {        
 	    MVB_CmdPact_RD_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_RD_ST[i].PacktLength_U32 = 11;
@@ -1319,7 +1305,7 @@ int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
     char loginfo[LOG_INFO_LENG] = {0};       
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
-    for(i=0;i<MVB_READ_FRAME_NUM;i++)
+    for(i=0;i<16;i++)//TODO JUST FOR TEST PLEASE VERIFY
     {        
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length =  MVB_CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 =  MVB_CmdPact_RD_ST[i].ChanNum_U8;
@@ -1365,9 +1351,9 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;     
     static uint16_t Life_signal = 0;  
-    BRAM_PACKET_TOP TopPackST[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY!
+    BRAM_PACKET_TOP TopPackST[32] = {0};    //TODO JUST FOR TEST PLEASE VERIFY!
     
-    for(i=0;i<3;i++) //TODO just for test ! Please verify to MVB_WRITE_FRAME_NUM
+    for(i=0;i<g_MVB_SendFrameNum;i++)       //TODO Just for test ! Please verify to MVB_WRITE_FRAME_NUM
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);

@@ -43,35 +43,8 @@ uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus
 FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
 CHAN_DATA           g_ChanData_ST[CHAN_BUFFER_NUM] = {0};       /*304 byte*/
 CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
+uint16_t            g_MVB_SendFrameNum = 0;                     //TODO just for test please verify
 
-#if 0
-CHAN_DATA  g_ChanRealBuf_ST[REAL_BUFFER_NUM] = {0};  /*REAL_BUFFER_NUM = 800*/
-CHAN_DATA  g_ChanSendBuf_ST[CHAN_BUFFER_NUM] = {0};  /*304 byte*/
-BLVDS_BRD_DATA g_BrdRdBufData_ST = {0};
-CHAN_CALIB_DATA  g_ChanCalib110VData_ST = {0};/*read the ChanCalibData from /tffs0/ChanCalibValue.dat"*/
-CHAN_CALIB_DATA  g_ChanCalib0VData_ST = {0};/*read the ChanCalibData from /tffs0/ChanCalibValue.dat"*/
-CHAN_LG_INFO g_ChanLgInfo_ST = {0};/*the chanel logic info ,for save and trdp*/
-CHAN_DIGITAL_INFO g_ChanDigitalInfo_ST = {0};/*include the digital status of vol chan ,and overVOl overCurr*/
-RELAY_LIFE_CFG   g_ChanRelayCfg_ST = {0};/*read the relay param config by xml */
-VECH_EADS_INFO g_CCU_EADsInfo_ST = {0};//byte 1128,for even file save
-RECORD_XML g_LifeRec_XML_ST = {0};
-uint32_t g_RealBufNum_U32 = 0;
-uint32_t g_LoopNum_U32 = 0;
-uint16_t g_ChanFiltNum_U16 = 0;
-uint32_t g_ADReadSleep_U32 = 0;
-uint32_t g_TRDPUsec_U32 = 0;
-uint32_t g_FltSaveSlepNum_U32 = 0;
-int8_t g_fd_TtyPs = 0;     //文件描述符
-// RTUThreadFun 
-SENSOR_NUM_ENUM g_DMU_Senor_num = 1;
-uint16_t g_rtu_ReadData[100] = {0};
-uint16_t g_RTUBaud_U32 = 0;
-uint32_t g_RTUUsec_U32 = 0;
-RTU_SENSOR  SmartSensor_ST = {0};
-modbus_t *g_ModbusCtx = NULL;
-struct sigaction Alarm_act;
-sem_t g_ReadBrd_sem;
-#endif
 /***********************************************************************
 *Local Macro Define Section*
 *********************************************************************/
@@ -92,19 +65,17 @@ struct can_frame s_can1_frame_WR_st[8] = {0};
 *********************************************************************/
 void    FuncUsage(void);
 void    ArgJudge(void);
-void   *RealWaveThreadFunc(void *arg);
-void   *ModbusThreadFunc(void *arg);
-int8_t  PowDownFun(void);
-void   *FileSaveThreaFunc(void *arg);
-void   *LEDWachDogPthreadFunc (void *arg);
-void   *DirTarThreadFunc(void *arg);
 int8_t  ThreadInit(PTHREAD_INFO * pthread_ST_p);
 int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p);
-void    *MVBThreadFunc(void *arg);
-void    *TMS570_Bram_ThreadFunc(void *arg) ; 
+int8_t  PowDownFun(void);
+void    *RealWaveThreadFunc(void *arg);
+void    *ModbusThreadFunc(void *arg);
+void    *FileSaveThreaFunc(void *arg);
+void    *DirTarThreadFunc(void *arg);
+void    *LEDWachDogPthreadFunc (void *arg);
 void    *CAN0ThreadFunc(void *arg);
 void    *CAN1ThreadFunc(void *arg);
-
+void    *MVBThreadFunc(void *arg);
 
 /***********************************************************************
 *Static Variable Define Section*
@@ -166,9 +137,10 @@ int main(int argc, char *argv[])
     g_EADSType_U8   = 0;                                                    //本程序此变量无意义,强制为4
     g_ProcNum_U8    = 4;                                                    //本程序此变量无意义,强制为0
     g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;                          //EADS软件版本，可通过PTU查看                                                           
-    g_DebugType_EU =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);          //Debug类型              
-    g_PowDebug =        (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测    
-    g_LinuxDebug =      (uint16_t)strtoul(argv[3],NULL,10);                 //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_DebugType_EU  =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);          //Debug类型              
+    g_PowDebug      =    (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测    
+    g_LinuxDebug    =    (uint16_t)strtoul(argv[3],NULL,10);                 //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                 //TODO just for test please verify
     
     ArgJudge();
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
@@ -247,7 +219,6 @@ int main(int argc, char *argv[])
                 {
                     printf("write %d to the FIFO\n",BinLife); 
                 }
-
             }              
         }
         if(TIME_DEBUG  == g_DebugType_EU)
@@ -336,29 +307,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "BramDatalock init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);        
     }
-    #if 0
-    res = pthread_rwlock_init(&g_PthreadLock_ST.ChanDatalock,NULL);
-    if(res != 0)
-    {
-        perror("ChanDatalock init failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "ChanDatalock initfailed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);        
-    }
-    res = pthread_rwlock_init(&g_PthreadLock_ST.RealDatalock,NULL);
-    if(res != 0)
-    {
-        perror("RealDatalock init failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "RealDatalock init failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);        
-    }
-    res = pthread_rwlock_init(&g_PthreadLock_ST.ChanInfolock,NULL);
-    if(res != 0)
-    {
-        perror("ChanInfolock init failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "ChanInfolock init failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);        
-    }
-    
+    #if 0    
     /*Create the Pthread*/   
     res = pthread_create(&pthread_ST_p -> RealWaveThread, NULL, RealWaveThreadFunc, NULL);
     if (res != 0) 
@@ -1440,7 +1389,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {
-    
+    #if 0
     uint8_t i,j,ret;    
     static errnum_timeout=0;
     int    socket_can1;
@@ -1477,7 +1426,7 @@ void *CAN1ThreadFunc(void *arg)
     {        
         //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
         //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
+        //CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
@@ -1505,7 +1454,7 @@ void *CAN1ThreadFunc(void *arg)
     }
     close(socket_can1);
     return 0; 
-      
+    #endif 
 }
 
 /**********************************************************************
@@ -1545,7 +1494,7 @@ void *MVBThreadFunc(void *arg)
         //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
         MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        usleep(100000);                  
+        usleep(100000);              
     }
     printf("exit MVBThreadFunc Function!\n");
     pthread_exit(NULL);      
