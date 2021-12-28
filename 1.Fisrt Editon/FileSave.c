@@ -2695,98 +2695,111 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     return err;
 
 }
-#if 0
-/**********************************************************************
-*Name       :   int8_t EventDataSet
-*Function   :   Set the Event data,include vol digital statue,volwarn,currwarn,
-                        EADS err info,Logic info ,ccu info,
-                        oprt up and oprt down time
-*Para       :   DRIVE_FILE_DATA  *Drive_ST_p   the address of Save DriveEventST
-*                   CHAN_DATA *g_ChanData_ST_p   the address of Save ChanData_ST
-                EADSType:CTU_BOARD_ID 1
-                         ADU_BOARD_ID 0
-*Return     :   int8_t 0,success;else false.
-*Version    :   REV1.0.0       
-*Author:    :   feng
 
+/**********************************************************************
+*Name       :   int8_t ECU_Record_Data_Pro_Fun
+*Function   :   process the data which will be stored in ecu
+*Para       :   DRIVE_FILE_DATA  *Drive_ST_p    the address of Save DriveEventST
+*               TMS570_BRAM_DATA *bram_data_rd  the address of Save ChanData_ST
+                TMS570_BRAM_DATA *bram_data_wr  the address of Save ChanData_ST
+                const EADS_ERROR_INFO EADSErrInfoST the error info of device
+*Return     :   int8_t 0,success;else false
+*Version    :   REV1.0.0       
+*Author:    :   zlz
 *History:
-*REV1.0.0     feng    2020/8/29  Create
-*REV1.0.1     feng    2020/5/11  vol and curr Change to mencpy
-                                 add Digital save
-*REV1.0.2     feng    2021/4/14  optimize the volwarnFlag save for save  CCU data
-                                                              
+*REV1.0.0     zlz    2021/12/29  Create                                                              
 *********************************************************************/
 int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,const EADS_ERROR_INFO EADSErrInfoST)
 {  
-    //TODO 大小端转换
+    //TODO 确认第39-48通道的数据是否安装大端存储，是否需要大小端转换
     uint8_t j= 0;
     uint8_t i = 0;
+    uint8_t temp_rd_buffer[240]={0};
+    uint8_t temp_wr_buffer[240]={0};
+    memcpy(temp_rd_buffer,bram_data_rd->buffer,240);
+    memcpy(temp_wr_buffer,bram_data_wr->buffer,240);
     /*数字量处理*/	
-    Drive_ST_p -> DriveDigital_U8[0] = bram_data_wr[2] | bram_data_wr[3] << 2 | bram_data_wr[35] | bram_data_wr[48] << 7;
-    Drive_ST_p -> DriveDigital_U8[1] = bram_data_rd[2];
-    Drive_ST_p -> DriveDigital_U8[2] = bram_data_rd[3];
-    memcpy(&Drive_ST_p -> DriveDigital_U8[3],&bram_data_rd[50],11);
-    memcpy(&Drive_ST_p -> DriveDigital_U8[14],&bram_data_rd[62],18);
+    Drive_ST_p -> DriveDigital_U8[0] = (temp_wr_buffer[2]&0x3) | ((temp_wr_buffer[3]<<2)&0xc) | (temp_wr_buffer[35]&0x70) | ((temp_wr_buffer[48] << 7)&0x80);
+    Drive_ST_p -> DriveDigital_U8[1] = temp_rd_buffer[2];
+    Drive_ST_p -> DriveDigital_U8[2] = temp_rd_buffer[3];
+    memcpy(&Drive_ST_p -> DriveDigital_U8[3],&temp_rd_buffer[50],11);
+    memcpy(&Drive_ST_p -> DriveDigital_U8[14],&temp_rd_buffer[62],18);
     /*模拟量处理*/
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[0],&bram_data_wr[36],6);
-    Drive_ST_p -> DriveAnalog_U16[3] = bram_data_wr[42] & 0XFFFF;
-    Drive_ST_p -> DriveAnalog_U16[4] = bram_data_wr[43] & 0XFFFF;
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[5],&bram_data_wr[44],4);
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[7],&bram_data_rd[4],14);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[0],&temp_wr_buffer[36],6);
+    Drive_ST_p -> DriveAnalog_U16[3] = temp_wr_buffer[42] << 8;
+    Drive_ST_p -> DriveAnalog_U16[4] = temp_wr_buffer[43] << 8;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[5],&temp_wr_buffer[44],4);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[7],&temp_rd_buffer[4],12);
     for(i=0;i<12;i++)
     {
-        Drive_ST_p -> DriveAnalog_U16[13+i] = bram_data_wr[18+i] & 0XFFFF;
+        Drive_ST_p -> DriveAnalog_U16[13+i] = temp_rd_buffer[18+i] << 8;
     }
-    Drive_ST_p -> DriveAnalog_U16[25] = bram_data_wr[30] <<8 | bram_data_wr[31];
-    Drive_ST_p -> DriveAnalog_U16[26] = bram_data_wr[32] & 0XFFFF;
-    Drive_ST_p -> DriveAnalog_U16[27] = bram_data_wr[33] & 0XFFFF;
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[28],&bram_data_rd[34],6);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[25],&temp_rd_buffer[30],2);
+    Drive_ST_p -> DriveAnalog_U16[26] = temp_rd_buffer[32] << 8;
+    Drive_ST_p -> DriveAnalog_U16[27] = temp_rd_buffer[33] << 8;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[28],&temp_rd_buffer[34],6);
     for(i=0;i<7;i++)
     {
-        Drive_ST_p -> DriveAnalog_U16[31+i] = bram_data_wr[41+i] & 0XFFFF;
+        Drive_ST_p -> DriveAnalog_U16[31+i] = temp_rd_buffer[41+i] << 8;
     }
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[38],&bram_data_rd[82],16);
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[46],&bram_data_rd[100],4);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[38],&temp_rd_buffer[82],16);
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[46],&temp_rd_buffer[100],4);
     for(i=0;i<8;i++)
     {
-        Drive_ST_p -> DriveAnalog_U16[48+i] = bram_data_wr[104+i] & 0XFFFF;
+        Drive_ST_p -> DriveAnalog_U16[48+i] = temp_rd_buffer[104+i] << 8;
     }
     for(i=0;i<13;i++)
     {
-        Drive_ST_p -> DriveAnalog_U16[56+i] = bram_data_wr[130+i] & 0XFFFF;
+        Drive_ST_p -> DriveAnalog_U16[56+i] = temp_rd_buffer[130+i] << 8;
     }
-    Drive_ST_p -> DriveAnalog_U16[69] = bram_data_wr[146] & 0XFFFF;
-    Drive_ST_p -> DriveAnalog_U16[70] = bram_data_wr[147] & 0XFFFF;
-    memcpy(&Drive_ST_p -> DriveAnalog_U16[71],&bram_data_rd[148],18);
-    big_to_small_endian_fun();
+    Drive_ST_p -> DriveAnalog_U16[69] = temp_rd_buffer[146] << 8;
+    Drive_ST_p -> DriveAnalog_U16[70] = temp_rd_buffer[147] << 8;
+    memcpy(&Drive_ST_p -> DriveAnalog_U16[71],&temp_rd_buffer[148],18);
+    /*big to small endian*/
+    for (i=0;i<80;i++)
+    {
+        Drive_ST_p -> DriveAnalog_U16[i]=BigU8ToLitteU16(Drive_ST_p -> DriveAnalog_U16[i]&0xFF,\
+                                                            Drive_ST_p -> DriveAnalog_U16[i]>>8);
+    }
+    /*CSR_Driver无法补足电流-500A的偏移量，由应用程序补足*/
+    Drive_ST_p -> DriveAnalog_U16[72]  =  Drive_ST_p -> DriveAnalog_U16[72]-5000;//电堆A输出电流
+    Drive_ST_p -> DriveAnalog_U16[74]  =  Drive_ST_p -> DriveAnalog_U16[74]-5000;//电堆B输出电流
+    if(g_DebugType_EU == FileSave_DEBUG)
+    {
+        printf("File_save_Pro-Digital channel data:\n");
+        for (i=0;i<32;i++)
+        {
+            printf("Digital-Channel[%02d]:0x[%02x]\n",i,Drive_ST_p -> DriveDigital_U8[i]);
+        }
+        printf("\nFile_save_Pro-Anolog channel data:\n");
+        for (i=0; i<80;i++)
+        {
+            printf("Anolog-Channel[%02d]:0x[%04x]\n",i,Drive_ST_p -> DriveAnalog_U16[i]);
+        }        
+    }   
     return CODE_OK;    
 }
-#endif
-/**********************************************************************
-*Name       :   int8_t EventDataSave
-*Function   :   Save the Event data  to event file
-*Para       :   (FILE_FD * file_p,CHAN_DATA * ChanDatap,uint8_t EADSType,const EADS_ERROR_INFO  EADSErrInfoST,
-                   const CHAN_LG_INFO LgInfoST,const CHAN_DIGITAL_INFO ChanDigitalInfo_ST,uint16_t InOpTime[])
 
-*Return     :   int8_t 0,success;else false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2020/1/29  Create
+/**********************************************************************
+*Name       :   int8_t ECU_EventDataSave
+*Function   :   Save the Event data to event file
+*Para       :   FILE_FD * file_p
+                const DRIVE_FILE_DATA *Drive_ST_p
+*Return     :   0->success;-1->false
+*Version    :   REV1.0.0       
+*Author:    :   zlz
+*History:   :
+*REV1.0.0   :  zlz   2021/12/29  Create
 *********************************************************************/
 int8_t ECU_EventDataSave(FILE_FD *file_p,const DRIVE_FILE_DATA *Drive_ST_p)
-{
-    #if 0
-    uint8_t i;
-    int16_t fwerr = 0;
-    uint16_t WriteSize_U16 = 0;
-    DRIVE_FILE_DATA DriveEventData_ST = {0};
+{    
+    int16_t fwerr = 0;   
     char loginfo[LOG_INFO_LENG] = {0};
 
     if(NULL == file_p -> EventFile_fd)
     {
-        perror("EventFile fp  is NULL");
-        snprintf(loginfo, sizeof(loginfo)-1, "EventFile fp is NULL");
+        perror("EventFile fp is NULL!\n");
+        snprintf(loginfo, sizeof(loginfo)-1, "EventFile fp is NULL！");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         return CODE_ERR;
     }
@@ -2794,43 +2807,23 @@ int8_t ECU_EventDataSave(FILE_FD *file_p,const DRIVE_FILE_DATA *Drive_ST_p)
     {
         printf("EventFilefp %d \n",file_p -> EventFile_fd);
     }    
-    //when save digital data,should change the DriveEventData_ST[0].Analog[0]
-    fwerr = FileWriteWithTry(&DriveEventData_ST.DriveDigital_U8[0],DIGITAL_NUM_BYTE,1,file_p -> EventFile_fd);
+    
+    fwerr = FileWriteWithTry(&Drive_ST_p->DriveDigital_U8[0],DIGITAL_NUM_BYTE,1,file_p -> EventFile_fd);
      if(CODE_OK != fwerr)
     {
-        printf("fwrite Digital data  error");
-        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  Digital data error");
+        printf("fwrite Digital data  error!\n");
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite Digital data  error!");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }   
-    if(CTU_BOARD_ID == EADSType)
-    {
-         WriteSize_U16 = (VOL_CHAN_NUM + CURR_CHAN_NUM) << 1;
-    }
-    else
-    {
-        WriteSize_U16 = (VOL_CHAN_NUM) << 1;
-    }
-    //记录通道电压、电流经过处理后的模拟量
-    fwerr = FileWriteWithTry(ChanDatap,WriteSize_U16,1,file_p -> EventFile_fd);
+    }      
+    
+    fwerr = FileWriteWithTry(&Drive_ST_p->DriveAnalog_U16[0],ANOLOG_NUM_BYTE,1,file_p -> EventFile_fd);
     if(CODE_OK != fwerr)
     {
-        printf("fwrite ChanData error");
+        printf("fwrite Analog Data error!\n");
         memset(loginfo,0,LOG_INFO_LENG);
-        snprintf(loginfo, sizeof(loginfo)-1, "fwrite ChanData error");
+        snprintf(loginfo, sizeof(loginfo)-1, "fwrite Analog Data error!");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
-    //save oprt time
-    WriteSize_U16 = (10 << 1);    
-    fwerr = FileWriteWithTry(&DriveEventData_ST.DriveAnalog_U16[0],WriteSize_U16,1,file_p -> EventFile_fd);
-    if(CODE_OK != fwerr)
-    {
-        printf("fwrite  oprt time error");
-        memset(loginfo,0,LOG_INFO_LENG);
-        snprintf(loginfo, sizeof(loginfo)-1, "fwrite  oprt time error");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-
     }
     fflush(file_p -> EventFile_fd);
-    return fwerr;
-    #endif
+    return fwerr;    
 }

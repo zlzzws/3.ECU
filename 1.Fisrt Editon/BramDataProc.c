@@ -29,7 +29,7 @@ extern BLVDS_BRD_DATA g_BrdRdBufData_ST;
 extern BLVDS_BRD_DATA g_BrdBufData_ST;
 extern uint32_t g_LinuxDebug;
 extern uint32_t g_CAN_RDDate[64];
-extern uint16_t g_MVB_SendFrameNum; //TODO Just for test please verify
+extern uint16_t g_MVB_SendFrameNum;
 /***********************************************************************
 *Local Macro Define Section*
 *********************************************************************/
@@ -63,8 +63,8 @@ static uint8_t *s_bram_RD_B_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_WR_B_BLVDSBlckAddr = NULL;
 static BRAM_CMD_PACKET CmdPact_RD_ST[5] = {0};
 static BRAM_CMD_PACKET CmdPact_WR_ST[5] = {0};
-static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[32] = {0};
-static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[32] = {0}; //TODO just for test！please verify to 6！
+static BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
+static BRAM_CMD_PACKET MVB_CmdPact_WR_ST[16] = {0};
 /**********************************************************************
 *Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
 *Function       :   Extract the data of ReadData,without the CurrePackNum judge 提取数据
@@ -919,12 +919,8 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
  */
 void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
 {
-    uint8_t i,j;    
-    /*uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                        0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                        0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                        0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};*/
-
+    uint8_t i,j;
+    
     switch (can_devtype)
     {
         case CAN0_TYPE:
@@ -1235,13 +1231,10 @@ int8_t TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data,uint8_t begin_index,ui
  * @return:     InitErr
  * @author:     zlz
  */
-int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
+int8_t  MVB_Bram_Init(void)
 {    
-    uint8_t i;
-    uint32_t Addr_wrch=0X8000E01C,Addr_rdch=0X8000E018;
-    uint32_t fdback_Addr_wrch=0X4000E01C,fdback_Addr_rdch=0X4000E018;        
-    uint8_t fdback_wrch,fdback_rdch;    
-    char loginfo[LOG_INFO_LENG]={0}; 
+    uint8_t i;  
+
     /*MVB A9->570*/
     CmdPact_WR_ST[0].protocol_version =0x11c2;
     CmdPact_WR_ST[0].ChanNum_U8 = 8;
@@ -1250,47 +1243,18 @@ int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num)
     CmdPact_RD_ST[0].ChanNum_U8 = 8;
     CmdPact_RD_ST[0].PacktLength_U32 = 47;   
 
-    for (i=0;i<32;i++)//TODO JUST FOR TEST ! Please verify to 6 and 2 !
+    for (i=0;i<2;i++)
     {
         MVB_CmdPact_WR_ST[i].protocol_version =0x11c2;
 	    MVB_CmdPact_WR_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_WR_ST[i].PacktLength_U32 = 11;
     }
-    for (i=0;i<32;i++)//TODO JUST FOR TEST  PLEASE VERIFY
+    for (i=0;i<6;i++)
     {        
 	    MVB_CmdPact_RD_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_RD_ST[i].PacktLength_U32 = 11;
-    }         
-    /*
-    BramWriteU8(Addr_wrch,s_bram_WRFlagAddr,mvb_wr_ch_num);
-    BramWriteU8(Addr_rdch,s_bram_WRFlagAddr,mvb_rd_ch_num);
-    usleep(100);
-    fdback_wrch=BramReadU8(fdback_Addr_wrch,s_bram_RDFlagAddr);
-    fdback_rdch=BramReadU8(fdback_Addr_rdch,s_bram_RDFlagAddr);
-    if ((fdback_wrch==mvb_wr_ch_num) && (fdback_rdch==mvb_rd_ch_num))
-    {
-        return  0;
-    }
-    else
-    {
-        for (i=0;i<5;i++)
-        {
-            BramWriteU8(Addr_wrch,s_bram_WRFlagAddr,mvb_wr_ch_num);
-            BramWriteU8(Addr_rdch,s_bram_WRFlagAddr,mvb_rd_ch_num);
-            usleep(100);
-            fdback_wrch=BramReadU8(fdback_Addr_wrch,s_bram_RDFlagAddr);
-            fdback_rdch=BramReadU8(fdback_Addr_rdch,s_bram_RDFlagAddr);
-            if ((fdback_wrch==mvb_wr_ch_num) && (fdback_rdch==mvb_rd_ch_num))
-            {                
-                return 0;
-            }
-        }       
-        printf("Correct Configures mvb_read:%d or mvb_write:%d , FPGA feedback wrong configures mvb_read:%d or mvb_write:%d\n",\
-                mvb_rd_ch_num,mvb_wr_ch_num,fdback_rdch,fdback_wrch);
-        snprintf(loginfo, sizeof(loginfo)-1, "FPGA feedback wrong mvb read or write channel configures!");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-        return -1;
-    } */   
+    }    
+   
 }
 /**
  * @description: 从Bram指定区域读MVB数据,并发送给TMS570
@@ -1305,7 +1269,7 @@ int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
     char loginfo[LOG_INFO_LENG] = {0};       
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
-    for(i=0;i<16;i++)//TODO JUST FOR TEST PLEASE VERIFY
+    for(i=0;i<2;i++)
     {        
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length =  MVB_CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 =  MVB_CmdPact_RD_ST[i].ChanNum_U8;
@@ -1351,9 +1315,9 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;     
     static uint16_t Life_signal = 0;  
-    BRAM_PACKET_TOP TopPackST[32] = {0};    //TODO JUST FOR TEST PLEASE VERIFY!
+    BRAM_PACKET_TOP TopPackST[16] = {0};
     
-    for(i=0;i<g_MVB_SendFrameNum;i++)       //TODO Just for test ! Please verify to MVB_WRITE_FRAME_NUM
+    for(i=0;i<6;i++)
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);

@@ -52,10 +52,10 @@ uint16_t            g_MVB_SendFrameNum = 0;                     //TODO just for 
 /***********************************************************************
 *Local Struct Define Section*
 *********************************************************************/
-static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};
-static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};
-static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY
-static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[32] = {0};//TODO JUST FOR TEST PLEASE VERIFY
+static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};  //Read  bram data from  tms570
+static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};  //Write bram data to    tms570
+static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
 struct can_frame s_can0_frame_RD_st[16] = {0};
 struct can_frame s_can0_frame_WR_st[8] = {0};
 struct can_frame s_can1_frame_RD_st[16] = {0};
@@ -137,10 +137,10 @@ int main(int argc, char *argv[])
     g_EADSType_U8   = 0;                                                    //本程序此变量无意义,强制为4
     g_ProcNum_U8    = 4;                                                    //本程序此变量无意义,强制为0
     g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;                          //EADS软件版本，可通过PTU查看                                                           
-    g_DebugType_EU  =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);          //Debug类型              
-    g_PowDebug      =    (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测    
-    g_LinuxDebug    =    (uint16_t)strtoul(argv[3],NULL,10);                 //软件运行环境:0:ZYNQ 1:Ubuntu
-    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                 //TODO just for test please verify
+    g_DebugType_EU  =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);         //Debug类型              
+    g_PowDebug      =    (uint16_t)strtoul(argv[2],NULL,10);                //电源选项，1-使能掉电监测    
+    g_LinuxDebug    =    (uint16_t)strtoul(argv[3],NULL,10);                //软件运行环境:0:ZYNQ 1:Ubuntu
+    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                //TODO just for test please verify
     
     ArgJudge();
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
@@ -264,6 +264,10 @@ void ArgJudge(void)
     {
         g_PowDebug = 0;
     }
+    if(g_MVB_SendFrameNum > 16)
+    {
+        g_PowDebug = 16;
+    }
 }
 
 /**********************************************************************
@@ -316,7 +320,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create RealWaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);    
     }
-
+    #endif
     res = pthread_create(&pthread_ST_p -> FileSaveThread, NULL, FileSaveThreaFunc, NULL);
     if (res != 0) 
     { 
@@ -324,7 +328,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create FileSaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-
+    #if 0
     res = pthread_create(&pthread_ST_p -> ModbusThread, NULL, ModbusThreadFunc, NULL);
     if (res != 0) 
     { 
@@ -947,7 +951,7 @@ void *ModbusThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Modbus close\n");
 }
-
+#endif
 /**********************************************************************
 *Name           :  FileSaveThreaFunc
 *Function       :  the thread for Event ,RealFlt,RealOprt,OprtNum File save.
@@ -961,21 +965,48 @@ void *ModbusThreadFunc(void *arg)
 *REV1.0.1     feng    2020/6/29  Add Chan Filt for Eventsave 
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
-{    
-    int SemValue = 0;
+{  
     uint8_t i = 0;
     int8_t fd = 0;
     uint32_t Delayus_U32= 0;
-    DRIVE_FILE_DATA save_to_csr_driver={0};    
+    static DRIVE_FILE_DATA save_to_csr_driver={0};    
     static uint32_t s_EventFileSaveNum_U32 = 0;   
     struct timeval A_Time_ST,A_TimeEnd_ST;
-
+    printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
     Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//100ms
 	sleep(1);
-    if(g_DebugType_EU == DEVC_DEBUG)
-    {
-        printf("Start EventFileSave\n");      
-    }
+    uint8_t temp_wr_buffer[56]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                                0x29,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
+                                0x32,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
+                                0x48,0x65,0x32,0x10,0x54,0x23,0x99,0xaa,\
+                                0x51,0x23,0x77,0x56,0x89,0x55,0x44,0x48,\
+                                0x61,0x53,0x87,0x66,0x09,0x45,0x24,0x18,\
+                                0x71,0x23,0x56,0x76,0x45,0x23,0x11,0x12};
+
+    uint8_t temp_rd_buffer[168]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                                0x21,0xaa,0x4b,0xcc,0xcd,0xae,0x1f,0x20,\
+                                0x32,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
+                                0x48,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
+                                0x54,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
+                                0x62,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
+                                0x71,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
+                                0x82,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
+                                0x98,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
+                                0xa8,0x65,0x32,0x10,0x54,0x23,0x99,0xaa,\
+                                0xb1,0x23,0x77,0x56,0x89,0x55,0x44,0x48,\
+                                0xc4,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
+                                0xd2,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
+                                0xe1,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
+                                0xf2,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
+                                0xf0,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
+                                0xf1,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
+                                0xf2,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
+                                0xf3,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
+                                0xf4,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
+                                0xf5,0x65,0xb2,0x10,0x34,0x23,0xaa,0xff};
+    memcpy(s_tms570_bram_RD_data_st[0].buffer,temp_rd_buffer,168);
+    memcpy(s_tms570_bram_WR_data_st[0].buffer,temp_wr_buffer,56);
+
     while(g_LifeFlag > 0)
     {
         threadDelay(0,Delayus_U32);
@@ -986,7 +1017,7 @@ void *FileSaveThreaFunc(void *arg)
         
         if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
         {                
-                printf("EVENTFILE:Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
+                printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
                 fflush(g_FileFd_ST.EventFile_fd);
                 fd = fileno(g_FileFd_ST.EventFile_fd);
                 fsync(fd);
@@ -1002,24 +1033,24 @@ void *FileSaveThreaFunc(void *arg)
             fsync(fd);
 		}
 
-        pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
+        //pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
 		ECU_Record_Data_Pro_Fun(&save_to_csr_driver,&s_tms570_bram_RD_data_st[0],&s_tms570_bram_WR_data_st[0],g_EADSErrInfo_ST);        
         ECU_EventDataSave(&g_FileFd_ST,&save_to_csr_driver);
-        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
+        //pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
 
         s_EventFileSaveNum_U32++;
 
         if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&A_TimeEnd_ST,NULL);
-            printf("File Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
-            printf("File Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
+            printf("EventFile Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
+            printf("EventFile Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
         }    
     }
-    printf("exit File Write thread\n");
+    printf("exit FileSave thread\n");
     pthread_exit(NULL);    
 }
-#endif
+
 #if 0
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
@@ -1469,10 +1500,10 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {    
-    int8_t  ret = 0,i,j;
-    uint8_t mvb_rd_channel_num=2,mvb_wr_channel_num=6;
+    #if 0
+    int8_t  ret = 0,i,j;    
     uint8_t testbuff[32]={0};
-    ret = MVB_Bram_Init(mvb_rd_channel_num,mvb_wr_channel_num);
+    ret = MVB_Bram_Init();
     for(i=0;i<32;i++)
     {
         for(j=0;j<32;j++)
@@ -1497,5 +1528,6 @@ void *MVBThreadFunc(void *arg)
         usleep(100000);              
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);      
+    pthread_exit(NULL);  
+    #endif    
 }

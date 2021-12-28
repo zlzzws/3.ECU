@@ -1,0 +1,8 @@
+{
+    "C_Cpp.default.cppStandard": "gnu++11",
+    "C_Cpp.default.cStandard": "gnu11",
+    "files.associations": {
+        "bramdataproc.h": "c",
+        "basedefine.h": "c"
+    }
+}

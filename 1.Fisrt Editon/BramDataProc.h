@@ -94,7 +94,7 @@ void 	CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_w
 void 	TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype);
 int8_t 	TMS570_Bram_Read_Func(TMS570_BRAM_DATA *bram_data,uint8_t begin_index,uint8_t end_index);
 int8_t 	TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data,uint8_t begin_index,uint8_t end_index);
-int8_t  MVB_Bram_Init(uint8_t mvb_rd_ch_num,uint8_t mvb_wr_ch_num); 
+int8_t  MVB_Bram_Init(void);
 int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr);
 int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd);
 /**********************************************************************
