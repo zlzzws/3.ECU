@@ -28,6 +28,15 @@
 *
 *********************************************************************/
 extern DEBUG_TYPE_ENUM g_DebugType_EU;
+
+/***********************************************************************
+*Local Macro Define Section*
+*********************************************************************/
+#define MONTH_PER_YEAR   12   // 一年12月
+#define YEAR_MONTH_DAY   20   // 年月日缓存大小
+#define HOUR_MINUTES_SEC 20   // 时分秒缓存大小
+
+
 /**********************************************************************
 *Name			:   void set_timer(uint8_t second,uint32_t usecond)  
 *Function       :   Writ U32bit value to the phyaddr of Bram
@@ -336,12 +345,11 @@ int8_t i2c_write(int fd,
                     unsigned int offset,--要读取的i2c寄存器地址
                     unsigned char *buf,--发送的数据区
                     unsigned int len --数据区长度
-*Return         :  if success 0;if err -1.
-*Version        :  REV1.0.0       
-*Author:        :  zlz
-*
-*History:
-*REV1.0.0     zlz    2021/10/19  Create
+*Return         :   if success 0;if err -1.
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*History        :
+*REV1.0.0       :   zlz    2021/10/19  Create
 *********************************************************************/ 
 int8_t i2c_read(int fd,
 			unsigned int addr,
@@ -380,3 +388,40 @@ int8_t i2c_read(int fd,
 	return CODE_OK;
 }
  
+ /**********************************************************************
+*Name           :   GetCompileTime 
+*Function       :   show compile time and author
+*Para           :   void
+*Return         :   void
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*History        :
+*REV1.0.0       :   zlz    2021/12/19  Create
+*********************************************************************/ 
+void GetCompileTime(void)
+{
+  uint8_t i;
+  int32_t year, month, day, hour, minutes, seconds;
+  const char year_month[MONTH_PER_YEAR][4] ={ "Jan", "Feb", "Mar", "Apr", "May", "Jun",\
+                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  char compile_date[YEAR_MONTH_DAY] = {0};
+  char compile_time[HOUR_MINUTES_SEC] = {0};
+  char str_month[4] = {0};
+  
+ 
+  sprintf(compile_date, "%s", __DATE__);
+  sprintf(compile_time, "%s", __TIME__);
+ 
+  sscanf(compile_date, "%s %d %d", str_month, &day, &year);
+  sscanf(compile_time, "%d:%d:%d", &hour, &minutes, &seconds);
+ 
+  for(i = 0; i < MONTH_PER_YEAR; ++i)
+  {
+    if(strncmp(str_month, year_month[i], 3) == 0)
+    {
+      month = i + 1;
+      break;
+    }
+  } 
+  printf("Compile time:%d-%d-%d %d:%d:%d,author:ZLZ\n",year,month,day,hour,minutes,seconds);
+}

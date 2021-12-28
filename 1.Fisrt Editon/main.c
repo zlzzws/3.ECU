@@ -100,7 +100,8 @@ int main(int argc, char *argv[])
     uint16_t FifoWrTime = 0;
 	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;  
     char ArgLogInfo[LOG_INFO_LENG] = {0};
-
+    
+    GetCompileTime();
 	GetMemSize("/yaffs/",&EmmcTotalSizeMB_U32,&EmmcFreeSizeMB_U32);
 	if(EmmcTotalSizeMB_U32 > 50000)//48G
 	{ 
@@ -328,7 +329,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create FileSaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-    #if 0
+    
     res = pthread_create(&pthread_ST_p -> ModbusThread, NULL, ModbusThreadFunc, NULL);
     if (res != 0) 
     { 
@@ -336,7 +337,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create ModbusThreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);   
     }
-
+    #if 0
     res = pthread_create(&pthread_ST_p -> LedThread, NULL, LEDWachDogPthreadFunc, NULL);
     if (res != 0) 
     { 
@@ -690,7 +691,7 @@ void *RealWaveThreadFunc(void *arg)
     pthread_exit(NULL);
     return CODE_OK;        
 }
-
+#endif
 
 /**********************************************************************
 *Name           :    ModbusThreadFunc  
@@ -704,24 +705,17 @@ void *RealWaveThreadFunc(void *arg)
 *********************************************************************/
 
 void *ModbusThreadFunc(void *arg)
-{
-    
+{    
+    #if 0
     int ModbusSocket = -1;
     int ModbusRes;
-    int8_t ModCalibFlag[6] = {0};
     modbus_mapping_t *ModbusMap_p;
     modbus_t *ModbusCtx;
     uint8_t *ModbusQuery;
     int8_t Rterr = 0;
-    CHAN_CALIB_DATA ChanCalibRult_ST = {0};
-    CHAN_DATA ChanADCValue_ST[5] = {0};
-    CHAN_DATA ChanADCFiltValue_ST = {0};
-    uint8_t ADCTranType_U8 = 0;
     char loginfo[LOG_INFO_LENG] = {0};
-    ADCTranType_U8 = CALIBTRANTYPE;
-    //const char *IP = "192.168.1.11";/*modbus server IP*/
     const int PORT = 502;
-    /*uint16_t UT_REGISTERS_TAB[] = { 0x1234, 0x5678, 0x9ABC  };mapping data*/
+
     ModbusQuery = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
     ModbusCtx = modbus_new_tcp(NULL, PORT);
     printf("PORT:%d\n",PORT );
@@ -732,7 +726,8 @@ void *ModbusThreadFunc(void *arg)
                                                     UT_INPUT_BITS_ADDRESS_TCP,      UT_INPUT_BITS_NB_TCP,
                                                     UT_REGISTERS_ADDRESS_TCP,       UT_REGISTERS_NB_TCP,
                                                     UT_INPUT_REGISTERS_ADDRESS_TCP, UT_INPUT_REGISTERS_NB_TCP);
-    if(ModbusMap_p == NULL) /*modbus mapping init failure*/
+    /*modbus mapping init failure*/
+    if(ModbusMap_p == NULL) 
     {
         perror("Failed allocate Modbus mapping");
         modbus_free(ModbusCtx);
@@ -751,16 +746,10 @@ void *ModbusThreadFunc(void *arg)
         }
         else /*accept data*/
         {
-            ModCalibFlag[0] = 1;
-            ModCalibFlag[1] = 1;
-            ModCalibFlag[2] = 1;
-            ModCalibFlag[3] = 1;
-            ModCalibFlag[4] = 1;
-            ModCalibFlag[5] = 1;
             VersionSet(ModbusMap_p,&g_Version_ST);
             while(1) 
-            {
-                /*the event about modbus receive */
+            {                
+                /*the modbus receive */
                 do 
                 {
                     ModbusRes = modbus_receive(ModbusCtx, ModbusQuery);
@@ -772,169 +761,7 @@ void *ModbusThreadFunc(void *arg)
                     /* Quit */
                     break;
                 }
-                if((ModbusMap_p -> tab_registers[2]) && (ModCalibFlag[0] == 1))  //8002                 
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[0] = 0;
-                    ChanCalibFileCreat(&g_FileFd_ST,CHAN_CALIB_0V_FILE,&g_EADSErrInfo_ST); 
-                    VolChanDataTrans(&g_BrdRdBufData_ST,&ChanADCValue_ST[0],&g_ChanCalib0VData_ST,&g_ChanCalib110VData_ST,g_ProcNum_U8,CALIBTRANTYPE);
-                    ChanDataFilt(&ChanADCValue_ST[0],&ChanADCFiltValue_ST,g_ProcNum_U8,g_EADSType_U8);
-                    AllChanDataCalib(ADCVOLT_0V,&ChanCalibRult_ST,&ChanADCFiltValue_ST,1); //high vol calib
-                    Rterr = ChanCalibDataSave(g_FileFd_ST.CalibFile_fd,&ChanCalibRult_ST);
-                    fclose(g_FileFd_ST.CalibFile_fd);                 
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == CODE_OK)
-                    {
-                        printf("ChanCalibFile0V.dat File Creat\n");
-                        memset(loginfo,0,sizeof(loginfo));
-                        snprintf(loginfo, sizeof(loginfo)-1, "ChanCalibFile0V.dat File Creat");
-                        WRITELOGFILE(LOG_INFO_1,loginfo);
-                        ModbusMap_p-> tab_registers[280] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        memset(loginfo,0,sizeof(loginfo));
-                        printf("ChanCalibFile0V.dat File Failed\n");
-                        snprintf(loginfo, sizeof(loginfo)-1, "ChanCalibFile0V.dat File Failed");
-                        WRITELOGFILE(LOG_INFO_1,loginfo);
-                        ModbusMap_p-> tab_registers[280] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[2] == 0)&&(ModCalibFlag[0] == 0))
-                {
-                    ModCalibFlag[0] = 1;
-                    ModbusMap_p-> tab_registers[280] = 0;
-                }
-                else if((ModbusMap_p -> tab_registers[24]) && (ModCalibFlag[1] == 1))  //8024                
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[1] = 0;
-                    ChanCalibFileCreat(&g_FileFd_ST,CHAN_CALIB_110V_FILE,&g_EADSErrInfo_ST); 
-                    VolChanDataTrans(&g_BrdRdBufData_ST,&ChanADCValue_ST[0],&g_ChanCalib0VData_ST,&g_ChanCalib110VData_ST,g_ProcNum_U8,CALIBTRANTYPE);
-                    ChanDataFilt(&ChanADCValue_ST[0],&ChanADCFiltValue_ST,g_ProcNum_U8,g_EADSType_U8);  
-                    AllChanDataCalib(ADCVOLT_110V,&ChanCalibRult_ST,&ChanADCFiltValue_ST,1); //high vol calib
-                    Rterr = ChanCalibDataSave(g_FileFd_ST.CalibFile_fd,&ChanCalibRult_ST);
-                    fclose(g_FileFd_ST.CalibFile_fd);
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == CODE_OK)
-                    {
-                        printf("ChanCalibFile 110V.dat File Creat\n");
-                        memset(loginfo,0,sizeof(loginfo));
-                        snprintf(loginfo, sizeof(loginfo)-1, "ChanCalibFile 110V.dat File Creat");
-                        WRITELOGFILE(LOG_INFO_1,loginfo);
-                        ModbusMap_p-> tab_registers[281] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        memset(loginfo,0,sizeof(loginfo));
-                        printf("ChanCalibFile 110V.dat File Failed\n");
-                        snprintf(loginfo, sizeof(loginfo)-1, "ChanCalibFile 110V.dat File Failed");
-                        WRITELOGFILE(LOG_INFO_1,loginfo);
-                        ModbusMap_p-> tab_registers[281] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[24] == 0)&&(ModCalibFlag[1] == 0))
-                {
-                    ModCalibFlag[1] = 1;
-                    ModbusMap_p-> tab_registers[281] = 0;
-                }
-                else if((ModbusMap_p -> tab_registers[25]) && (ModCalibFlag[2] == 1))  //8025                
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[2] = 0;
-                    printf("ChanCalibFile3Creat\n");
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == 0)
-                    {
-                        ModbusMap_p-> tab_registers[282] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        ModbusMap_p-> tab_registers[282] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[25] == 0)&&(ModCalibFlag[2] == 0))
-                {
-                    ModCalibFlag[2] = 1;
-                    ModbusMap_p-> tab_registers[282] = 0;
-                }
-                else if((ModbusMap_p -> tab_registers[26]) && (ModCalibFlag[3] == 1))  //8026                
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[3] = 0;
-                    printf("ChanCalibFile4Creat\n");
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == 0)
-                    {
-                        ModbusMap_p-> tab_registers[283] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        ModbusMap_p-> tab_registers[283] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[26] == 0)&&(ModCalibFlag[3] == 0))
-                {
-                    ModCalibFlag[3] = 1;
-                    ModbusMap_p-> tab_registers[283] = 0;
-                }
-                else if((ModbusMap_p -> tab_registers[27]) && (ModCalibFlag[4] == 1))  //8027                 
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[4] = 0;
-                    printf("ChanCalibFile5Creat\n");
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == 0)
-                    {
-                        ModbusMap_p-> tab_registers[284] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        ModbusMap_p-> tab_registers[284] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[27] == 0)&&(ModCalibFlag[4] == 0))
-                {
-                    ModCalibFlag[4] = 1;
-                    ModbusMap_p-> tab_registers[284] = 0;
-                }
-                else if((ModbusMap_p -> tab_registers[28]) && (ModCalibFlag[5] == 1))  //8028                
-                {
-                    //for ChanCalibFile Once accept
-                    ModCalibFlag[5] = 0;
-                    printf("ChanCalibFile6Creat\n");
-                    //Fwrite ok,then set the Light On
-                    if(Rterr  == 0)
-                    {
-                        ModbusMap_p-> tab_registers[285] = 1;//8280 
-                    }
-                    //else, set the Light Off
-                    else
-                    {
-                        ModbusMap_p-> tab_registers[285] = 0;
-                    }
-                    
-                }
-                else if((ModbusMap_p -> tab_registers[28] == 0)&&(ModCalibFlag[5] == 0))
-                {
-                    ModCalibFlag[5] = 1;
-                    ModbusMap_p-> tab_registers[285] = 0;
-                }
-                else
-                {
-
-                }                               
-                /*the event about modbus reply*/ 
+                /*the modbus reply*/
                 ModbusRes = modbus_reply(ModbusCtx, ModbusQuery, ModbusRes, ModbusMap_p);
                 if(ModbusRes == -1) 
                 {
@@ -950,8 +777,9 @@ void *ModbusThreadFunc(void *arg)
     free(ModbusQuery);
     pthread_exit(NULL);
     printf("Modbus close\n");
+    #endif
 }
-#endif
+
 /**********************************************************************
 *Name           :  FileSaveThreaFunc
 *Function       :  the thread for Event ,RealFlt,RealOprt,OprtNum File save.
@@ -966,6 +794,7 @@ void *ModbusThreadFunc(void *arg)
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
 {  
+    #if 0
     uint8_t i = 0;
     int8_t fd = 0;
     uint32_t Delayus_U32= 0;
@@ -1004,6 +833,7 @@ void *FileSaveThreaFunc(void *arg)
                                 0xf3,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
                                 0xf4,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
                                 0xf5,0x65,0xb2,0x10,0x34,0x23,0xaa,0xff};
+
     memcpy(s_tms570_bram_RD_data_st[0].buffer,temp_rd_buffer,168);
     memcpy(s_tms570_bram_WR_data_st[0].buffer,temp_wr_buffer,56);
 
@@ -1048,7 +878,8 @@ void *FileSaveThreaFunc(void *arg)
         }    
     }
     printf("exit FileSave thread\n");
-    pthread_exit(NULL);    
+    pthread_exit(NULL);
+    #endif      
 }
 
 #if 0

@@ -369,11 +369,10 @@ typedef struct
 }CHAN_STATUS_INFO;
 
 typedef enum _DEBUG_TYPE
-{    
-	TIME_DEBUG 			= 0,
+{ 
 	BRAM_RD_DEBUG   	= 1,
 	BRAM_WR_DEBUG 		= 2,    			
-	BRAM_CRC_DEBUG		= 3,
+	TIME_DEBUG 			= 3,
 	LINECAlib_DEBUG     = 4,	    			
 	ALRM_DEBUG 			= 5,
 	DEVC_DEBUG 			= 6,

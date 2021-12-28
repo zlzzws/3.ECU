@@ -72,6 +72,7 @@ int8_t SetSystemTime(SYSTEM_TIME *DatStr);
 int8_t SetRTCTime(SYSTEM_TIME *DatStr);
 int threadDelay(const long lTimeSec, const long lTimeUSec);
 void GetTime(uint8_t *pszTimeStr);
+void GetCompileTime(void);
 /**********************************************************************
 *
 *Multi-Include-Prevent End Section
