@@ -89,19 +89,22 @@ int main(int argc, char *argv[])
     int SemValue = 0;
     int SemtValue = 0;
     int i2cbus_fd =0;   
-    int8_t res=0;
-    int8_t fifofd = 0;
-    int8_t fd = 0;
+    int8_t  res=0;
+    int8_t  fifofd = 0;
+    int8_t  fd = 0;
     uint8_t i = 0;
     uint8_t BOXID =0;     
     uint8_t BinLife = 0;
     uint8_t FifoWrNum = 0;
     uint8_t FifoErr = 0;
     uint16_t FifoWrTime = 0;
-	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;  
-    char ArgLogInfo[LOG_INFO_LENG] = {0};
+	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;     
+    char    ArgLogInfo[LOG_INFO_LENG] = {0};    
+
+    LogFileCreatePowOn();
     
     GetCompileTime();
+
 	GetMemSize("/yaffs/",&EmmcTotalSizeMB_U32,&EmmcFreeSizeMB_U32);
 	if(EmmcTotalSizeMB_U32 > 50000)//48G
 	{ 
@@ -122,10 +125,10 @@ int main(int argc, char *argv[])
         g_SpaceJudge_ST.CAN_RESER_SPACE     = 300;
         g_SpaceJudge_ST.UART_RESER_SPACE    = 300;
 		g_SpaceJudge_ST.MIN_RESER_SPACE     = 600;
-	}
-    
-    LogFileCreatePowOn();
-
+	}   
+    /*if logfileNum more than g_SpaceJudge_ST.LOGFILE_NUM,delete the earliest logfile*/
+    DeleteEarliestFile("/yaffs/REC_LOGGFLT/",LOG_FILE_TYPE);
+    /*judge and process the main_function arguments*/
     if (argc < 4)
     {
         FuncUsage();
@@ -141,22 +144,26 @@ int main(int argc, char *argv[])
     g_DebugType_EU  =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);         //Debug类型              
     g_PowDebug      =    (uint16_t)strtoul(argv[2],NULL,10);                //电源选项，1-使能掉电监测    
     g_LinuxDebug    =    (uint16_t)strtoul(argv[3],NULL,10);                //软件运行环境:0:ZYNQ 1:Ubuntu
-    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                //TODO just for test please verify
+    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                
     
     ArgJudge();
-    snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "ProcNum %u,DebugType %u,g_PowDebug %u,g_LinuxDebug %u",\
-    g_ProcNum_U8,g_DebugType_EU,g_PowDebug,g_LinuxDebug);
-    WRITELOGFILE(LOG_INFO_1,ArgLogInfo);      
-	
+    snprintf(ArgLogInfo,sizeof(ArgLogInfo)-1,"g_PowDebug %u,g_LinuxDebug %u",g_PowDebug,g_LinuxDebug);
+    WRITELOGFILE(LOG_INFO_1,ArgLogInfo); 
+
+	/*Bram Init*/
     if (0 == g_LinuxDebug)
     {
        Bram_Mapping_Init(&g_EADSErrInfo_ST);     
     }
+
+    /*RTC Test*/
     RTCTesT();
+
     /*I2C*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
     i2c_read(i2cbus_fd,0X20,0,&BOXID,1);
     printf("BOXID is %x\n",BOXID);
+
     /*Event File xml_config_file*/
     SysXmlParInit(ECU_CONFIG,&g_Rec_XML_ST,&g_Version_ST);
     XmlParJudge(&g_Rec_XML_ST);   
@@ -164,6 +171,7 @@ int main(int argc, char *argv[])
     VersionInit(&g_Version_ST);                
     VersionSave(&g_Version_ST);               
     ThreadInit(&g_Pthread_ST);
+
     /*****open fifo tunnel*****/
     fifofd = open(FIFO_FILE,O_WRONLY|O_NONBLOCK,0); 
     if(fifofd == -1)
@@ -174,7 +182,7 @@ int main(int argc, char *argv[])
         WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);
         FifoErr =  1;
     }
-    
+        
     if (1 == g_PowDebug)
     {
         GPIO_PowDownIoCreat();
@@ -1171,7 +1179,6 @@ void *LEDWachDogPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {   
-    #if 0
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
@@ -1181,43 +1188,53 @@ void *CAN0ThreadFunc(void *arg)
     struct timeval tv={0},tv_select={0,5000};
     struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
-    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                    0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                    0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                    0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);
-    for (i=0;i<4;i++)
-    {
-        memcpy(&s_can0_frame_WR_st[i].data[0],testbuff,8);
-    } 
-    //Attention 测试时序
-    /*bind*/
+
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can0.ifr_name, "can0" );
     ioctl(socket_can0, SIOCGIFINDEX, &ifr_can0);
     addr_can0.can_family = AF_CAN;
     addr_can0.can_ifindex = ifr_can0.ifr_ifindex;
-    bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));   
-    ioctl(socket_can0,SIOCGSTAMP,&tv);/*add time stamp*/    
-    CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*Init*/
-    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE);    
+    bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));/*bind*/   
+    ioctl(socket_can0,SIOCGSTAMP,&tv);/*add time stamp*/   
     setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
-    
+
+    CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
+    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE); /*TMS570 Bram TopPack Init*/
+
+    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
+                    0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
+                    0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
+                    0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
+    /*memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);*/
+    for (i=0;i<4;i++)
+    {
+        memcpy(&s_can0_frame_WR_st[i].data[0],testbuff,8);
+    } 
+
     while(g_LifeFlag>0)
     {        
-        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
-        //CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
-        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM);
+        
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
         //if(ret>0)
         //{
             //errnum_timeout=0;
-            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM);               
-            //CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
+            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
+            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
+            if (g_DebugType_EU == CAN_RD_DEBUG)
+            {
+                for (j=1;j<4;j++)
+                {
+                    for (i = 0; i < 15; i++)
+                    {
+                        printf("CAN0->TMS570[%d]-[%02d][%08x]\n",j,i,s_tms570_bram_WR_data_st[j].buffer[i]);
+                    }
+                }               
+            }
+            
             //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
         //}
         /*else
@@ -1228,16 +1245,19 @@ void *CAN0ThreadFunc(void *arg)
             printf("can0 read time out %d times!\n",errnum_timeout);
             if(errnum_timeout >=13)
             {
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame time out!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_timeout = 0;
             } 
-        }*/  
+        }*/
+        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
+        //CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
+        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);  
         usleep(100000);
     }
     close(socket_can0);
     return 0;  
-    #endif
+    
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1250,8 +1270,7 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{
-    #if 0
+{    
     uint8_t i,j,ret;    
     static errnum_timeout=0;
     int    socket_can1;
@@ -1261,62 +1280,69 @@ void *CAN1ThreadFunc(void *arg)
     struct timeval tv={0},tv_select={0,10000};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};    
-    /*bind*/
+    
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can1" );
     ioctl(socket_can1, SIOCGIFINDEX, &ifr_can1);
     addr_can1.can_family = AF_CAN;
     addr_can1.can_ifindex = ifr_can1.ifr_ifindex;
-    bind(socket_can1, (struct sockaddr *)&addr_can1, sizeof(addr_can1));    
+    bind(socket_can1, (struct sockaddr *)&addr_can1, sizeof(addr_can1));/*bind*/    
     ioctl(socket_can1,SIOCGSTAMP,&tv); // add time stamp   
-    /*Init*/
-    CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);
-    TMS570_Bram_TopPackDataSetFun(CAN1_TYPE);
-    /*Filter*/
-    setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));
+    setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
+    
+    CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
+    TMS570_Bram_TopPackDataSetFun(CAN1_TYPE); /*TMS570 Bram TopPack Init*/
+    
+    
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                     0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    memcpy(&s_tms570_bram_WR_data_st[4].buffer[0],testbuff,32);
+    /*memcpy(&s_tms570_bram_WR_data_st[4].buffer[0],testbuff,32);*/
     for (i=0;i<3;i++)
     {
         memcpy(&s_can1_frame_WR_st[i].data[0],testbuff,8);
     }    
     
     while(g_LifeFlag>0)
-    {        
-        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
-        //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        //CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM);
+    {
         //FD_ZERO(&rfds);
         //FD_SET(socket_fd,&rfds);
         //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
         //if(ret>0)
         {
             //errnum_timeout=0;
-            //CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM);                       
-            //CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
+            CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
+            CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
+            if (g_DebugType_EU == CAN_RD_DEBUG)
+            {
+                    for (i=0;i<24;i++)
+                    {
+                        printf("CAN0->TMS570[4]-[%02d][%08x]\n",i,s_tms570_bram_WR_data_st[4].buffer[i]);
+                    }                              
+            }
             //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
         }
         /*else
         {
             errnum_timeout++;
             if(errnum_timeout==1)
-                printf("can0 read time out ,already receive %d frames!\n",i);
-            printf("can0 read time out %d times!\n",errnum_timeout);
+                printf("can1 read time out ,already receive %d frames!\n",i);
+            printf("can1 read time out %d times!\n",errnum_timeout);
             if(errnum_timeout >=13)
             {
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN 0 receive frame time out!");
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN1 receive frame time out!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_timeout = 0;
             } 
-        }*/  
+        }*/
+        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
+        //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
+        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);  
         usleep(100000);
     }
     close(socket_can1);
-    return 0; 
-    #endif 
+    return 0;      
 }
 
 /**********************************************************************

@@ -106,14 +106,11 @@ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyNa
 *********************************************************************/
 int8_t LogFileCreatePowOn(void)
 {
-
     //creat  logfile dir;
     uint8_t File_Directory_U8[LOG_PATH_LENG] = {"/yaffs/REC_LOGGFLT/"}; //for logConFig file error
     GetConfigValue(File_Directory_U8);
     MultiDircCreate(File_Directory_U8);   
-    LogFileCreate(File_Directory_U8);
-    /*should create file,then delete to save,to log this infomation*/
-    DeleteEarliestFile(File_Directory_U8,LOG_FILE_TYPE);  
+    LogFileCreate(File_Directory_U8);    
     return CODE_OK;
 
 }

@@ -578,92 +578,112 @@ int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_IN
     return ReadErr;
 }
 #endif
-/**
- * @description: just for this page can program use!(pay attention "static")
- * @param:       void life_data,void *life_lasttime,uint8_t *errnum
- * @return:      uint8_t life stop ->1 life normal ->0
- * @author:      zlz
- */
-static uint8_t Life_Judge_Fun(uint8_t life_data,uint8_t *life_lasttime,uint8_t *errnum)
-{
-    if(life_data == *life_lasttime)
-    {
-        *errnum++;
-        if(*errnum >= 10)
-        {   
-            *errnum = 0;            
-            return 1;
-        }             
-    }
-    else
-    {
-        *errnum = 0;
-        *life_lasttime = life_data;
-        return 0;       
-    }
 
-}
 /**
- * @description: CAN 设备生命信号进行判断处理 (pay attention "static")
+ * @description: CAN_Life_Judge (pay attention "static")
  * @param:       void
  * @return:      void
  * @author:      zlz
  */
-static void CAN_Life_Judge(struct can_frame *candata,uint32_t *judge_val,uint8_t can_devtype)
+static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t can_devtype)
 {
     uint8_t i;
     static uint8_t errnum[5]= {0};    
     static uint8_t errflag[5] = {0};
-    static uint8_t life_lasttime[5] = {0};    
+    static uint8_t life_lasttime[5] = {0};  
     char loginfo[LOG_INFO_LENG] = {0};
 
     if (can_devtype == CAN0_TYPE)
     {
         for (i=0;i<CAN0_READ_FRAME_NUM;i++)
         {
-            switch (candata[i].can_id)
+            switch (candata[i].can_id & 0x1FFFFFFF)
             {
-                case 0x1800D0F4 :
-                    judge_val[0] = Life_Judge_Fun(candata[i].data[6],&life_lasttime[0],&errnum[0]);
-                    if(judge_val[0])
+                case 0x1800D0F4 :                                       
+                    if(candata[i].data[6] == life_lasttime[0])
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x1800D0F4] life have stopped!");
+                        errnum[0]++;
+                        if (errnum[0] >=10)
+                        {
+                            errnum[0] = 0;
+                            judge_val[0] =1;
+                        }                        
+                    }
+                    else
+                    {
+                        errnum[0] = 0;
+                        judge_val[0] =0;
+                    }
+                    life_lasttime[0] = candata[i].data[6];
+
+                    if(judge_val[0] ==1 && errflag[0]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "BMS-CAN_ID:[0x1800D0F4] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[0]=1;
                     }
                     else if(judge_val[0]==0 && errflag[0]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x1800D0F4] life have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "BMS-CAN_ID:[0x1800D0F4] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[0]=0;
                     }                    
                     break;
-                case 0x16F4C001 :    
-                    judge_val[1] = Life_Judge_Fun(candata[i].data[7],&life_lasttime[1],&errnum[1]);
-                    if(judge_val[1])
+                case 0x16F4C001 :                                  
+                    if(candata[i].data[7] == life_lasttime[1])
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x16F4C001] life have stopped!");
+                        errnum[1]++;
+                        if (errnum[1] >=10)
+                        {
+                            errnum[1] = 0;
+                            judge_val[1] =1;
+                        }                        
+                    }
+                    else
+                    {
+                        errnum[1] = 0;
+                        judge_val[1] =0;
+                    }
+                    life_lasttime[1] = candata[i].data[7];
+                    if(judge_val[1]==1 && errflag[1]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "DCDC-CAN_ID::[0x16F4C001] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[1]=1;
                     }
                     else if(judge_val[1]==0 && errflag[1]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x16F4C001] life have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "DCDC-CAN_ID:[0x16F4C001] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[1]=0;
                     }
                     break;
-                case 0x18FF3012 :    
-                    judge_val[2] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[2],&errnum[2]);
-                    if(judge_val[2])
+                case 0x18FF3012 :                    
+                    if(candata[i].data[0] == life_lasttime[2])
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x18FF3012] life have stopped!");
+                        errnum[2]++;
+                        if (errnum[2] >=10)
+                        {
+                            errnum[2] = 0;
+                            judge_val[2] =1;
+                        }                        
+                    }
+                    else
+                    {
+                        errnum[2] = 0;
+                        judge_val[2] =0;
+                    }
+                    life_lasttime[2] = candata[i].data[0];
+
+                    if(judge_val[2]==1 && errflag[2]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3012] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[2]=1;
-                    }
+                    }                    
                     else if(judge_val[2]==0 && errflag[2]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x18FF3012] life have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3012] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[2]=0;
                     }
@@ -671,42 +691,68 @@ static void CAN_Life_Judge(struct can_frame *candata,uint32_t *judge_val,uint8_t
                 default:
                     break;
             }
-        }  
+        }        
     }
     else if (can_devtype == CAN1_TYPE)
     {
         for (i=0;i<CAN1_READ_FRAME_NUM;i++)
         {
-            switch (candata[i].can_id)
-            {
-                #if 0 //FIXME 变频器暂无生命信号，后期增加后请修改此处
-                case 0x15003000 :
-                    judgeret[3] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[4],&errnum[4]);
-                    if(judgeret[3])
+            switch (candata[i].can_id & 0x1FFFFFFF)
+            {                
+                case 0x15003000 :                    
+                    if(candata[i].data[0] == life_lasttime[3])
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x15003000] life have stopped!");
+                        errnum[3]++;
+                        if (errnum[3] >=10)
+                        {
+                            errnum[3] = 0;
+                            judge_val[3] =1;
+                        }                        
+                    }
+                    else
+                    {
+                        errnum[3] = 0;
+                        judge_val[3] =0;
+                    }
+                    life_lasttime[3] = candata[i].data[0];                    
+                    if(judge_val[3]==1 && errflag[3]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Inverter-CAN_ID:[0x15003000] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[3]=1;
                     }
-                    else if(judgeret[3]==0 && errflag[3]==1)
+                    else if(judge_val[3]==0 && errflag[3]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x15003000] life have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "Inverter-CAN_ID:[0x15003000] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[3]=0;
                     }
-                    break;
-                #endif
-                case 0x19003000 :
-                    judge_val[0] = Life_Judge_Fun(candata[i].data[0],&life_lasttime[4],&errnum[4]);
-                    if(judge_val[0])
+                    break;                
+                case 0x19003000 :                    
+                    if(candata[i].data[0] == life_lasttime[4])
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x19003000] life have stopped!");
+                        errnum[4]++;
+                        if (errnum[4] >=10)
+                        {
+                            errnum[4] = 0;
+                            judge_val[4] =1;
+                        }                        
+                    }
+                    else
+                    {
+                        errnum[4] = 0;
+                        judge_val[4] =0;
+                    }
+                    life_lasttime[4] = candata[i].data[0];
+                    if(judge_val[4]==1 && errflag[4]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=1;
                     }
-                    else if(judge_val[0]==0 && errflag[4]==1)
+                    else if(judge_val[4]==0 && errflag[4]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "CAN Receiv frame from COMID:[0x19003000] life have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=0;
                     }                   
@@ -815,7 +861,7 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num)
+int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num,uint8_t dev_type)
 {    
     uint8_t i,nbytes;
     static uint8_t errnum_wr=0;
@@ -826,11 +872,11 @@ int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_
         nbytes = write(socket_fd,&can_frame_data[i], sizeof(can_frame_data[i]));
         if(nbytes != sizeof(can_frame_data[i]))
         {                
-            printf("CAN Send frame[%u] Error!\n",can_frame_data[i].can_id);
+            printf("CAN%d Send frame[%u] Error!\n",dev_type,can_frame_data[i].can_id);
             errnum_wr++;
             if(errnum_wr >=10)
             {
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN Send frame[%u] Error!",can_frame_data[i].can_id);
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN%d Send frame[%u] Error!",dev_type,can_frame_data[i].can_id);
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_wr = 0;
                 return -1;
@@ -851,7 +897,7 @@ int8_t CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_
  * @return:      void
  * @author:      zlz
  */
-int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num)
+int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num,uint8_t dev_type)
 {
     uint8_t i,j,nbytes;
     static uint8_t errnum_rd=0,errnum_timeout=0;
@@ -870,12 +916,12 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
             nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
             if(nbytes != sizeof(can_frame_data[i]))
             {                
-                printf("CAN0 Receive Error frame[%d]!\n",i);
+                printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
                 memset(can_frame_data[i].data,0,8);
                 errnum_rd++;
                 if(errnum_rd >=10)
                 {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame[%u] Error!",can_frame_data[i].can_id);
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame[%u] Error!",dev_type,can_frame_data[i].can_id);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
                     errnum_rd = 0;
                 }                            
@@ -898,15 +944,15 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
                 errnum_timeout = 0;
             } 
         }*/            
-        if(g_DebugType_EU == CAN_RD_DEBUG)
+        /*if(g_DebugType_EU == CAN_RD_DEBUG)
         {               
             {
-                    printf("Read CAN0 ID:0x%x:",can_frame_data[i].can_id & 0x1FFFFFFF);
+                    printf("Read CAN%d ID:0x%x:",dev_type,can_frame_data[i].can_id & 0x1FFFFFFF);
                     for (j = 0; j < 8; j++)                    
                         printf("[%x]",can_frame_data[i].data[j]);
                     printf("\n");
             }                                                 
-        }
+        }*/
     }    
 }
 /**
@@ -972,9 +1018,25 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
 {
     uint8_t i,j;
     uint8_t tempdata[240]={0};
-    uint32_t life_judge_val[3]={0};
+    static uint8_t life_judge_val[5]={0};
+    static uint16_t templife_judge_val=0;
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
+
+    if (g_DebugType_EU == CAN_RD_DEBUG)
+    {
+        if(can_devtype == CAN0_TYPE)
+        {
+            for (i = 0; i < 3; i++)
+            {
+                printf("can0 life_judge_value[%d]:%d\n",i,life_judge_val[i]);
+            }
+        }
+        else if(can_devtype == CAN1_TYPE)
+        {
+            printf("can1 life_judge_value[4]:%d\n",life_judge_val[4]);
+        }
+    }    
 
     if(can_devtype == CAN0_TYPE)
     {    
@@ -993,14 +1055,14 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;                    
                 case 0x1803D0F4 :
                     memcpy(&bramdata_wr[1].buffer[6],candata_rd[i].data,8);
-                    memcpy(&bramdata_wr[1].buffer[8],&life_judge_val[0],4);
+                    memcpy(&bramdata_wr[1].buffer[8],&life_judge_val[0],1);
                     break;
                 case 0x16F4C000 :
                     memcpy(&bramdata_wr[2].buffer[0],candata_rd[i].data,8);
                     break;
                 case 0x16F4C001 :
                     memcpy(&bramdata_wr[2].buffer[2],candata_rd[i].data,8);
-                    memcpy(&bramdata_wr[2].buffer[4],&life_judge_val[1],4);
+                    memcpy(&bramdata_wr[2].buffer[4],&life_judge_val[1],1);
                     break;
                 case 0x18FF3012 :
                     memcpy(&bramdata_wr[3].buffer[0],candata_rd[i].data,8);
@@ -1022,7 +1084,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;
                 case 0x18FF7112 :
                     memcpy(&bramdata_wr[3].buffer[12],candata_rd[i].data,8);
-                    memcpy(&bramdata_wr[3].buffer[14],&life_judge_val[2],4);
+                    memcpy(&bramdata_wr[3].buffer[14],&life_judge_val[2],1);
                     break;
                 default:
                     break;              
@@ -1031,6 +1093,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     }
     else if(can_devtype == CAN1_TYPE)
     {        
+        templife_judge_val = life_judge_val[4]<<8 | life_judge_val[3];
         for(i=0;i<CAN1_READ_FRAME_NUM;i++)
         {
             switch (candata_rd[i].can_id & 0x1FFFFFFF)
@@ -1064,7 +1127,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     break;
                 case 0x19003006 :
                     memcpy(&bramdata_wr[4].buffer[18],candata_rd[i].data,8);
-                    memcpy(&bramdata_wr[4].buffer[20],&life_judge_val[0],4);
+                    memcpy(&bramdata_wr[4].buffer[20],&templife_judge_val,2);
                     break;
                 default:
                     break;    
@@ -1080,7 +1143,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
  */
 void TMS570_Bram_TopPackDataSetFun(uint8_t can_devtype)
 {
-    //Attention:数据区长度不包含CRC32，PacktLength需要在总长度上-1
+    //Attention:数据区长度不包含CRC32，PacktLength_u32需要在总长度上-1
     switch (can_devtype)
     {
         case CAN0_TYPE:

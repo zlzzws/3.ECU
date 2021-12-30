@@ -231,7 +231,8 @@ int8_t GetMemSize(uint8_t *Path,uint32_t *TotalSize_MB,uint32_t *FreeSize_MB)
     *TotalSize_MB = TotalSize >> 20;  /*the unit is MByte*/
     FreeDisk = DiskInfo.f_bfree * TotalBlocks;  /*the number of free blocks*/  
     *FreeSize_MB = FreeDisk >> 20;  /*the unit is MByte*/     
-    snprintf(loginfo, sizeof(loginfo)-1, "%s total=%u MB, free=%u MB",Path,*TotalSize_MB, *FreeSize_MB);
+    printf("%s-Total: %u MB,Free: %u MB\n",Path,*TotalSize_MB,*FreeSize_MB);
+    snprintf(loginfo, sizeof(loginfo)-1, "%s total=%u MB, free=%u MB",Path,*TotalSize_MB, *FreeSize_MB);    
     WRITELOGFILE(LOG_INFO_1,loginfo);
     return CODE_OK;
 
@@ -524,8 +525,7 @@ int8_t DeleteEarliestFile(uint8_t *FilePath_p,uint8_t FileType)
     DirOpenInfo_p = opendir(FilePath_p);/* /datfile */
     /*chdir(FilePath_p);*/ //chage the directory to FilePath,so FileFullName can not have FilePath_p
     while((DirInfo_p = readdir(DirOpenInfo_p))!=NULL) 
-    { 
-
+    {
         /*Skip the current directory and up directory*/
         memset(FileFullName,0,sizeof(FileFullName));
         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/* /datfile/20180308 */
@@ -537,42 +537,36 @@ int8_t DeleteEarliestFile(uint8_t *FilePath_p,uint8_t FileType)
         {
             if(strcmp(DirInfo_p->d_name,".")==0  || strcmp(DirInfo_p->d_name,"..")==0)
             { 
-                continue;
-                       
+                continue;                       
             }
             /*cpy the first DirInfo_p->d_name to EarlFile*/
             if(DirCompNum == 0) 
             {
                 memset(EarlFile,0,sizeof(EarlFile));
-                memcpy(EarlFile,FileFullName,strlen(FileFullName));
-                //printf("FileFullName %s\n",FileFullName);
-                
+                memcpy(EarlFile,FileFullName,strlen(FileFullName));                               
             }   
             /*FileFullName is earlier than EarlFile,EarlFile first is 0*/
             if(strncmp(FileFullName,EarlFile,strlen(FileFullName)) < 0)
             {
                 memset(EarlFile,0,sizeof(EarlFile));
-                memcpy(EarlFile,FileFullName,strlen(FileFullName)); 
-                //printf("FileFullName %s\n",FileFullName);      
+                memcpy(EarlFile,FileFullName,strlen(FileFullName));                     
             }
-            DirCompNum ++; 
-            //printf("DirCompNum %d\n",DirCompNum);
+            DirCompNum ++;             
             /*just for logfile delete*/                    
         }  
     }
-    if(DirCompNum > 0)/*for just have 1 file*/
-    {
+    if(DirCompNum > 0)/*at least have 1 file*/
+    {       
         if(LOG_FILE_TYPE  == FileType)
-        {
-            if(DirCompNum > g_SpaceJudge_ST.LOGFILE_NUM)/*test is 5*/
+        {            
+            if(DirCompNum > g_SpaceJudge_ST.LOGFILE_NUM)
             {
                 err = remove(EarlFile);
             }
         }
         else
         {
-            err = remove(EarlFile);
-           
+            err = remove(EarlFile);            
         }
         if(-1 == err)
         {

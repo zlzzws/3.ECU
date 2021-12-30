@@ -3,6 +3,10 @@
     "C_Cpp.default.cStandard": "gnu11",
     "files.associations": {
         "bramdataproc.h": "c",
-        "basedefine.h": "c"
+        "basedefine.h": "c",
+        "socket.h": "c",
+        "bramdatainter.h": "c",
+        "bram.h": "c",
+        "writelog.h": "c"
     }
 }

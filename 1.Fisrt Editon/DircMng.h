@@ -63,6 +63,7 @@
 *********************************************************************/
 
 unsigned long GetFileSize(char *Path);
+int8_t GetMemSize(uint8_t *Path,uint32_t *TotalSize_MB,uint32_t *FreeSize_MB);
 int8_t MultiDircCreate(uint8_t *DirPath);
 int8_t DeleteEarliestDir(uint8_t *FilePath_p);
 int8_t DeleteEarliestFile(uint8_t *FilePath_p,uint8_t FileType);

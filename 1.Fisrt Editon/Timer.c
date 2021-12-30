@@ -402,6 +402,7 @@ void GetCompileTime(void)
 {
   uint8_t i;
   int32_t year, month, day, hour, minutes, seconds;
+  char loginfo[LOG_INFO_LENG]={0};
   const char year_month[MONTH_PER_YEAR][4] ={ "Jan", "Feb", "Mar", "Apr", "May", "Jun",\
                                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
   char compile_date[YEAR_MONTH_DAY] = {0};
@@ -422,6 +423,9 @@ void GetCompileTime(void)
       month = i + 1;
       break;
     }
-  } 
-  printf("Compile time:%d-%d-%d %d:%d:%d,author:ZLZ\n",year,month,day,hour,minutes,seconds);
+  }
+  
+  printf("Compile time:%d-%d-%d %d:%d:%d,author:ZLZ\n",year,month,day,hour,minutes,seconds);  
+  snprintf(loginfo,sizeof(loginfo)-1,"Compile time:%d-%d-%d %d:%d:%d,author:ZLZ",year,month,day,hour,minutes,seconds);
+  WRITELOGFILE(LOG_INFO_1,loginfo);
 }
