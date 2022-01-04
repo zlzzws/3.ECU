@@ -1224,7 +1224,7 @@ void *CAN0ThreadFunc(void *arg)
             //errnum_timeout=0;
             CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
             CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
-            if (g_DebugType_EU == CAN_RD_DEBUG)
+            /*if (g_DebugType_EU == CAN_RD_DEBUG)
             {
                 for (j=1;j<4;j++)
                 {
@@ -1233,7 +1233,7 @@ void *CAN0ThreadFunc(void *arg)
                         printf("CAN0->TMS570[%d]-[%02d][%08x]\n",j,i,s_tms570_bram_WR_data_st[j].buffer[i]);
                     }
                 }               
-            }
+            }*/
             
             //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
         //}
@@ -1314,13 +1314,13 @@ void *CAN1ThreadFunc(void *arg)
             //errnum_timeout=0;
             CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
             CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
-            if (g_DebugType_EU == CAN_RD_DEBUG)
+            /*if (g_DebugType_EU == CAN_RD_DEBUG)
             {
                     for (i=0;i<24;i++)
                     {
                         printf("CAN0->TMS570[4]-[%02d][%08x]\n",i,s_tms570_bram_WR_data_st[4].buffer[i]);
                     }                              
-            }
+            }*/
             //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
         }
         /*else
