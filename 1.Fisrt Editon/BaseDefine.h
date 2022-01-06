@@ -100,11 +100,11 @@
 #define CTU_BOARD_ID 1
 #define CAN_CHAN 8
 
-/*the number of channel  have voltage and current*/
-#define VOL_CHAN_NUM 40  
-#define CURR_CHAN_NUM 14 
-#define ALL_CHAN_NUM 80  /*for File save, !!!! note / not include the oprte time */
+#define ALL_CHAN_NUM 80  /*for File save*/
 #define peri_WriteSize 16
+#define MAX_RealWave_Num 40
+#define CURR_CHAN_NUM 14
+#define VOL_CHAN_NUM  40
 
 #define  CODE_CREAT  2
 #define  CODE_EXIST  1
@@ -141,10 +141,8 @@
 #define PHY_COPPER_CONTRL_REG 0
 #define PHY_COPPER_STATUS_REG 1
 #define PHY_COPPER_CONTRL_REG_OK 0x2100
-/**********************************************************************
-*
-*Global Struct Define Section
-*
+/***********************************************************************
+*Global Struct Define Section*
 *********************************************************************/
 typedef struct
 {
@@ -216,6 +214,7 @@ typedef struct
     uint8_t QianPan:1;
     uint8_t HouPan:1;
 }HANDLE_INFO2;
+
 typedef struct
 {
     uint8_t OpenRightDoor_T233:1;
@@ -581,22 +580,16 @@ typedef struct tms570_bram_data
 	uint8_t length;
 }TMS570_BRAM_DATA;
 
-/**********************************************************************
-*
-*Global Variable Declare Section
-*
+/***********************************************************************
+*Global Variable Declare Section*
 *********************************************************************/
 
 
-/**********************************************************************
-*
-*Global Prototype Declare Section
-*
+/***********************************************************************
+*Global Prototype Declare Section*
 *********************************************************************/
 
-/**********************************************************************
-*
-*Multi-Include-Prevent End Section
-*
+/***********************************************************************
+*Multi-Include-Prevent End Section*
 *********************************************************************/
 #endif 

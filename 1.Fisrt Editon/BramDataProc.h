@@ -82,6 +82,8 @@ int8_t 	TMS570_Bram_Write_Func(TMS570_BRAM_DATA *bram_data,uint8_t begin_index,u
 int8_t  MVB_Bram_Init(void);
 int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr);
 int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd);
+int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bram_data_tms570_wr);
+int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bram_data_tms570_rd);
 /***********************************************************************
 *Multi-Include-Prevent End Section*
 *********************************************************************/

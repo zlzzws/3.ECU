@@ -85,10 +85,10 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
     static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};
     BRAM_PACKET_DATA *BramPacketData_ST_p;
     BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-    PacketLength = (BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF;
+    PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;/*PacketLength include TopPack 12Bytes*/
 	if(PacketLength != 0)
     {
-        memcpy(Outbuff,&BramPacketData_ST_p -> BLVDSData_U32,PacketLength);           
+        memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);/*CP all data excpet TopPack*/          
     }	
     if(BramPacketData_ST_p -> BLVDSReser_U32[0] == s_BramLife_U32[ChanNum])
     {
@@ -126,7 +126,7 @@ int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
         snprintf(loginfo, sizeof(loginfo)-1,"BramReadWithChek error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-    Error = ExtraBoardData(ReadDataBuf,ReadData,BramAddrs_p->ChanNum_U8);   
+    Error = ExtraBoardData(ReadDataBuf, ReadData, BramAddrs_p->ChanNum_U8);
     return Error;
 }
 
@@ -1181,8 +1181,7 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[],uint8_t begin_index,ui
 {
 
     int8_t ReadErr = 0,i,j;
-    char loginfo[LOG_INFO_LENG] = {0};
-    uint32_t tempdatabuffer[64] = {64};    
+    char loginfo[LOG_INFO_LENG] = {0};       
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
     if (begin_index>4 || end_index>4)
@@ -1195,9 +1194,9 @@ int8_t TMS570_Bram_Read_Func(TMS570_BRAM_DATA bram_data[],uint8_t begin_index,ui
     {       
         s_bram_RD_TMS_SPC_Blck_ST.DataU32Length = CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_TMS_SPC_Blck_ST.ChanNum_U8 = CmdPact_RD_ST[i].ChanNum_U8;
-        memset(tempdatabuffer,0,256);
-        ReadErr = BoardDataRead(&s_bram_RD_TMS_SPC_Blck_ST,tempdatabuffer);
-        memcpy(bram_data[i].buffer,&tempdatabuffer[12],240);
+       
+        ReadErr = BoardDataRead(&s_bram_RD_TMS_SPC_Blck_ST,bram_data[i].buffer);
+        
         if(CODE_ERR == ReadErr) 
         {
             DataErrNum++;  
@@ -1295,13 +1294,13 @@ int8_t  MVB_Bram_Init(void)
     CmdPact_RD_ST[0].ChanNum_U8 = 8;
     CmdPact_RD_ST[0].PacktLength_U32 = 47;   
 
-    for (i=0;i<2;i++)
+    for (i=0;i<MVB_WRITE_FRAME_NUM;i++)
     {
         MVB_CmdPact_WR_ST[i].protocol_version =0x11c2;
 	    MVB_CmdPact_WR_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_WR_ST[i].PacktLength_U32 = 11;
     }
-    for (i=0;i<6;i++)
+    for (i=0;i<MVB_READ_FRAME_NUM;i++)
     {        
 	    MVB_CmdPact_RD_ST[i].ChanNum_U8 = i;
         MVB_CmdPact_RD_ST[i].PacktLength_U32 = 11;
@@ -1321,7 +1320,7 @@ int8_t  MVB_Bram_Read_Func(TMS570_BRAM_DATA *bram_data_mvb_rd)
     char loginfo[LOG_INFO_LENG] = {0};       
     uint8_t DataErrFlag = 0;
     uint8_t DataErrNum  = 0;
-    for(i=0;i<2;i++)
+    for(i=0;i<MVB_READ_FRAME_NUM;i++)
     {        
         s_bram_RD_B_BLVDSBlckAddr_ST.DataU32Length =  MVB_CmdPact_RD_ST[i].PacktLength_U32;
         s_bram_RD_B_BLVDSBlckAddr_ST.ChanNum_U8 =  MVB_CmdPact_RD_ST[i].ChanNum_U8;
@@ -1369,7 +1368,7 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
     static uint16_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST[16] = {0};
     
-    for(i=0;i<6;i++)
+    for(i=0;i<MVB_WRITE_FRAME_NUM;i++)
     {        
         TopPackST[i].BLVDSTOP_U32 = MVB_CmdPact_WR_ST[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
@@ -1402,21 +1401,21 @@ int8_t 	MVB_Bram_Write_Func(TMS570_BRAM_DATA *bram_data_mvb_wr)
  * @description: 
  * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
  *               uint8_t frame_nums  
- * @return       {uint8_t} WriteErr   写数据返回值
+ * @return       {uint8_t} WriteErr  
  * @author:      zlz
  */
 int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bram_data_tms570_rd)
 {
-
+    memcpy(&bram_data_mvb_wr[5].buffer[6],&bram_data_tms570_rd->buffer[42],4);
 }
 /**
  * @description: 
  * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
  *               uint8_t frame_nums  
- * @return       {uint8_t} WriteErr   写数据返回值
+ * @return       {uint8_t} WriteErr 
  * @author:      zlz
  */
 int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bram_data_tms570_wr)
 {
-    
+   memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);                                                 
 }

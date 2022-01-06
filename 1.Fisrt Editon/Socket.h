@@ -32,6 +32,7 @@
 *********************************************************************/
 #include "BaseDefine.h"
 #include "Crc.h"
+#include "FileSave.h"
 /**********************************************************************
 *
 *Global Macro Define Section
@@ -71,7 +72,7 @@ typedef struct
 *********************************************************************/
 
 int8_t RealTimeWaveExtr(uint8_t *BufferIn,uint8_t *RecorChanNum,uint8_t *ChanLenth);
-int8_t RealWaveData(uint8_t BufferIn[],uint8_t RecorChanNum[],CHAN_DATA *ChanData_ST_p,uint8_t ChanLenth);
+int8_t RealWaveData(uint8_t BufferIn[],uint8_t RecorChanNum[],DRIVE_FILE_DATA *ChanData_ST_p,uint8_t ChanLenth);
 /**********************************************************************
 *
 *Multi-Include-Prevent End Section

@@ -41,7 +41,6 @@ uint8_t             g_ChanRealWave[48] = {0};                   /*for the channe
 uint8_t             g_ChanRealNum = 0;                          /*for the channel real wave */
 uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus comunicate*/
 FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
-CHAN_DATA           g_ChanData_ST[CHAN_BUFFER_NUM] = {0};       /*304 byte*/
 CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
 uint16_t            g_MVB_SendFrameNum = 0;                     //TODO just for test please verify
 
@@ -60,6 +59,7 @@ struct can_frame s_can0_frame_RD_st[16] = {0};
 struct can_frame s_can0_frame_WR_st[8] = {0};
 struct can_frame s_can1_frame_RD_st[16] = {0};
 struct can_frame s_can1_frame_WR_st[8] = {0};
+static DRIVE_FILE_DATA s_save_to_csr_driver={0};
 /***********************************************************************
 *Local Prototype Declare Section*
 *********************************************************************/
@@ -199,15 +199,6 @@ int main(int argc, char *argv[])
         {
           PowDownFun();
         }
-        // Used in Real Wave Thread Fun++
-        if(1 == g_socket_SendFlag)
-        {   
-            sem_post(&g_RealSend_sem);
-            if(g_DebugType_EU == SEM_DEBUG)
-            {               
-                printf("g_RealSend_sem post:%x\n",g_RealSend_sem);               
-            }
-        }
         /*fifo tunnel*/
         FifoWrTime++;
         if((FifoWrTime >= 20) && (FifoErr != 1)) /*20ms*/
@@ -294,17 +285,8 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     int8_t res=0;
     char loginfo[LOG_INFO_LENG] = {0};
     struct sched_param param;
-    int policy;
-   
-    /*********取消
-    res = sem_init(&g_ReadBrd_sem, 0, 0);
-    if (res != 0) 
-    {
-        perror("ReadBrd_sem Semaphore  initialization failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "ReadBrd_sem init failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
-    
+    int policy;   
+     
     res = sem_init(&g_RealSend_sem, 0, 0);
     if (res != 0) 
     {
@@ -312,7 +294,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "RealSend_sem init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
-    ***/    
+
     res = pthread_rwlock_init(&g_PthreadLock_ST.BramDatalock,NULL);
     if(res != 0)
     {
@@ -320,7 +302,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "BramDatalock init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);        
     }
-    #if 0    
+       
     /*Create the Pthread*/   
     res = pthread_create(&pthread_ST_p -> RealWaveThread, NULL, RealWaveThreadFunc, NULL);
     if (res != 0) 
@@ -329,7 +311,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create RealWaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);    
     }
-    #endif
+
     res = pthread_create(&pthread_ST_p -> FileSaveThread, NULL, FileSaveThreaFunc, NULL);
     if (res != 0) 
     { 
@@ -386,9 +368,9 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }    
  
-    /*pthread_detach(pthread_ST_p -> DirTarThread);
-    pthread_detach(pthread_ST_p -> RealWaveThread);    
-    pthread_detach(pthread_ST_p -> ModbusThread);*/       
+    /*pthread_detach(pthread_ST_p -> DirTarThread);*/
+    pthread_detach(pthread_ST_p -> RealWaveThread);   
+    pthread_detach(pthread_ST_p -> ModbusThread);       
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
     pthread_detach(pthread_ST_p -> CAN1Thread);       
@@ -530,7 +512,7 @@ int8_t PowDownFun(void)
     }
 }
 
-#if 0
+
 /**********************************************************************
 *Name           :    RealWaveThreadFunc  
 *Function       :    communicate with CSR_drive real wave display
@@ -543,6 +525,7 @@ int8_t PowDownFun(void)
 *********************************************************************/
 void *RealWaveThreadFunc(void *arg)
 { 
+    
     int total;
     int i,j;
     int serverfd,clientfd;
@@ -559,36 +542,37 @@ void *RealWaveThreadFunc(void *arg)
     struct sigaction action;    
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;    
-    // 通信断开，写缓存区出错，产生SIGPIPE信号，引导程序异常退出，所以需要设置忽略SIGPIPE。
+    // 通信断开产生SIGPIPE信号，引导程序异常退出，需要设置忽略SIGPIPE
     action.sa_handler = SIG_IGN;//set function to here
     sigaction(SIGPIPE, &action, 0);
-
+    /*creat server socket*/
     if(-1==( serverfd= socket(AF_INET,SOCK_STREAM,0)))
     {
-        perror("socket error\n");
-        snprintf(loginfo, sizeof(loginfo)-1, "socket error");
+        perror("RealWaveThreadFunc socket error\n");
+        snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc socket error!");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         pthread_exit(NULL);
     }
+    /*set server socket option*/
     bzero(&server,sizeof(server));
-
     server.sin_family=AF_INET;
     server.sin_port=htons(TCP_PORT);
     server.sin_addr.s_addr=INADDR_ANY;//inet_addr(ip);
     int opt = 1;
     setsockopt(serverfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+    /*bind socket and ipaddr*/
     if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))
     {
         perror("bind error\n");
-        snprintf(loginfo, sizeof(loginfo)-1, "bind error");
+        snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc bind error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         pthread_exit(NULL);
     }
-
+    /*enter listen mode*/
     if(-1 == listen(serverfd,10))
     {
         perror("listen error\n");
-        snprintf(loginfo, sizeof(loginfo)-1, "listen error");
+        snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc listen error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         pthread_exit(NULL);
     }
@@ -600,7 +584,6 @@ void *RealWaveThreadFunc(void *arg)
     bzero(&client,len); 
     while(g_LifeFlag > 0)
     {
-
         if(-1==(clientfd = accept(serverfd,(struct sockaddr *)&client,&len)))
         {
             perror("accept error\n");
@@ -608,98 +591,90 @@ void *RealWaveThreadFunc(void *arg)
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             close(serverfd);
             continue;
-
         }
-        if(DEVC_DEBUG == g_DebugType_EU)
-        {
-                
+        if(TCP_DEBUG == g_DebugType_EU)
+        {                
             printf("clientfd : %d\n",clientfd);
-            printf("client port : %d \n",ntohs(client.sin_port));  
+            printf("client port : %d \n",ntohs(client.sin_port));            
         }
-        printf("TCP communicate succeeded\n");
 
-        snprintf(loginfo, sizeof(loginfo)-1, "TCP communicate succeeded");
+        printf("TCP communicate succeeded!\n");
+        snprintf(loginfo, sizeof(loginfo)-1, "TCP communicate succeeded!");
         WRITELOGFILE(LOG_INFO_1,loginfo);
+        printf("start TCP read:\n");
         if(read(clientfd ,readbuf,sizeof(readbuf))>0)
         {            
             if(TCP_DEBUG == g_DebugType_EU)
             {
                 for (i=0;i<20;i++)
                 {
-                    printf("%d,data %02x \n",i,readbuf[i]);
+                    printf("Readbuf[%02d]-data:0x%02x\n",i,readbuf[i]);
                 } 
             }       
             //clear for next wave connect and send data.
             memset(g_ChanRealWave,0,sizeof(g_ChanRealWave));
             g_ChanRealNum = 0;
+            //process the data for csr_driver to indicate which channel should be used
             RealTimeWaveExtr(readbuf,g_ChanRealWave,&g_ChanRealNum);
-            SendSize = g_ChanRealNum << 1;           
+            SendSize = g_ChanRealNum << 1;            
         }
-        printf("start TCP send\n");
+        printf("start TCP send:\n");
         g_socket_SendFlag  = 1;
         while(g_socket_SendFlag)
         {
-            sem_wait(&g_RealSend_sem);                
+            sem_wait(&g_RealSend_sem);            
             if(g_DebugType_EU == SEM_DEBUG)
             {                
                 printf("g_RealSend_sem wait %x\n",g_RealSend_sem);               
-            }
-            if(g_DebugType_EU ==  DEVC_DEBUG)
+            }            
+            memset(returnbuf,0,sizeof(returnbuf));
+            RealWaveData(returnbuf,g_ChanRealWave,&s_save_to_csr_driver,g_ChanRealNum);
+
+            if(TCP_DEBUG == g_DebugType_EU)
             {
-                printf("Start  RealWaveData\n");
+                for(j = 0;j<SendSize;j+=2)
+                {                           
+                    printf("SendBuf[%02d:%02d]-data:0x%04x\n",j+1,j,returnbuf[j+1]<<8 | returnbuf[j]);   
+                } 
             }
-                for(i =0;i < g_ProcNum_U8;i++)
-                {
-                    memset(returnbuf,0,sizeof(returnbuf));
-                    pthread_rwlock_rdlock(&g_PthreadLock_ST.ChanDatalock);
-                    RealWaveData(returnbuf,g_ChanRealWave,&g_ChanData_ST[i],g_ChanRealNum);                    
-                    pthread_rwlock_unlock(&g_PthreadLock_ST.ChanDatalock);
-                    if(TCP_DEBUG == g_DebugType_EU)
-                    {
-                            for(j = 0;j < SendSize;j++)
-                            {                           
-                                printf("%d,data %02x \n",j,returnbuf[j]);    
-                            } 
-                    }
-                    WriteSize = write(clientfd,returnbuf,SendSize);               
-                    if(WriteSize > 0)
-                    {
-                        //usleep(g_EventNum_U32);
-                    }
-                    //when Drive disconnect ,break out
-                    else if(WriteSize == 0)
-                    {
-                         printf("client close...\n");
-                         memset(loginfo,0,sizeof(loginfo));
-                         snprintf(loginfo, sizeof(loginfo)-1, "TCP client close");
-                         WRITELOGFILE(LOG_INFO_1,loginfo);
-                         g_socket_SendFlag  = 0;
-                        //close(fd);               
-                        break;
-                    }
-                    //when Drive  disconnect ,break out,WriteSize is -1
-                    else
-                    {
-                        printf("WriteSize %d\n",WriteSize);
-                        printf("client close...\n");
-                        memset(loginfo,0,sizeof(loginfo));
-                        snprintf(loginfo, sizeof(loginfo)-1, "TCP client close");
-                        WRITELOGFILE(LOG_INFO_1,loginfo);
-                        g_socket_SendFlag  = 0;
-                        break;
-                    }    
-                }  
-                    
+
+            WriteSize = write(clientfd,returnbuf,SendSize);               
+            if(WriteSize > 0)
+            {
+                
+            }
+            //when Drive disconnect,return writesize 0,break out
+            else if(WriteSize == 0)
+            {
+                printf("client close...\n");
+                memset(loginfo,0,sizeof(loginfo));
+                snprintf(loginfo, sizeof(loginfo)-1, "TCP client close");
+                WRITELOGFILE(LOG_INFO_1,loginfo);
+                g_socket_SendFlag  = 0;                               
+                break;
+            }
+            //when Drive turn a wrong WriteSize is -1,break out
+            else
+            {
+                printf("WriteSize error:%d\n",WriteSize);
+                printf("client close...\n");
+                memset(loginfo,0,sizeof(loginfo));
+                snprintf(loginfo, sizeof(loginfo)-1, "TCP client close");
+                WRITELOGFILE(LOG_INFO_1,loginfo);
+                g_socket_SendFlag  = 0;
+                break;
+            }    
+                                
         }
         printf("send complete,close clientfd\n");
         close(clientfd);        
     }
     close(serverfd);
-    printf("------------>server close\n");
+    printf("------------>server close\n");    
     pthread_exit(NULL);
-    return CODE_OK;        
+    printf("Exit RealWaveThreadFunc\n");
+    return CODE_OK;           
 }
-#endif
 
 /**********************************************************************
 *Name           :    ModbusThreadFunc  
@@ -802,11 +777,11 @@ void *ModbusThreadFunc(void *arg)
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
 {  
-    #if 0
+    
     uint8_t i = 0;
     int8_t fd = 0;
     uint32_t Delayus_U32= 0;
-    static DRIVE_FILE_DATA save_to_csr_driver={0};    
+        
     static uint32_t s_EventFileSaveNum_U32 = 0;   
     struct timeval A_Time_ST,A_TimeEnd_ST;
     printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
@@ -871,11 +846,15 @@ void *FileSaveThreaFunc(void *arg)
             fsync(fd);
 		}
 
-        //pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
-		ECU_Record_Data_Pro_Fun(&save_to_csr_driver,&s_tms570_bram_RD_data_st[0],&s_tms570_bram_WR_data_st[0],g_EADSErrInfo_ST);        
-        ECU_EventDataSave(&g_FileFd_ST,&save_to_csr_driver);
-        //pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-
+        pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
+		ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_st[0],&s_tms570_bram_WR_data_st[0],g_EADSErrInfo_ST);        
+        ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
+        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
+        sem_post(&g_RealSend_sem);
+        if(g_DebugType_EU == SEM_DEBUG)
+        {                
+            printf("g_RealSend_sem post:%x\n",g_RealSend_sem);               
+        } 
         s_EventFileSaveNum_U32++;
 
         if(TIME_DEBUG  == g_DebugType_EU)
@@ -887,7 +866,7 @@ void *FileSaveThreaFunc(void *arg)
     }
     printf("exit FileSave thread\n");
     pthread_exit(NULL);
-    #endif      
+          
 }
 
 #if 0
@@ -1179,6 +1158,7 @@ void *LEDWachDogPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {   
+    
     uint8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
@@ -1205,9 +1185,9 @@ void *CAN0ThreadFunc(void *arg)
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                     0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    /*memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
     memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);*/
+    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);
     for (i=0;i<4;i++)
     {
         memcpy(&s_can0_frame_WR_st[i].data[0],testbuff,8);
@@ -1222,8 +1202,8 @@ void *CAN0ThreadFunc(void *arg)
         //if(ret>0)
         //{
             //errnum_timeout=0;
-            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
-            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
+            //CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
+            //CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
             /*if (g_DebugType_EU == CAN_RD_DEBUG)
             {
                 for (j=1;j<4;j++)
@@ -1235,7 +1215,7 @@ void *CAN0ThreadFunc(void *arg)
                 }               
             }*/
             
-            //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
+            TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
         //}
         /*else
         {
@@ -1250,13 +1230,14 @@ void *CAN0ThreadFunc(void *arg)
                 errnum_timeout = 0;
             } 
         }*/
-        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
         //CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
-        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);  
+        //CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);  
         usleep(100000);
     }
     close(socket_can0);
-    return 0;  
+    return 0;
+     
     
 }
 /**********************************************************************
@@ -1271,6 +1252,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {    
+    #if 0
     uint8_t i,j,ret;    
     static errnum_timeout=0;
     int    socket_can1;
@@ -1342,7 +1324,8 @@ void *CAN1ThreadFunc(void *arg)
         usleep(100000);
     }
     close(socket_can1);
-    return 0;      
+    return 0;
+    #endif      
 }
 
 /**********************************************************************
@@ -1356,35 +1339,38 @@ void *CAN1ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
-{    
-    #if 0
+{
     int8_t  ret = 0,i,j;    
-    uint8_t testbuff[32]={0};
+    uint8_t testbuff_32[32]={0};
     ret = MVB_Bram_Init();
-    for(i=0;i<32;i++)
+    uint16_t testbuff_80[80]={0};
+    for(i=0;i<16;i++)
     {
         for(j=0;j<32;j++)
         {
-            testbuff[j] = i;
+            testbuff_32[j] = i;
         }
-        memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff,32);
-    }
-    
+        memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff_32,32);
+    }    
     //memcpy(&s_tms570_bram_WR_data_st[0].buffer[0],testbuff,32);
+    for(i=0;i<80;i++)
+    {
+        testbuff_80[i]=rand();        
+    }
     while(1)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
-        //MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);    
+        MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
+        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);  
         
-        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
-        //MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
+        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
+        MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
+        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        usleep(100000);              
+        
+        usleep(64000);          
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);  
-    #endif    
+    pthread_exit(NULL);      
 }

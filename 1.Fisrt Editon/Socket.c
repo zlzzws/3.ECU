@@ -71,7 +71,7 @@ static uint8_t s_RealWaveSource = 0;
 *Version        :   REV1.0.0       
 *Author:        :   feng
 *
-*History:
+*History: 		please refer to 《Driver实时波形解析协议》
 *REV1.0.0     feng    2018/5/7  Create
 *********************************************************************/
 
@@ -88,33 +88,31 @@ int8_t RealTimeWaveExtr(uint8_t *BufferIn,uint8_t *RecorChanNum,uint8_t *ChanLen
 	{
         if(RealTimeWave_p -> MonitSourc[1] == 0)//monitor source 1 
         {        	
-        	s_RealWaveSource = 1;//Voltage
+        	s_RealWaveSource = 1;
         }
         else if(RealTimeWave_p -> MonitSourc[1] == 1)//monitor source 2
         {        	
-        	s_RealWaveSource = 2;//Current
+        	s_RealWaveSource = 2;
         }
         else
         {
-        	s_RealWaveSource = 0;//
+        	s_RealWaveSource = 0;
         }
-        for(i = 0;i < 3;i++)//3 word
+        for(i=0;i<3;i++)
         {
-            ChanBitTem = (RealTimeWave_p -> ChanBit[2* i] << 8) + RealTimeWave_p -> ChanBit[2* i+1];
-            for(j = 0;j < 16;j++)//1 byte mean 8 channel
-            {
-                
+            ChanBitTem = (RealTimeWave_p -> ChanBit[2*i]<< 8) + RealTimeWave_p -> ChanBit[2*i+1];
+            for(j=0;j<16;j++)
+            {               
                 //C code is start from channel 0,but Drive is start from channel 1
-                if((ChanBitTem >> j)& 1)
+                if((ChanBitTem >> j)&1)
                 {
-                	*RecorChanNum = j + i * 16; //start from 0 
+                	*RecorChanNum = j+i*16; 
                 	RecorChanNum++;
                 	RecTotalNum++;
                 } 
             }
         }
-        printf("RecTotalNum %u\n",RecTotalNum);
-        
+        printf("RecTotalNum %u\n",RecTotalNum);        
 	}
 	else
 	{
@@ -135,40 +133,35 @@ int8_t RealTimeWaveExtr(uint8_t *BufferIn,uint8_t *RecorChanNum,uint8_t *ChanLen
 *History:
 *REV1.0.0     feng    2018/5/7  Create
 *********************************************************************/
-int8_t RealWaveData(uint8_t BufferIn[],uint8_t RecorChanNum[],CHAN_DATA *ChanData_ST_p,uint8_t ChanLenth)
-{
-
-    uint8_t RecTotalNum = 0;
-    uint16_t ChanBitTem = 0;
+int8_t RealWaveData(uint8_t BufferIn[],uint8_t RecorChanNum[],DRIVE_FILE_DATA *ChanData_ST_p,uint8_t ChanLenth)
+{     
     uint8_t ChanNameTemp = 0;
-    uint8_t VI_ChanNameInt = 0,VI_ChanNameRe = 0;
-    uint8_t V_ChanName = 0;
-    uint8_t i = 0,j = 0,k=0;
-    //send Vol channel data
+    uint8_t i = 0,j = 0;
+    //send 1-40Channel
     if(s_RealWaveSource == 1) 
 	{ 		
-		for(i = 0;i < ChanLenth;i++)//3 word
+		for(i=0;i<ChanLenth;i++)
 		{
 		    ChanNameTemp = RecorChanNum[i];		    
 		    j = i << 1;
-		    if(ChanNameTemp < VOL_CHAN_NUM) //all channel
+		    if(ChanNameTemp < MAX_RealWave_Num)
 		    {
-		    	BufferIn[j] = ChanData_ST_p -> VolChan_ST[ChanNameTemp].CH_Voltage_I16 & 0xFF;
-				BufferIn[j+1] = (ChanData_ST_p -> VolChan_ST[ChanNameTemp].CH_Voltage_I16 >> 8) & 0xff;				
+		    	BufferIn[j] = ChanData_ST_p->DriveAnalog_U16[ChanNameTemp] & 0xFF;
+				BufferIn[j+1] = (ChanData_ST_p->DriveAnalog_U16[ChanNameTemp]>>8) & 0xFF;			
 		    }
 		}  	
 	}
-	//send curr channel data
+	//send 41-80Channel
 	else if(s_RealWaveSource == 2) 
 	{
-		for(i = 0;i < ChanLenth;i++)//3 word
+		for(i=0;i<ChanLenth;i++)
 		{
 		    ChanNameTemp = RecorChanNum[i];
 		    j = i << 1;
-		    if(ChanNameTemp < CURR_CHAN_NUM)
+		    if(ChanNameTemp < MAX_RealWave_Num)
 		    {
-			    BufferIn[j] = ChanData_ST_p -> CurrChan_ST[ChanNameTemp].CH_Current_I16 & 0xFF;
-				BufferIn[j + 1] = (ChanData_ST_p -> CurrChan_ST[ChanNameTemp].CH_Current_I16 >> 8) & 0xFF;
+		    	BufferIn[j] = ChanData_ST_p->DriveAnalog_U16[40+ChanNameTemp]&0xFF;
+				BufferIn[j+1] = (ChanData_ST_p->DriveAnalog_U16[40+ChanNameTemp]>>8)&0xFF;
 		    }	
 		} 			
 	}
