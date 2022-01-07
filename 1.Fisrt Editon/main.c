@@ -51,24 +51,17 @@ uint16_t            g_MVB_SendFrameNum = 0;                     //TODO just for 
 /***********************************************************************
 *Local Struct Define Section*
 *********************************************************************/
-static TMS570_BRAM_DATA s_tms570_bram_RD_data_st[5] = {0};  //Read  bram data from  tms570
-static TMS570_BRAM_DATA s_tms570_bram_WR_data_st[5] = {0};  //Write bram data to    tms570
-static TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
-static TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
-struct can_frame s_can0_frame_RD_st[16] = {0};
-struct can_frame s_can0_frame_WR_st[8] = {0};
-struct can_frame s_can1_frame_RD_st[16] = {0};
-struct can_frame s_can1_frame_WR_st[8] = {0};
 static DRIVE_FILE_DATA s_save_to_csr_driver={0};
 /***********************************************************************
 *Local Prototype Declare Section*
 *********************************************************************/
 void    FuncUsage(void);
 void    ArgJudge(void);
-int8_t  ThreadInit(PTHREAD_INFO * pthread_ST_p);
-int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p);
+int8_t  ThreadInit(PTHREAD_INFO *pthread_ST_p);
+int8_t  ThreadOff(FILE_FD *FileFd_p,PTHREAD_INFO *pthread_ST_p);
 int8_t  PowDownFun(void);
 void    *RealWaveThreadFunc(void *arg);
+void    *Udp_Intool_ThreadFunc(void *arg);
 void    *ModbusThreadFunc(void *arg);
 void    *FileSaveThreaFunc(void *arg);
 void    *DirTarThreadFunc(void *arg);
@@ -76,6 +69,7 @@ void    *LEDWachDogPthreadFunc (void *arg);
 void    *CAN0ThreadFunc(void *arg);
 void    *CAN1ThreadFunc(void *arg);
 void    *MVBThreadFunc(void *arg);
+
 
 /***********************************************************************
 *Static Variable Define Section*
@@ -191,10 +185,10 @@ int main(int argc, char *argv[])
     
     while(1)
     {
-        if(TIME_DEBUG  == g_DebugType_EU)
+        /*if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&Time_ST,NULL);                
-        }       
+        }*/       
         if(1 == g_PowDebug)
         {
           PowDownFun();
@@ -221,12 +215,12 @@ int main(int argc, char *argv[])
                 }
             }              
         }
-        if(TIME_DEBUG  == g_DebugType_EU)
+        /*if(TIME_DEBUG  == g_DebugType_EU)
         {
             gettimeofday(&TimeEnd_ST,NULL);
             printf("main thread tim:%u \n",(uint32_t)TimeEnd_ST.tv_usec- (uint32_t)Time_ST.tv_usec); 
             printf("main thread tim usec:%u \n",(uint32_t)TimeEnd_ST.tv_usec);                
-        }        
+        }*/       
     }
     printf("Waiting for all threads to power off...\n");
     ThreadOff(&g_FileFd_ST,&g_Pthread_ST);    
@@ -304,15 +298,21 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     }
        
     /*Create the Pthread*/   
-    res = pthread_create(&pthread_ST_p -> RealWaveThread, NULL, RealWaveThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->RealWaveThread,NULL,RealWaveThreadFunc,NULL);
     if (res != 0) 
     {
         perror("create RealWaveThread  failed");
         snprintf(loginfo, sizeof(loginfo)-1, "create RealWaveThread failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);    
     }
-
-    res = pthread_create(&pthread_ST_p -> FileSaveThread, NULL, FileSaveThreaFunc, NULL);
+    res = pthread_create(&pthread_ST_p->UdpThread,NULL,Udp_Intool_ThreadFunc,NULL);
+    if (res != 0) 
+    {
+        perror("create Udp_Intool_Thread failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create Udp_Intool_Thread failed");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);    
+    }
+    res = pthread_create(&pthread_ST_p->FileSaveThread,NULL,FileSaveThreaFunc,NULL);
     if (res != 0) 
     { 
         perror("create FileSaveThreaFun failed");
@@ -320,7 +320,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
     
-    res = pthread_create(&pthread_ST_p -> ModbusThread, NULL, ModbusThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->ModbusThread,NULL,ModbusThreadFunc,NULL);
     if (res != 0) 
     { 
         perror("create ModbusThreadFunc failed");
@@ -328,7 +328,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);   
     }
     #if 0
-    res = pthread_create(&pthread_ST_p -> LedThread, NULL, LEDWachDogPthreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->LedThread,NULL,LEDWachDogPthreadFunc,NULL);
     if (res != 0) 
     { 
         perror("create LEDWachDogPthreadFunc failed");
@@ -336,7 +336,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
 
-    res = pthread_create(&pthread_ST_p -> DirTarThread, NULL, DirTarThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->DirTarThread,NULL,DirTarThreadFunc,NULL);
     if (res != 0) 
     { 
         perror("create DirTarThreaFunc failed");
@@ -344,7 +344,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
     #endif
-    res = pthread_create(&pthread_ST_p -> MVBThread, NULL, MVBThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->MVBThread,NULL,MVBThreadFunc,NULL);
     if (res != 0) 
     { 
         perror("create MVBThreaFunc failed");
@@ -352,7 +352,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
     
-    res = pthread_create(&pthread_ST_p -> CAN0Thread, NULL,CAN0ThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->CAN0Thread,NULL,CAN0ThreadFunc,NULL);
     if (res != 0) 
     { 
         perror("create CAN0ThreadFunc failed");
@@ -360,7 +360,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);     
     }
 
-    res = pthread_create(&pthread_ST_p -> CAN1Thread, NULL,CAN1ThreadFunc, NULL);
+    res = pthread_create(&pthread_ST_p->CAN1Thread,NULL,CAN1ThreadFunc,NULL);
     if (res != 0)
     {
         perror("create CAN1ThreadFunc failed");
@@ -369,7 +369,8 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     }    
  
     /*pthread_detach(pthread_ST_p -> DirTarThread);*/
-    pthread_detach(pthread_ST_p -> RealWaveThread);   
+    pthread_detach(pthread_ST_p -> RealWaveThread);
+    pthread_detach(pthread_ST_p -> UdpThread);   
     pthread_detach(pthread_ST_p -> ModbusThread);       
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
@@ -391,7 +392,7 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
 {
     void *thread_result;
     int8_t res=0;
-    #if 0
+    
     res = pthread_join(pthread_ST_p -> FileSaveThread, &thread_result);
     if (res == 0)
     {
@@ -401,7 +402,7 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
     {
         perror("pthread_join FileSaveThread failed\n");           
     }
-    
+    #if 0
     res = pthread_join(pthread_ST_p -> LedThread, &thread_result);
     if (res == 0)
     {
@@ -411,9 +412,9 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
     {
         perror("pthread_join LedThread failed\n");           
     }
-    sem_destroy(&g_ReadBrd_sem);
-    sem_destroy(&g_RealSend_sem);
     #endif
+    sem_destroy(&g_RealSend_sem);
+    
 }
 
 /**********************************************************************
@@ -525,7 +526,7 @@ int8_t PowDownFun(void)
 *********************************************************************/
 void *RealWaveThreadFunc(void *arg)
 { 
-    
+    #if 0
     int total;
     int i,j;
     int serverfd,clientfd;
@@ -670,12 +671,149 @@ void *RealWaveThreadFunc(void *arg)
         close(clientfd);        
     }
     close(serverfd);
-    printf("------------>server close\n");    
+    printf("------------>TCP server close\n");    
     pthread_exit(NULL);
     printf("Exit RealWaveThreadFunc\n");
-    return CODE_OK;           
+    return CODE_OK;
+    #endif           
 }
 
+/**********************************************************************
+*Name           :    Udp_Intool_ThreadFunc 
+*Function       :    Udp communicate with Intool for Digtal Realwave Display
+*Para           :  
+*Version        :    REV1.0.0       
+*Author:        :    zlz
+*
+*History:
+*REV1.0.0       :   zlz    2022/1/6  Create
+*********************************************************************/
+void *Udp_Intool_ThreadFunc(void *arg)
+{
+    #if 0
+    int i;
+    int serverfd;    
+    uint16_t ReadSize = 0;
+    uint16_t SendSize = 0;
+    uint8_t szUsec[20] = {0};    // 微秒
+    uint8_t szMsec[20] = {0};    // 毫秒 
+    uint8_t readbuf[8] = {0};
+    uint8_t sendbuf[264] = {0};  
+    time_t  tCurrentTime = {0};
+    uint8_t socket_SendFlag = 0;    
+    struct tm tSysTime = {0};
+    struct timeval tTimeVal = {0};
+    static uint16_t UDP_LIFE = 0;
+    struct sockaddr_in server,client;
+    char loginfo[LOG_INFO_LENG]={0};    
+   
+    if(-1==(serverfd= socket(AF_INET,SOCK_DGRAM,0)))/*SOCK_DGRAM-使用UDP协议*/ 
+    {
+        printf("Udp Server socket creat error\n");
+        memset(loginfo,0,sizeof(loginfo));
+        snprintf(loginfo, sizeof(loginfo)-1, "Udp Server socket creat error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }
+
+    bzero(&server,sizeof(server));//等价于memset清零
+    server.sin_family=AF_INET;
+    server.sin_port=htons(1610);//本机端口
+    server.sin_addr.s_addr=inet_addr("192.168.3.11");//本机IP
+    
+    if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))//绑定服务器socket地址<ZYNQ相当于服务端>
+    {
+        printf("Udp Server bind error\n");
+        memset(loginfo,0,sizeof(loginfo));
+        snprintf(loginfo, sizeof(loginfo)-1, "Udp Server bind error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }
+        
+    int length = sizeof(client);
+    bzero(&client,length);
+    client.sin_family=AF_INET;
+    client.sin_port=htons(1600);//目标端口
+    client.sin_addr.s_addr=inet_addr("192.168.3.100");//目标IP
+
+    while(1)
+    {
+        printf("UDP_Receive----->\n");
+        ReadSize = recvfrom(serverfd,readbuf,8,0,(struct sockaddr*)&client,&length);       
+        if(ReadSize>0)//获取上位机发来的请求信息并进行解析
+        {           
+            if(UDP_DEBUG == g_DebugType_EU)
+            {
+                for (i=0;i<8;i++)
+                {
+                    printf("readbuf[%d]:%02x\n",i,readbuf[i]);
+                }
+                printf("Value:%d\n",(readbuf[2]>>1)&0x1);
+            } 
+            if((readbuf[2]>>1)&0x1)
+            {
+                socket_SendFlag =1;
+                printf("UDP_Receive<-----\n");                
+            }                
+        }
+        else
+        {
+            printf("ReadSize:%d\n",ReadSize);
+            socket_SendFlag ==0;            
+        }
+
+        if(socket_SendFlag)
+        {            
+            usleep(100000);
+            tCurrentTime = time(NULL);
+            localtime_r(&tCurrentTime, &tSysTime);
+            gettimeofday(&tTimeVal, NULL);    
+            sprintf(szUsec, "%06d", (uint32_t)tTimeVal.tv_usec);  // 获取微秒
+            strncpy(szMsec, szUsec, 3);
+
+            sendbuf[0] = 0XA5 ;
+            sendbuf[1] = 0X5A ;
+            sendbuf[2] = 0X2  ;
+            sendbuf[4] = 0X1  ;
+            sendbuf[5] = 0X2  ;
+            sendbuf[6] = UDP_LIFE >>8;
+            sendbuf[7] = UDP_LIFE & 0XFF;
+            sendbuf[8] = tSysTime.tm_year-100;
+            sendbuf[9] = tSysTime.tm_mon+1;
+            sendbuf[10] = tSysTime.tm_mday;
+            sendbuf[11] = tSysTime.tm_hour;
+            sendbuf[12] = tSysTime.tm_min;
+            sendbuf[13] = tSysTime.tm_sec;
+            sendbuf[14] = szMsec[0];
+            sendbuf[15] = szMsec[1];
+            sendbuf[62] = UDP_LIFE >>8;
+            sendbuf[63] = UDP_LIFE & 0XFF;
+            if(UDP_DEBUG == g_DebugType_EU)
+            {
+                printf("EADS_UDP_LIFE:0X%X\n",UDP_LIFE);
+                printf("UDPTIME 20%d-%d-%d %d:%d:%d:%d\n",sendbuf[8],sendbuf[9],sendbuf[10],sendbuf[11],sendbuf[12],sendbuf[13],sendbuf[14]*10+sendbuf[15]);
+            }
+            SendSize = sendto(serverfd,sendbuf,sizeof(sendbuf),0,(struct sockaddr*)&client,length);             
+            
+            if(SendSize == sizeof(sendbuf))
+            {
+                if(UDP_DEBUG == g_DebugType_EU)
+                {
+                    printf("Udp SendSize:%d\n",SendSize);
+                }          
+            }
+            else
+            {
+                perror("Udp SendSize error!");                
+            }
+            UDP_LIFE++;    
+        }                     
+    }
+    close(serverfd);
+    printf("------------>Upd server close\n");    
+    pthread_exit(NULL);
+    printf("Exit Upd_Intool_ThreadFunc\n");
+    return CODE_OK;
+    #endif
+}
 /**********************************************************************
 *Name           :    ModbusThreadFunc  
 *Function       :    communicate with CSR_drive for channel calibrate, and show the version
@@ -777,7 +915,7 @@ void *ModbusThreadFunc(void *arg)
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
 {  
-    
+    #if 0
     uint8_t i = 0;
     int8_t fd = 0;
     uint32_t Delayus_U32= 0;
@@ -847,7 +985,7 @@ void *FileSaveThreaFunc(void *arg)
 		}
 
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
-		ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_st[0],&s_tms570_bram_WR_data_st[0],g_EADSErrInfo_ST);        
+		        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
         sem_post(&g_RealSend_sem);
@@ -866,7 +1004,7 @@ void *FileSaveThreaFunc(void *arg)
     }
     printf("exit FileSave thread\n");
     pthread_exit(NULL);
-          
+    #endif     
 }
 
 #if 0
@@ -1157,18 +1295,27 @@ void *LEDWachDogPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{   
-    
-    uint8_t i,j,ret;
+{     
+    /*time test*/
+    struct timespec begin_ts,end_ts;    
+    /*time test*/
+    int8_t i,j,ret;
     static errnum_wr=0,errnum_rd=0,errnum_timeout=0;
     int socket_can0,nbytes;
     struct sockaddr_can addr_can0;
     struct ifreq ifr_can0;
     fd_set rfds ={0};
-    struct timeval tv={0},tv_select={0,5000};
+    struct timeval tv={0},tv_select={0};
     struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
     char loginfo[LOG_INFO_LENG]={0};
+    BRAM_CMD_PACKET CmdPact_RD_ST[3] = {0};
+    BRAM_CMD_PACKET CmdPact_WR_ST[3] = {0};
+    struct can_frame s_can0_frame_RD_st[16] = {0};
+    struct can_frame s_can0_frame_WR_st[8] = {0};
+    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};  //Read  bram data from  tms570
+    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch9_11_st[3] = {0};  //Write bram data to    tms570
 
+    
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can0.ifr_name, "can0" );
     ioctl(socket_can0, SIOCGIFINDEX, &ifr_can0);
@@ -1179,66 +1326,63 @@ void *CAN0ThreadFunc(void *arg)
     setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
 
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
-    TMS570_Bram_TopPackDataSetFun(CAN0_TYPE); /*TMS570 Bram TopPack Init*/
+    TMS570_Bram_TopPackDataSetFun(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
 
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
                     0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    memcpy(&s_tms570_bram_WR_data_st[1].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[2].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_st[3].buffer[0],testbuff,32);
-    for (i=0;i<4;i++)
-    {
-        memcpy(&s_can0_frame_WR_st[i].data[0],testbuff,8);
-    } 
+    memcpy(&s_tms570_bram_WR_data_ch9_11_st[0].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_ch9_11_st[1].buffer[0],testbuff,32);
+    memcpy(&s_tms570_bram_WR_data_ch9_11_st[2].buffer[0],testbuff,32);
 
     while(g_LifeFlag>0)
     {        
-        
-        //FD_ZERO(&rfds);
-        //FD_SET(socket_fd,&rfds);
-        //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
-        //if(ret>0)
-        //{
-            //errnum_timeout=0;
-            //CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
-            //CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_st,CAN0_TYPE);
-            /*if (g_DebugType_EU == CAN_RD_DEBUG)
-            {
-                for (j=1;j<4;j++)
-                {
-                    for (i = 0; i < 15; i++)
-                    {
-                        printf("CAN0->TMS570[%d]-[%02d][%08x]\n",j,i,s_tms570_bram_WR_data_st[j].buffer[i]);
-                    }
-                }               
-            }*/
-            
-            TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,1,3);
-        //}
-        /*else
-        {
+        clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+        tv_select.tv_usec = 100000;
+        FD_ZERO(&rfds);
+        FD_SET(socket_can0,&rfds);
+        ret = select(socket_can0+1,&rfds,NULL,NULL,&tv_select);
+        if(ret == 0)
+        {         
             errnum_timeout++;
-            if(errnum_timeout==1)
-                printf("can0 read time out ,already receive %d frames!\n",i);
             printf("can0 read time out %d times!\n",errnum_timeout);
-            if(errnum_timeout >=13)
+            if(errnum_timeout >=5)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame time out!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_timeout = 0;
-            } 
-        }*/
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,1,3);
-        //CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_st,CAN0_TYPE);
-        //CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);  
+            }
+            continue; 
+        }
+        else if(ret>0)
+        {
+            errnum_timeout=0;
+            CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
+            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);            
+            TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
+        }        
+        else if(ret == -1)
+        {
+            printf("CAN0-select Fun return -1!\n");
+            continue;
+        }
+
+        TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
+        CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);
+        CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
+        /*time test*/
+        clock_gettime(CLOCK_MONOTONIC,&end_ts);
+        if(g_DebugType_EU == TIME_DEBUG)
+        {
+            printf("SigleCycle-can1 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
+        }       
+
         usleep(100000);
     }
     close(socket_can0);
     return 0;
-     
-    
+       
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1251,17 +1395,25 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{    
-    #if 0
+{   
+    /*time test*/
+    struct timespec begin_ts,end_ts;    
+    /*time test*/
     uint8_t i,j,ret;    
-    static errnum_timeout=0;
+    static int errnum_timeout=0;
     int    socket_can1;
     struct sockaddr_can addr_can1;
     struct ifreq ifr_can1;
     fd_set rfds;
-    struct timeval tv={0},tv_select={0,10000};
+    char loginfo[LOG_INFO_LENG]={0}; 
+    struct timeval tv={0},tv_select={0};
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
-    char loginfo[LOG_INFO_LENG]={0};    
+    BRAM_CMD_PACKET CmdPact_RD_ST = {0};
+    BRAM_CMD_PACKET CmdPact_WR_ST = {0};
+    struct can_frame s_can1_frame_RD_st[16] = {0};
+    struct can_frame s_can1_frame_WR_st[8] = {0};
+    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch12_st = {0};  //Read  bram data from  tms570
+    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch12_st = {0};  //Write bram data to    tms570      
     
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can1" );
@@ -1273,8 +1425,7 @@ void *CAN1ThreadFunc(void *arg)
     setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
     
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
-    TMS570_Bram_TopPackDataSetFun(CAN1_TYPE); /*TMS570 Bram TopPack Init*/
-    
+    TMS570_Bram_TopPackDataSetFun(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
     
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
@@ -1285,47 +1436,55 @@ void *CAN1ThreadFunc(void *arg)
     {
         memcpy(&s_can1_frame_WR_st[i].data[0],testbuff,8);
     }    
-    
+    memcpy(&s_tms570_bram_WR_data_ch12_st.buffer[0],testbuff,32);
     while(g_LifeFlag>0)
     {
-        //FD_ZERO(&rfds);
-        //FD_SET(socket_fd,&rfds);
-        //ret = select(socket_can1,&rfds,NULL,NULL,&tv_select);
-        //if(ret>0)
-        {
-            //errnum_timeout=0;
-            CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
-            CAN_ReadData_Pro(s_can1_frame_RD_st,s_tms570_bram_WR_data_st,CAN1_TYPE);
-            /*if (g_DebugType_EU == CAN_RD_DEBUG)
-            {
-                    for (i=0;i<24;i++)
-                    {
-                        printf("CAN0->TMS570[4]-[%02d][%08x]\n",i,s_tms570_bram_WR_data_st[4].buffer[i]);
-                    }                              
-            }*/
-            //TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,4,4);
-        }
-        /*else
+        //clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+        tv_select.tv_usec = 100000;
+        FD_ZERO(&rfds);
+        FD_SET(socket_can1,&rfds);
+        ret = select(socket_can1+1,&rfds,NULL,NULL,&tv_select);
+        
+        if(ret == 0)
         {
             errnum_timeout++;
-            if(errnum_timeout==1)
-                printf("can1 read time out ,already receive %d frames!\n",i);
             printf("can1 read time out %d times!\n",errnum_timeout);
             if(errnum_timeout >=13)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN1 receive frame time out!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_timeout = 0;
-            } 
-        }*/
-        //TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,4,4);
-        //CAN_WriteData_Pro(s_can1_frame_WR_st,s_tms570_bram_RD_data_st,CAN1_TYPE);
-        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);  
+            }
+            continue; 
+        }
+        else if(ret>0)
+        {            
+            errnum_timeout=0;
+            CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
+            CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_ch12_st,CAN1_TYPE);
+            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
+        }
+        else if(ret == -1)
+        {
+            printf("CAN1-select Fun return -1!\n");
+            continue;
+        }
+
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);
+        CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
+        CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
+        /*time test*/
+        //clock_gettime(CLOCK_MONOTONIC,&end_ts);
+        if(g_DebugType_EU == TIME_DEBUG)
+        {
+            printf("SigleCycle-can1 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);  
+        }
+        
         usleep(100000);
     }
     close(socket_can1);
     return 0;
-    #endif      
+           
 }
 
 /**********************************************************************
@@ -1340,36 +1499,46 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {
-    int8_t  ret = 0,i,j;    
+    int8_t  i,j;    
     uint8_t testbuff_32[32]={0};
-    ret = MVB_Bram_Init();
     uint16_t testbuff_80[80]={0};
-    for(i=0;i<16;i++)
+    BRAM_CMD_PACKET CmdPact_RD_ST ={0};
+    BRAM_CMD_PACKET CmdPact_WR_ST ={0};  
+    BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
+    BRAM_CMD_PACKET MVB_CmdPact_WR_ST[16] = {0};
+    TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+    TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};    
+    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};  //Read  bram data from  tms570
+    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};  //Write bram data  to   tms570   
+       
+    /*for(i=0;i<16;i++)
     {
         for(j=0;j<32;j++)
         {
             testbuff_32[j] = i;
         }
         memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff_32,32);
-    }    
-    //memcpy(&s_tms570_bram_WR_data_st[0].buffer[0],testbuff,32);
+    }   
+    memcpy(&s_tms570_bram_WR_data_ch8_st.buffer[0],testbuff_32,32);*/ 
     for(i=0;i<80;i++)
     {
         testbuff_80[i]=rand();        
     }
+
+    MVB_Bram_Init(&CmdPact_RD_ST,&CmdPact_WR_ST,MVB_CmdPact_RD_ST,MVB_CmdPact_WR_ST);
     while(1)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
-        //MVB_Bram_Read_Func(s_mvb_bram_RD_data_st);
-        MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_st[0]);        
-        TMS570_Bram_Write_Func(s_tms570_bram_WR_data_st,0,0);  
+        MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
+        MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);       
+        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
         
-        TMS570_Bram_Read_Func(s_tms570_bram_RD_data_st,0,0);
-        MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_st[0]);
-        //MVB_Bram_Write_Func(s_mvb_bram_WR_data_st);
-        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        
-        usleep(64000);          
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
+        MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
+        MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
+        ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
+        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
+        usleep(64000);       
     }
     printf("exit MVBThreadFunc Function!\n");
     pthread_exit(NULL);      

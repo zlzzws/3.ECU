@@ -7,6 +7,14 @@
         "socket.h": "c",
         "bramdatainter.h": "c",
         "bram.h": "c",
-        "writelog.h": "c"
-    }
+        "writelog.h": "c",
+        "filesave.h": "c",
+        "timer.h": "c",
+        "modbusser.h": "c",
+        "gpiocontrol.h": "c",
+        "xml.h": "c",
+        "mxml.h": "c",
+        "crc.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
 }

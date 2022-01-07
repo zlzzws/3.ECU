@@ -59,6 +59,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 /**********************************************************************
 *
 *Global Macro Define Section
@@ -379,7 +380,9 @@ typedef enum _DEBUG_TYPE
 	FILE_DEBUG 			= 8,
 	GPIO_DEBUG 			= 9,
 	POWTIME_DEBUG 		= 10,
-	TCP_DEBUG 			= 11,	
+	TCP_DEBUG 			= 11,
+	UDP_DEBUG			= 12,
+	LCU_MVB_DEBUG		= 13,	
 	SEM_DEBUG 			= 14,
 	DOG_DEBUG 			= 15,   			
 	RTU_DEBUG 			= 18,				
@@ -479,7 +482,8 @@ typedef struct
 	pthread_t DirTarThread;	
 	pthread_t CAN0Thread;
     pthread_t CAN1Thread;
-	pthread_t MVBThread;		
+	pthread_t MVBThread;
+	pthread_t UdpThread;		
 }PTHREAD_INFO;
 
 typedef struct
@@ -576,10 +580,15 @@ typedef enum devic_type
 
 typedef struct tms570_bram_data
 {
-    uint32_t buffer[60];//数据区不包含CRC32的4个字节
-	uint8_t length;
+    uint32_t buffer[60];//数据区不包含CRC32的4个字节	
 }TMS570_BRAM_DATA;
 
+typedef enum _trans_type
+{
+	CAN0_BRAM = 0,
+	CAN1_BRAM = 1,
+	MVB_BRAM  = 2
+}TRANS_TYPE_ENUM;
 /***********************************************************************
 *Global Variable Declare Section*
 *********************************************************************/
