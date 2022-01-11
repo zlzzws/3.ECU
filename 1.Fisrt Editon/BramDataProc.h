@@ -37,7 +37,7 @@
 #define MAPERR_NUM 3 	/*map 3 time ,if failed */
 #define CAN0_TYPE 0
 #define CAN1_TYPE 1
-#define CAN0_READ_FRAME_NUM  13
+#define CAN0_READ_FRAME_NUM  20
 #define CAN0_WRITE_FRAME_NUM 4
 #define CAN1_READ_FRAME_NUM  11
 #define CAN1_WRITE_FRAME_NUM 3

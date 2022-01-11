@@ -1305,16 +1305,16 @@ void *CAN0ThreadFunc(void *arg)
     struct sockaddr_can addr_can0;
     struct ifreq ifr_can0;
     fd_set rfds ={0};
-    struct timeval tv={0},tv_select={0};
-    struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
+    struct timeval tv={0},tv_select={0};    
     char loginfo[LOG_INFO_LENG]={0};
     BRAM_CMD_PACKET CmdPact_RD_ST[3] = {0};
     BRAM_CMD_PACKET CmdPact_WR_ST[3] = {0};
-    struct can_frame s_can0_frame_RD_st[16] = {0};
-    struct can_frame s_can0_frame_WR_st[8] = {0};
+    struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
+    struct can_frame s_can0_frame_RD_st[CAN0_READ_FRAME_NUM]    = {0};
+    struct can_frame s_can0_frame_WR_st[CAN0_WRITE_FRAME_NUM]   = {0};
     TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};  //Read  bram data from  tms570
     TMS570_BRAM_DATA s_tms570_bram_WR_data_ch9_11_st[3] = {0};  //Write bram data to    tms570
-
+    
     
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can0.ifr_name, "can0" );
@@ -1324,7 +1324,7 @@ void *CAN0ThreadFunc(void *arg)
     bind(socket_can0, (struct sockaddr *)&addr_can0, sizeof(addr_can0));/*bind*/   
     ioctl(socket_can0,SIOCGSTAMP,&tv);/*add time stamp*/   
     setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
-
+    
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPackDataSetFun(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
 
@@ -1500,8 +1500,7 @@ void *CAN1ThreadFunc(void *arg)
 void *MVBThreadFunc(void *arg)
 {
     int8_t  i,j;    
-    uint8_t testbuff_32[32]={0};
-    uint16_t testbuff_80[80]={0};
+    uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
     BRAM_CMD_PACKET CmdPact_WR_ST ={0};  
     BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
@@ -1509,21 +1508,18 @@ void *MVBThreadFunc(void *arg)
     TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
     TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};    
     TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};  //Read  bram data from  tms570
-    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};  //Write bram data  to   tms570   
-       
-    /*for(i=0;i<16;i++)
+    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};  //Write bram data  to   tms570        
+    
+    /*Just for test*/
+    for(j=0;j<6;j++)
     {
-        for(j=0;j<32;j++)
+        for (i=0;i<32;i++)
         {
-            testbuff_32[j] = i;
+            testbuff_32[i] = i+j;
         }
-        memcpy(&s_mvb_bram_WR_data_st[i].buffer[0],testbuff_32,32);
-    }   
-    memcpy(&s_tms570_bram_WR_data_ch8_st.buffer[0],testbuff_32,32);*/ 
-    for(i=0;i<80;i++)
-    {
-        testbuff_80[i]=rand();        
+        memcpy(s_mvb_bram_WR_data_st[j].buffer,testbuff_32,32);
     }
+    /*Just for test*/
 
     MVB_Bram_Init(&CmdPact_RD_ST,&CmdPact_WR_ST,MVB_CmdPact_RD_ST,MVB_CmdPact_WR_ST);
     while(1)

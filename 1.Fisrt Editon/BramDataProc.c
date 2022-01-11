@@ -81,9 +81,10 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
     static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};
     BRAM_PACKET_DATA *BramPacketData_ST_p;
     BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-    PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;/*PacketLength include TopPack 12Bytes*/
+    
 	if(PacketLength != 0)
     {
+        PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;/*PacketLength include TopPack 12Bytes*/
         memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);/*CP all data excpet TopPack*/          
     }	
     if(BramPacketData_ST_p -> BLVDSReser_U32[0] == s_BramLife_U32[ChanNum])
@@ -614,9 +615,9 @@ static uint8_t Life_Judge_Fun(uint8_t life_data,uint8_t *life_lasttime,uint8_t *
 static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t can_devtype)
 {
     uint8_t i;
-    static uint8_t errnum[5]= {0};    
-    static uint8_t errflag[5] = {0};
-    static uint8_t life_lasttime[5] = {0};  
+    static uint8_t errnum[6]= {0};    
+    static uint8_t errflag[6] = {0};
+    static uint8_t life_lasttime[6] = {0};  
     char loginfo[LOG_INFO_LENG] = {0};
 
     if (can_devtype == CAN0_TYPE)
@@ -683,6 +684,25 @@ static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t 
                         errflag[2]=0;
                     }
                     break;
+                case 0x18FF3013 :                    
+                    Life_Judge_Fun(candata[i].data[0],&life_lasttime[3],&errnum[3],&judge_val[3]);
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                    {
+                        printf("errnum[3]:%u\n",errnum[3]);                     
+                    }
+                    if(judge_val[3]==1 && errflag[3]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3013] lifesignal have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[3]=1;
+                    }                    
+                    else if(judge_val[3]==0 && errflag[3]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3013] lifesignal have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[3]=0;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -695,41 +715,41 @@ static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t 
             switch (candata[i].can_id & 0x1FFFFFFF)
             {                
                 case 0x15003000 :                    
-                    Life_Judge_Fun(candata[i].data[0],&life_lasttime[3],&errnum[3],&judge_val[3]);
-                    if(g_DebugType_EU == CAN_RD_DEBUG)
-                    {
-                        printf("errnum[3]:%u\n",errnum[3]);                 
-                    }                   
-                    if(judge_val[3]==1 && errflag[3]==0)
-                    {
-                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have stopped!");
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);
-                        errflag[3]=1;
-                    }
-                    else if(judge_val[3]==0 && errflag[3]==1)
-                    {
-                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have recovered!");
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);
-                        errflag[3]=0;
-                    }
-                    break;                
-                case 0x19003000 :                    
                     Life_Judge_Fun(candata[i].data[0],&life_lasttime[4],&errnum[4],&judge_val[4]);
                     if(g_DebugType_EU == CAN_RD_DEBUG)
                     {
-                        printf("errnum[4]:%u\n",errnum[4]);                
-                    } 
+                        printf("errnum[4]:%u\n",errnum[4]);                 
+                    }                   
                     if(judge_val[4]==1 && errflag[4]==0)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have stopped!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=1;
                     }
                     else if(judge_val[4]==0 && errflag[4]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=0;
+                    }
+                    break;                
+                case 0x19003000 :                    
+                    Life_Judge_Fun(candata[i].data[0],&life_lasttime[5],&errnum[5],&judge_val[5]);
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                    {
+                        printf("errnum[5]:%u\n",errnum[5]);                
+                    } 
+                    if(judge_val[5]==1 && errflag[5]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[5]=1;
+                    }
+                    else if(judge_val[5]==0 && errflag[5]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[5]=0;
                     }                   
                     break;                
                 default:
@@ -778,6 +798,20 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
         candata_RD_filter[11].can_mask  = CAN_EFF_MASK;
         candata_RD_filter[12].can_id   = 0x18FF7112 | CAN_EFF_FLAG;
         candata_RD_filter[12].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[13].can_id    = 0x18FF3013 | CAN_EFF_FLAG;
+        candata_RD_filter[13].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[14].can_id    = 0x18FF3113 | CAN_EFF_FLAG;
+        candata_RD_filter[14].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[15].can_id    = 0x18FF3213 | CAN_EFF_FLAG;
+        candata_RD_filter[15].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[16].can_id    = 0x18FF3313 | CAN_EFF_FLAG;
+        candata_RD_filter[16].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[17].can_id   = 0x18FF6013 | CAN_EFF_FLAG;
+        candata_RD_filter[17].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[18].can_id   = 0x18FF7013 | CAN_EFF_FLAG;
+        candata_RD_filter[18].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[19].can_id   = 0x18FF7113 | CAN_EFF_FLAG;
+        candata_RD_filter[19].can_mask  = CAN_EFF_MASK;
         /*CAN0-BMS-A9 WRITE*/
         candata_WR[0].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
         candata_WR[0].can_dlc   = 8;
@@ -901,7 +935,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
                 errnum_rd++;
                 if(errnum_rd >=10)
                 {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame[%u] Error!",dev_type,can_frame_data[i].can_id);
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame_ID[%u] Error!",dev_type,can_frame_data[i].can_id);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
                     errnum_rd = 0;
                 }                            
@@ -916,7 +950,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
             errnum_timeout++; 
         }
 
-        if(i==12 && errnum_timeout>0)
+        if(i == frames_num-1 && errnum_timeout>0)
         {
             printf("Frames incomplete-CAN%d A readcycle lost %d frames!\n",dev_type,errnum_timeout);
             snprintf(loginfo, sizeof(loginfo)-1, "Frames incomplete-CAN%d A readcycle lost %d frames!",dev_type,errnum_timeout);
@@ -932,12 +966,9 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
                 printf("\n");
             }                                                 
         }
-        //clock_gettime(CLOCK_MONOTONIC,&end_ts);
-        if(g_DebugType_EU == TIME_DEBUG)
-        {
-            printf("CAN%d [%02d]Frame-Read option cost time:%u(us)\n",dev_type,i,((uint32_t)end_ts.tv_nsec-(uint32_t)begin_ts.tv_nsec)/1000);
-        }
-    }    
+        //clock_gettime(CLOCK_MONOTONIC,&end_ts);            
+    }
+    return CODE_OK;    
 }
 /**
  * @description: CAN发送数据前,将TMS570通过Bram反馈的数据进行处理
@@ -989,6 +1020,97 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
             break;
     }
 }
+
+/**
+ * @description: extensive_board anolog data process_can_frame_ID(0x19003003)
+ * @param      : struct can_frame *candata_rd 
+ *                 
+ * @return     : 0
+ * @author:    : zlz
+ */
+static void Anolog_Data_calculate_1(struct can_frame *candata_rd)
+{
+    uint16_t    temp_value_u16;    
+    float       temp_calc_value_f;
+
+    temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    candata_rd->data[2] = (uint8_t)((temp_calc_value_f-4)*18.75); //S=60*(I-4)/16/0.2
+
+    temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    temp_value_u16 = (uint16_t)((temp_calc_value_f-4)*250); //S=(I-4)*250
+    candata_rd->data[3] = temp_value_u16 & 0xFF;
+    candata_rd->data[4] = (temp_value_u16>>8) & 0xFF;
+
+    temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
+    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+    candata_rd->data[5] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
+
+    memset(&candata_rd->data[6],0,2); 
+}
+/**
+ * @description: extensive_board anolog data process_can_frame_ID(0x19003004)
+ * @param      : struct can_frame *candata_rd 
+ *                 
+ * @return     : 0 
+ * @author:    : zlz
+ */
+static void Anolog_Data_calculate_2(struct can_frame *candata_rd)
+{
+    uint16_t    temp_value_u16;    
+    float       temp_calc_value_f;
+    
+    temp_value_u16 = candata_rd->data[1] << 8 | candata_rd->data[0];
+    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+    candata_rd->data[0] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
+
+    temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
+    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+    candata_rd->data[1] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
+
+    temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
+    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+    candata_rd->data[2] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
+
+    temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    candata_rd->data[3] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
+
+    memset(&candata_rd->data[4],0,4);
+              
+}
+/**
+ * @description: extensive_board anolog data process_can_frame_ID(0x19003005)
+ * @param      : struct can_frame *candata_rd 
+ *                 
+ * @return     : 0
+ * @author:    : zlz
+ */
+static void Anolog_Data_calculate_3(struct can_frame *candata_rd)
+{
+    uint16_t    temp_value_u16;    
+    float       temp_calc_value_f;
+
+    temp_value_u16 = candata_rd->data[1] << 8 | candata_rd->data[0];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    candata_rd->data[0] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
+
+    temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    candata_rd->data[1] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
+
+    temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
+    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+    candata_rd->data[2] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
+
+    temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
+    candata_rd->data[3]  = (uint8_t)(temp_value_u16 / 4); //extionsive_board 1->0.001 transform to 1->0.004
+ 
+    memset(&candata_rd->data[4],0,4);
+
+}
+
 /**
  * @description: 接收CAN数据后进行数据处理
  * @param:       struct can_frame *candata_rd   --从CAN口获取的CAN数据
@@ -1005,26 +1127,12 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     uint8_t  temp_value_u8;
     uint16_t temp_value_u16;
     float temp_calc_value_f;
-    static uint8_t life_judge_val[5]={0};
+    static uint8_t life_judge_val[6]={0};
     static uint16_t VVVF_Exten_life_judge_val=0;
+    static uint16_t FCU_AB_Stack_life_judge_val=0;
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
 
-    if (g_DebugType_EU == CAN_RD_DEBUG)
-    {
-        if(can_devtype == CAN0_TYPE)
-        {
-            for (i = 0; i < 3; i++)
-            {
-                printf("can0 life_judge_value[%d]:%d\n",i,life_judge_val[i]);
-            }
-        }
-        else if(can_devtype == CAN1_TYPE)
-        {
-            printf("can1 life_judge_value[3]:%d\n",life_judge_val[3]);
-            printf("can1 life_judge_value[4]:%d\n",life_judge_val[4]);
-        }
-    }
     if(can_devtype == CAN0_TYPE)
     {    
         for(i=0;i<CAN0_READ_FRAME_NUM;i++)
@@ -1107,22 +1215,15 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     memcpy(&bramdata_wr[4].buffer[10],candata_rd[i].data,8);
                     break;
                 case 0x19003003 :
-                    temp_value_u16 = candata_rd[i].data[3] << 8 | candata_rd[i].data[2];
-                    temp_calc_value_f = temp_value_u16 * 0.004;             //Number->Current(mA)
-                    temp_value_u8 = (uint8_t)((temp_calc_value_f-4)*18.75); //S=60*(I-4)/16/0.2
-                    if(g_DebugType_EU == CAN1_READ_FRAME_NUM)
-                    {
-                        printf("EXTEN-0x19003003-data[3]:0x%x,data[2]:0x%x\n",candata_rd[i].data[3],candata_rd[i].data[2]);
-                        printf("temp_value_u16:0x%x,0d%u\n",temp_value_u16,temp_value_u16);
-                        printf("temp_calc_value_f:%.2f\n",temp_calc_value_f);
-                        printf("temp_value_u8:0d%u\n",temp_value_u8);
-                    }
+                    Anolog_Data_calculate_1(&candata_rd[i]);                    
                     memcpy(&bramdata_wr[4].buffer[12],candata_rd[i].data,8);
                     break;
                 case 0x19003004 :
+                    Anolog_Data_calculate_2(&candata_rd[i]);
                     memcpy(&bramdata_wr[4].buffer[14],candata_rd[i].data,8);
                     break;
                 case 0x19003005 :
+                    Anolog_Data_calculate_3(&candata_rd[i]);
                     memcpy(&bramdata_wr[4].buffer[16],candata_rd[i].data,8);
                     break;
                 case 0x19003006 :
@@ -1135,6 +1236,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
         }            
     }    
 }
+
 /**
  * @description: 初始化TMS570交互的Bram通道包头数据(包含CAN及MVB数据)
  * @param:       void
@@ -1411,6 +1513,7 @@ int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bra
     {        
         TopPackST[i].BLVDSTOP_U32 = mvb_packet_wr[i].protocol_version;
         TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
+        TopPackST[i].BLVDSReser_U32[1] = Life_signal | ((16+i)<<16);//FIXME JUST FOR TEST
         /*attention:if multi_thread use the s_bram variable,please use array to isolation */
         s_bram_WR_B_BLVDSBlckAddr_ST.DataU32Length = mvb_packet_wr[i].PacktLength_U32;
         s_bram_WR_B_BLVDSBlckAddr_ST.ChanNum_U8 = mvb_packet_wr[i].ChanNum_U8;
@@ -1423,7 +1526,7 @@ int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bra
         }    
         if(0 == g_LinuxDebug)
         {
-            bram_data_mvb_wr[i].buffer[0]= (Life_signal+100)<<16;
+            bram_data_mvb_wr[i].buffer[0]= (Life_signal+100)<<16 | 0x0100;//FIXME JUST FOR TEST
             WriteErr = BramWriteWithChek(&s_bram_WR_B_BLVDSBlckAddr_ST,bram_data_mvb_wr[i].buffer,TopPackST[i]);
             if(WriteErr == CODE_ERR)
             {
@@ -1453,10 +1556,10 @@ int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bra
 }
 /**
  * @description: 
- * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
- *               uint8_t frame_nums  
- * @return       {uint8_t} WriteErr 
- * @author:      zlz
+ * @param      :    TMS570_BRAM_DATA *bram_data_mvb_wr 
+ *                 
+ * @return     :    void
+ * @author     :    zlz
  */
 int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bram_data_tms570_wr)
 {
@@ -1464,3 +1567,4 @@ int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bra
     if(g_DebugType_EU == LCU_MVB_DEBUG)
         printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);                                                 
 }
+
