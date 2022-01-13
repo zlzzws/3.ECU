@@ -1271,7 +1271,7 @@ void TMS570_Bram_TopPack_Set(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd
             /*CAN-FC A9->570*/
             cmd_packet_wr[2].protocol_version =0x11c2;
             cmd_packet_wr[2].ChanNum_U8 = 11;
-            cmd_packet_wr[2].PacktLength_U32 = 18;
+            cmd_packet_wr[2].PacktLength_U32 = 32;
             /*CAN-BMS 570->A9*/
             cmd_packet_rd[0].ChanNum_U8 = 9;
             cmd_packet_rd[0].PacktLength_U32 = 6;
@@ -1286,7 +1286,7 @@ void TMS570_Bram_TopPack_Set(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd
         /*CAN-扩展模块 A9->570*/
             cmd_packet_wr->protocol_version =0x11c2;
             cmd_packet_wr->ChanNum_U8 = 12;
-            cmd_packet_wr->PacktLength_U32 = 24;
+            cmd_packet_wr->PacktLength_U32 = 26;
             /*CAN-扩展模块 570->A9*/
             cmd_packet_rd->ChanNum_U8 = 12;
             cmd_packet_rd->PacktLength_U32 = 9;
@@ -1548,32 +1548,65 @@ int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bra
     Life_signal++;
     return WriteErr;
 }
+
 /**
- * @description: 
- * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
+ * @description: tms570 bram readdata process to mvb writedata
+ * @param:       TMS570_BRAM_DATA *bram_data_mvb_wr 
  *               uint8_t frame_nums  
  * @return       {uint8_t} WriteErr  
  * @author:      zlz
  */
 int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bram_data_tms570_rd)
 {
-    
-    memcpy(&bram_data_mvb_wr[5].buffer[6],&bram_data_tms570_rd->buffer[42],4);
+    memcpy(&bram_data_tms570_rd->buffer[0], bram_data_mvb_wr[0].buffer,16);/*MVB_0X3F8*/
+    memcpy(&bram_data_tms570_rd->buffer[4], bram_data_mvb_wr[1].buffer,32);/*MVB_0X3F9*/
+    memcpy(&bram_data_tms570_rd->buffer[12],bram_data_mvb_wr[2].buffer,32);/*MVB_0X3FA*/
+    memcpy(&bram_data_tms570_rd->buffer[20],bram_data_mvb_wr[3].buffer,32);/*MVB_0X3FB*/
+    memcpy(&bram_data_tms570_rd->buffer[28],bram_data_mvb_wr[4].buffer,32);/*MVB_0X3FC*/
+    memcpy(&bram_data_tms570_rd->buffer[36],bram_data_mvb_wr[5].buffer,32);/*MVB_0X3FD*/
+
+   /*memcpy(&bram_data_mvb_wr[5].buffer[6],&bram_data_tms570_rd->buffer[42],4);
     if(g_DebugType_EU == LCU_MVB_DEBUG)
-        printf("MVB->LCU:%08x\n",bram_data_mvb_wr[5].buffer[6]);  
-    
+        printf("MVB->LCU:%08x\n",bram_data_mvb_wr[5].buffer[6]);*/  
 }
+
 /**
- * @description: 
+ * @description:    mvb readdata process to tms570 bram writedata
  * @param      :    TMS570_BRAM_DATA *bram_data_mvb_wr 
  *                 
  * @return     :    void
  * @author     :    zlz
  */
 int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bram_data_tms570_wr)
-{
-    memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);
+{    
+    static uint8_t errnum,judge_val;
+    static uint16_t frame_life_1;
+    static uint16_t frame_life_2;
+
+    if(frame_life_1==bram_data_mvb_rd[0].buffer[0]&0xffff | frame_life_2==bram_data_mvb_rd[1].buffer[0]&0xffff)
+    {
+        errnum++;
+        if(errnum >= 10)
+        {
+            errnum = 0;            
+            judge_val = 1;                
+        } 
+    }
+    else
+    {
+        errnum = 0;
+        judge_val = 0;
+    }
+    
+    frame_life_1=bram_data_mvb_rd[0].buffer[0]&0xffff;
+    frame_life_2=bram_data_mvb_rd[1].buffer[0]&0xffff;
+
+    memcpy(bram_data_tms570_wr->buffer,bram_data_mvb_rd[0].buffer,32);/*MVB_0XA0*/
+    memcpy(&bram_data_tms570_wr->buffer[8],bram_data_mvb_rd[1].buffer,16);/*MVB_0X3F0*/
+    memcpy(&bram_data_tms570_wr->buffer[12],&judge_val,1);
+
+    /*memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);
     if(g_DebugType_EU == LCU_MVB_DEBUG)
-        printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);                                                 
+        printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);*/                                                
 }
 

@@ -314,7 +314,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create LEDPthreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
-    #if 0
+    
     res = pthread_create(&pthread_ST_p->DirTarThread,NULL,DirTarThreadFunc,NULL);
     if (res != 0) 
     { 
@@ -322,7 +322,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create DirTarThreaFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
-    #endif
+    
     res = pthread_create(&pthread_ST_p->MVBThread,NULL,MVBThreadFunc,NULL);
     if (res != 0) 
     { 
@@ -347,13 +347,14 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }    
  
-    /*pthread_detach(pthread_ST_p -> DirTarThread);*/
+    pthread_detach(pthread_ST_p -> DirTarThread);
     pthread_detach(pthread_ST_p -> RealWaveThread);
     pthread_detach(pthread_ST_p -> UdpThread);   
     pthread_detach(pthread_ST_p -> ModbusThread);       
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
-    pthread_detach(pthread_ST_p -> CAN1Thread);       
+    pthread_detach(pthread_ST_p -> CAN1Thread);
+    pthread_detach(pthread_ST_p -> LedThread);       
 }
 
 /**********************************************************************
@@ -381,19 +382,7 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
     {
         perror("pthread_join FileSaveThread failed\n");           
     }
-    #if 0
-    res = pthread_join(pthread_ST_p -> LedThread, &thread_result);
-    if (res == 0)
-    {
-        printf("thread_join LedThread success\n");
-    }
-    else 
-    {
-        perror("pthread_join LedThread failed\n");           
-    }
-    #endif
-    sem_destroy(&g_RealSend_sem);
-    
+    sem_destroy(&g_RealSend_sem);    
 }
 
 /**********************************************************************
@@ -483,15 +472,13 @@ int8_t PowDownFun(void)
                 g_EADSErrInfo_ST.PowErr = 0;
                 printf("PowerOff restore\n");
                 snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff restore");
-                WRITELOGFILE(LOG_INFO_1,LogInfo);
-               
+                WRITELOGFILE(LOG_INFO_1,LogInfo);               
             }
             s_ClearPowNum = 0;
         }
         s_PowDownNum = 0;       
     }
 }
-
 
 /**********************************************************************
 *Name           :    RealWaveThreadFunc  
@@ -687,7 +674,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
         WRITELOGFILE(LOG_ERROR_1,loginfo);
     }
 
-    bzero(&server,sizeof(server));//等价于memset清零
+    bzero(&server,sizeof(server));
     server.sin_family=AF_INET;
     server.sin_port=htons(1610);//本机端口
     server.sin_addr.s_addr=inet_addr("192.168.3.11");//本机IP
@@ -792,6 +779,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     printf("Exit Upd_Intool_ThreadFunc\n");
     return CODE_OK;    
 }
+
 /**********************************************************************
 *Name           :    ModbusThreadFunc  
 *Function       :    communicate with CSR_drive for channel calibrate, and show the version
@@ -802,7 +790,6 @@ void *Udp_Intool_ThreadFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/1/6  Create
 *********************************************************************/
-
 void *ModbusThreadFunc(void *arg)
 {   
     int ModbusSocket = -1;
@@ -927,14 +914,12 @@ void *FileSaveThreaFunc(void *arg)
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-
         s_EventFileSaveNum_U32++;
    
     }
     printf("exit FileSave thread\n");
     pthread_exit(NULL);      
 }
-
 
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
@@ -946,7 +931,6 @@ void *FileSaveThreaFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/7/1  Create
 *********************************************************************/
-#if 0
 void *DirTarThreadFunc(void *arg) 
 {
     char loginfo[LOG_INFO_LENG] = {0};
@@ -955,8 +939,7 @@ void *DirTarThreadFunc(void *arg)
     snprintf(loginfo, sizeof(loginfo)-1, "start DirTar thread");
     WRITELOGFILE(LOG_INFO_1,loginfo);
 
-    FileSpaceProc(&g_Rec_XML_ST);
-	// test
+    FileSpaceProc(&g_Rec_XML_ST);	
     DirFileTar(&g_Rec_XML_ST);
 
     printf("exit DirTar thread\n");
@@ -965,7 +948,7 @@ void *DirTarThreadFunc(void *arg)
     WRITELOGFILE(LOG_INFO_1,loginfo);
     pthread_exit(NULL);
 }
-#endif
+
 /**********************************************************************
 *Name           :    LEDWachDogPthreadFunc  
 *Function       :    Blink the led, life led and error led
@@ -1073,11 +1056,11 @@ void *LEDPthreadFunc (void *arg)
                 s_errledflag = 0;
             }
             #endif
-            write(lifeledfd, "1", 2); //on
-            write(errledfd, "0", 2); //on
+            write(lifeledfd,"0",2); //on
+            write(errledfd,"0",2); //on
             usleep(led_period);
-            write(lifeledfd, "0", 2);//off
-            write(errledfd, "1", 2);//off
+            write(lifeledfd,"1",2);//off
+            write(errledfd,"1",2);//off
             usleep(led_period);
             /******************/
             #if 0
