@@ -76,7 +76,7 @@ int8_t 	CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8
 int8_t 	CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num,uint8_t dev_type);
 void 	CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype);
 void 	CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr,uint8_t can_devtype);
-void 	TMS570_Bram_TopPackDataSetFun(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd_packet_rd,uint8_t can_devtype);
+void 	TMS570_Bram_TopPack_Set(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd_packet_rd,uint8_t can_devtype);
 int8_t 	TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA *bram_data,uint8_t frame_num,TRANS_TYPE_ENUM tans_type);
 int8_t 	TMS570_Bram_Write_Func(BRAM_CMD_PACKET *cmd_packet_wr,TMS570_BRAM_DATA *bram_data,uint8_t frame_num,TRANS_TYPE_ENUM tans_type);
 void  	MVB_Bram_Init(BRAM_CMD_PACKET *cmd_packet_rd,BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *mvb_packet_rd,BRAM_CMD_PACKET *mvb_packet_wr);

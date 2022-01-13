@@ -32,9 +32,7 @@ RECORD_XML          g_Rec_XML_ST = {0};
 SPACE_JUDGE_VALUE   g_SpaceJudge_ST = {0};
 PTHREAD_INFO        g_Pthread_ST = {0};
 PTHREAD_LOCK        g_PthreadLock_ST= {0};
-uint8_t             g_EADSType_U8 = 0;
 uint16_t            g_PowDebug = 0;
-uint8_t             g_ProcNum_U8 = 0;
 uint32_t            g_LinuxDebug = 0; 
 int8_t              g_LifeFlag = 1;                             //to controll the pthread
 uint8_t             g_ChanRealWave[48] = {0};                   /*for the channel real wave */
@@ -42,7 +40,6 @@ uint8_t             g_ChanRealNum = 0;                          /*for the channe
 uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus comunicate*/
 FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
 CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
-uint16_t            g_MVB_SendFrameNum = 0;                     //TODO just for test please verify
 
 /***********************************************************************
 *Local Macro Define Section*
@@ -65,7 +62,7 @@ void    *Udp_Intool_ThreadFunc(void *arg);
 void    *ModbusThreadFunc(void *arg);
 void    *FileSaveThreaFunc(void *arg);
 void    *DirTarThreadFunc(void *arg);
-void    *LEDWachDogPthreadFunc (void *arg);
+void    *LEDPthreadFunc (void *arg);
 void    *CAN0ThreadFunc(void *arg);
 void    *CAN1ThreadFunc(void *arg);
 void    *MVBThreadFunc(void *arg);
@@ -77,16 +74,10 @@ void    *MVBThreadFunc(void *arg);
 
 
 int main(int argc, char *argv[])
-{      
-    struct timeval Time_ST,TimeEnd_ST;
-    struct timeval A_Time_ST,A_TimeEnd_ST;
-    int SemValue = 0;
-    int SemtValue = 0;
-    int i2cbus_fd =0;   
-    int8_t  res=0;
+{ 
+    uint8_t i = 0;         
     int8_t  fifofd = 0;
-    int8_t  fd = 0;
-    uint8_t i = 0;
+    int i2cbus_fd =0;    
     uint8_t BOXID =0;     
     uint8_t BinLife = 0;
     uint8_t FifoWrNum = 0;
@@ -123,25 +114,22 @@ int main(int argc, char *argv[])
     /*if logfileNum more than g_SpaceJudge_ST.LOGFILE_NUM,delete the earliest logfile*/
     DeleteEarliestFile("/yaffs/REC_LOGGFLT/",LOG_FILE_TYPE);
     /*judge and process the main_function arguments*/
-    if (argc < 4)
+    if (argc < 2)
     {
         FuncUsage();
-        snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "arg Num:%u,arg1 %s,arg2 %s,arg3 %s",argc,argv[1],argv[2],argv[3]);
+        snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "User have typed invalid arguments:(argc<2)!");
         WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);
         LogFileSync();
     }
 
-    g_LifeFlag      = 1;                                                    //生命信号标志位  
-    g_EADSType_U8   = 0;                                                    //本程序此变量无意义,强制为4
-    g_ProcNum_U8    = 4;                                                    //本程序此变量无意义,强制为0
-    g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;                          //EADS软件版本，可通过PTU查看                                                           
-    g_DebugType_EU  =    (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);         //Debug类型              
-    g_PowDebug      =    (uint16_t)strtoul(argv[2],NULL,10);                //电源选项，1-使能掉电监测    
-    g_LinuxDebug    =    (uint16_t)strtoul(argv[3],NULL,10);                //软件运行环境:0:ZYNQ 1:Ubuntu
-    g_MVB_SendFrameNum = (uint16_t)strtoul(argv[4],NULL,10);                
-    
+    g_LifeFlag      =   1;
+    g_LinuxDebug    =   0;                                                  //软件运行环境:0:ZYNQ 1:Ubuntu       
+    g_DebugType_EU  =   (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);                    
+    g_PowDebug      =   (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测 , 0-不使能                                                                   
+    g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;
+
     ArgJudge();
-    snprintf(ArgLogInfo,sizeof(ArgLogInfo)-1,"g_PowDebug %u,g_LinuxDebug %u",g_PowDebug,g_LinuxDebug);
+    snprintf(ArgLogInfo,sizeof(ArgLogInfo)-1,"g_DebugType_EU:%u,g_PowDebug:%u,g_LinuxDebug:%u",g_DebugType_EU,g_PowDebug,g_LinuxDebug);
     WRITELOGFILE(LOG_INFO_1,ArgLogInfo); 
 
 	/*Bram Init*/
@@ -151,7 +139,7 @@ int main(int argc, char *argv[])
     }
 
     /*RTC Test*/
-    RTCTesT();
+    RTCTesT();//FIXME Please add timeshow in logfile and printf
 
     /*I2C*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
@@ -184,11 +172,7 @@ int main(int argc, char *argv[])
     }
     
     while(1)
-    {
-        /*if(TIME_DEBUG  == g_DebugType_EU)
-        {
-            gettimeofday(&Time_ST,NULL);                
-        }*/       
+    {      
         if(1 == g_PowDebug)
         {
           PowDownFun();
@@ -214,53 +198,48 @@ int main(int argc, char *argv[])
                     printf("write %d to the FIFO\n",BinLife); 
                 }
             }              
-        }
-        /*if(TIME_DEBUG  == g_DebugType_EU)
-        {
-            gettimeofday(&TimeEnd_ST,NULL);
-            printf("main thread tim:%u \n",(uint32_t)TimeEnd_ST.tv_usec- (uint32_t)Time_ST.tv_usec); 
-            printf("main thread tim usec:%u \n",(uint32_t)TimeEnd_ST.tv_usec);                
-        }*/       
+        }      
     }
-    printf("Waiting for all threads to power off...\n");
+
+    memset(ArgLogInfo,0,LOG_INFO_LENG);
+    snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
+    WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);    
     ThreadOff(&g_FileFd_ST,&g_Pthread_ST);    
     if(0 == g_LinuxDebug)
     {
         BramCloseMap(); 
     }
-    close(fifofd); 
-    printf("Main function is exit ! All exit-operations is done\n");
+    close(fifofd);    
     exit(EXIT_SUCCESS);
 }
 
-
+/**
+ * @description : show how to type a right command
+ * @param       : void  
+ * @return      : void 
+ * @author:     : feng
+ */
 void FuncUsage(void)
-{
-    printf("For example:\n");
-    printf("you can type such command: /tffs0/Demo_Run_bin <DebugTest_EU> <g_PowDebug> <g_LinuxDebug>\n");   
+{    
+    printf("Usage introduce:\nCommand consist of : /tffs0/Demo_Run_bin <DebugTest_EU> <g_PowDebug>\n");
+    printf("you can type such command: :/tffs0/Demo_Run_bin 0 1\n");
 }
 
+/**
+ * @description : argument judge and process
+ * @param       : void  
+ * @return      : void 
+ * @author:     : feng
+ */
 void ArgJudge(void)
 {
-    if((0 == g_ProcNum_U8) || ( g_ProcNum_U8 > 5))
-    {
-        g_ProcNum_U8 = 4;
-    }
     if( g_DebugType_EU >40)
     {
         g_DebugType_EU = 0;
     }
-    if(g_LinuxDebug > 1)
-    {
-        g_LinuxDebug = 0;
-    }
     if(g_PowDebug > 1)
     {
         g_PowDebug = 0;
-    }
-    if(g_MVB_SendFrameNum > 16)
-    {
-        g_PowDebug = 16;
     }
 }
 
@@ -277,17 +256,17 @@ void ArgJudge(void)
 int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
 {
     int8_t res=0;
-    char loginfo[LOG_INFO_LENG] = {0};
+    int policy;
     struct sched_param param;
-    int policy;   
+    char loginfo[LOG_INFO_LENG] = {0};      
      
-    res = sem_init(&g_RealSend_sem, 0, 0);
+   /* res = sem_init(&g_RealSend_sem, 0, 0);
     if (res != 0) 
     {
         perror("RealSend_sem Semaphore initialization failed");
         snprintf(loginfo, sizeof(loginfo)-1, "RealSend_sem init failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
+    }*/
 
     res = pthread_rwlock_init(&g_PthreadLock_ST.BramDatalock,NULL);
     if(res != 0)
@@ -327,15 +306,15 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         snprintf(loginfo, sizeof(loginfo)-1, "create ModbusThreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);   
     }
-    #if 0
-    res = pthread_create(&pthread_ST_p->LedThread,NULL,LEDWachDogPthreadFunc,NULL);
+    
+    res = pthread_create(&pthread_ST_p->LedThread,NULL,LEDPthreadFunc,NULL);
     if (res != 0) 
     { 
-        perror("create LEDWachDogPthreadFunc failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "create LEDWachDogPthreadFunc failed");
+        perror("create LEDPthreadFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create LEDPthreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);      
     }
-
+    #if 0
     res = pthread_create(&pthread_ST_p->DirTarThread,NULL,DirTarThreadFunc,NULL);
     if (res != 0) 
     { 
@@ -525,8 +504,7 @@ int8_t PowDownFun(void)
 *REV1.0.0     feng    2020/1/6  Create
 *********************************************************************/
 void *RealWaveThreadFunc(void *arg)
-{ 
-    #if 0
+{     
     int total;
     int i,j;
     int serverfd,clientfd;
@@ -534,8 +512,7 @@ void *RealWaveThreadFunc(void *arg)
     int16_t ReadSize = 0;
     uint8_t SendSize = 0;
     char readbuf[20] = {0};
-    uint8_t  returnbuf[20]={0};
-    int semValue = 0 ; 
+    uint8_t  returnbuf[20]={0};    
     char loginfo[LOG_INFO_LENG] = {0};
     uint32_t sendNum = 0;
     
@@ -623,13 +600,10 @@ void *RealWaveThreadFunc(void *arg)
         g_socket_SendFlag  = 1;
         while(g_socket_SendFlag)
         {
-            sem_wait(&g_RealSend_sem);            
-            if(g_DebugType_EU == SEM_DEBUG)
-            {                
-                printf("g_RealSend_sem wait %x\n",g_RealSend_sem);               
-            }            
+            pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);
             memset(returnbuf,0,sizeof(returnbuf));
             RealWaveData(returnbuf,g_ChanRealWave,&s_save_to_csr_driver,g_ChanRealNum);
+            pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
 
             if(TCP_DEBUG == g_DebugType_EU)
             {
@@ -674,8 +648,7 @@ void *RealWaveThreadFunc(void *arg)
     printf("------------>TCP server close\n");    
     pthread_exit(NULL);
     printf("Exit RealWaveThreadFunc\n");
-    return CODE_OK;
-    #endif           
+    return CODE_OK;              
 }
 
 /**********************************************************************
@@ -689,8 +662,7 @@ void *RealWaveThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2022/1/6  Create
 *********************************************************************/
 void *Udp_Intool_ThreadFunc(void *arg)
-{
-    #if 0
+{    
     int i;
     int serverfd;    
     uint16_t ReadSize = 0;
@@ -702,7 +674,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     time_t  tCurrentTime = {0};
     uint8_t socket_SendFlag = 0;    
     struct tm tSysTime = {0};
-    struct timeval tTimeVal = {0};
+    struct timespec timespec_st={0};
     static uint16_t UDP_LIFE = 0;
     struct sockaddr_in server,client;
     char loginfo[LOG_INFO_LENG]={0};    
@@ -736,28 +708,37 @@ void *Udp_Intool_ThreadFunc(void *arg)
 
     while(1)
     {
-        printf("UDP_Receive----->\n");
+        /* if(UDP_DEBUG == g_DebugType_EU)
+        {
+            printf("UDP_Receive----->\n");
+        }*/
         ReadSize = recvfrom(serverfd,readbuf,8,0,(struct sockaddr*)&client,&length);       
         if(ReadSize>0)//获取上位机发来的请求信息并进行解析
         {           
-            if(UDP_DEBUG == g_DebugType_EU)
+           /* if(UDP_DEBUG == g_DebugType_EU)
             {
                 for (i=0;i<8;i++)
                 {
                     printf("readbuf[%d]:%02x\n",i,readbuf[i]);
                 }
                 printf("Value:%d\n",(readbuf[2]>>1)&0x1);
-            } 
+            }*/ 
             if((readbuf[2]>>1)&0x1)
             {
                 socket_SendFlag =1;
-                printf("UDP_Receive<-----\n");                
-            }                
+                /* if(UDP_DEBUG == g_DebugType_EU)
+                {               
+                    printf("UDP_Send<-----\n");
+                }*/                
+            } 
+            else
+            {
+                printf("ECU have receive command from Intool,but SendFlag bit is not 1!\n");
+            }               
         }
         else
-        {
-            printf("ReadSize:%d\n",ReadSize);
-            socket_SendFlag ==0;            
+        {            
+            socket_SendFlag ==0;
         }
 
         if(socket_SendFlag)
@@ -765,9 +746,9 @@ void *Udp_Intool_ThreadFunc(void *arg)
             usleep(100000);
             tCurrentTime = time(NULL);
             localtime_r(&tCurrentTime, &tSysTime);
-            gettimeofday(&tTimeVal, NULL);    
-            sprintf(szUsec, "%06d", (uint32_t)tTimeVal.tv_usec);  // 获取微秒
-            strncpy(szMsec, szUsec, 3);
+            clock_gettime(CLOCK_MONOTONIC,&timespec_st);  
+            sprintf(szUsec,"%09d",(uint32_t)timespec_st.tv_nsec);  // get (ns) the right 9 number,the 9 number stands (s) transform to (ns)
+            strncpy(szMsec,szUsec,3);// get the left 3 numbe , the 3 number mean (ms)
 
             sendbuf[0] = 0XA5 ;
             sendbuf[1] = 0X5A ;
@@ -791,14 +772,12 @@ void *Udp_Intool_ThreadFunc(void *arg)
                 printf("EADS_UDP_LIFE:0X%X\n",UDP_LIFE);
                 printf("UDPTIME 20%d-%d-%d %d:%d:%d:%d\n",sendbuf[8],sendbuf[9],sendbuf[10],sendbuf[11],sendbuf[12],sendbuf[13],sendbuf[14]*10+sendbuf[15]);
             }
-            SendSize = sendto(serverfd,sendbuf,sizeof(sendbuf),0,(struct sockaddr*)&client,length);             
-            
+            pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);
+            SendSize = sendto(serverfd,sendbuf,sizeof(sendbuf),0,(struct sockaddr*)&client,length); //TODO 数字量实时波形显示的数据是否已经处理            
+            pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
             if(SendSize == sizeof(sendbuf))
             {
-                if(UDP_DEBUG == g_DebugType_EU)
-                {
-                    printf("Udp SendSize:%d\n",SendSize);
-                }          
+         
             }
             else
             {
@@ -811,8 +790,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     printf("------------>Upd server close\n");    
     pthread_exit(NULL);
     printf("Exit Upd_Intool_ThreadFunc\n");
-    return CODE_OK;
-    #endif
+    return CODE_OK;    
 }
 /**********************************************************************
 *Name           :    ModbusThreadFunc  
@@ -826,8 +804,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
 *********************************************************************/
 
 void *ModbusThreadFunc(void *arg)
-{    
-    #if 0
+{   
     int ModbusSocket = -1;
     int ModbusRes;
     modbus_mapping_t *ModbusMap_p;
@@ -898,7 +875,7 @@ void *ModbusThreadFunc(void *arg)
     free(ModbusQuery);
     pthread_exit(NULL);
     printf("Modbus close\n");
-    #endif
+    
 }
 
 /**********************************************************************
@@ -914,8 +891,7 @@ void *ModbusThreadFunc(void *arg)
 *REV1.0.1     feng    2020/6/29  Add Chan Filt for Eventsave 
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
-{  
-    #if 0
+{   
     uint8_t i = 0;
     int8_t fd = 0;
     uint32_t Delayus_U32= 0;
@@ -925,46 +901,10 @@ void *FileSaveThreaFunc(void *arg)
     printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
     Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//100ms
 	sleep(1);
-    uint8_t temp_wr_buffer[56]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                                0x29,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                                0x32,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                                0x48,0x65,0x32,0x10,0x54,0x23,0x99,0xaa,\
-                                0x51,0x23,0x77,0x56,0x89,0x55,0x44,0x48,\
-                                0x61,0x53,0x87,0x66,0x09,0x45,0x24,0x18,\
-                                0x71,0x23,0x56,0x76,0x45,0x23,0x11,0x12};
-
-    uint8_t temp_rd_buffer[168]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                                0x21,0xaa,0x4b,0xcc,0xcd,0xae,0x1f,0x20,\
-                                0x32,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
-                                0x48,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
-                                0x54,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
-                                0x62,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
-                                0x71,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
-                                0x82,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
-                                0x98,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
-                                0xa8,0x65,0x32,0x10,0x54,0x23,0x99,0xaa,\
-                                0xb1,0x23,0x77,0x56,0x89,0x55,0x44,0x48,\
-                                0xc4,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
-                                0xd2,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
-                                0xe1,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
-                                0xf2,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
-                                0xf0,0x65,0xb2,0x10,0x34,0x23,0x99,0xaa,\
-                                0xf1,0xa3,0x77,0x56,0xd9,0x55,0x44,0x48,\
-                                0xf2,0x53,0x87,0x26,0x09,0x45,0x24,0x18,\
-                                0xf3,0x23,0x56,0x76,0x45,0x23,0x11,0x12,\
-                                0xf4,0x34,0x56,0xc8,0x9a,0xbc,0xde,0xf0,\
-                                0xf5,0x65,0xb2,0x10,0x34,0x23,0xaa,0xff};
-
-    memcpy(s_tms570_bram_RD_data_st[0].buffer,temp_rd_buffer,168);
-    memcpy(s_tms570_bram_WR_data_st[0].buffer,temp_wr_buffer,56);
 
     while(g_LifeFlag > 0)
     {
-        threadDelay(0,Delayus_U32);
-        if(TIME_DEBUG  == g_DebugType_EU)
-        {
-            gettimeofday(&A_Time_ST,NULL);                    
-        }    
+        threadDelay(0,Delayus_U32);   
         
         if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
         {                
@@ -984,30 +924,18 @@ void *FileSaveThreaFunc(void *arg)
             fsync(fd);
 		}
 
-        pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);        
-		        
+        pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        sem_post(&g_RealSend_sem);
-        if(g_DebugType_EU == SEM_DEBUG)
-        {                
-            printf("g_RealSend_sem post:%x\n",g_RealSend_sem);               
-        } 
-        s_EventFileSaveNum_U32++;
 
-        if(TIME_DEBUG  == g_DebugType_EU)
-        {
-            gettimeofday(&A_TimeEnd_ST,NULL);
-            printf("EventFile Save thread tim:%u \n",(uint32_t)A_TimeEnd_ST.tv_usec- (uint32_t)A_Time_ST.tv_usec); 
-            printf("EventFile Save thread usec:%u \n", (uint32_t)A_TimeEnd_ST.tv_usec);                    
-        }    
+        s_EventFileSaveNum_U32++;
+   
     }
     printf("exit FileSave thread\n");
-    pthread_exit(NULL);
-    #endif     
+    pthread_exit(NULL);      
 }
 
-#if 0
+
 /**********************************************************************
 *Name           :    DirTarThreadFunc  
 *Function       :    tar the Event ,RealFlt,RealOprt directory which create before today
@@ -1018,7 +946,7 @@ void *FileSaveThreaFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/7/1  Create
 *********************************************************************/
-
+#if 0
 void *DirTarThreadFunc(void *arg) 
 {
     char loginfo[LOG_INFO_LENG] = {0};
@@ -1037,7 +965,7 @@ void *DirTarThreadFunc(void *arg)
     WRITELOGFILE(LOG_INFO_1,loginfo);
     pthread_exit(NULL);
 }
-
+#endif
 /**********************************************************************
 *Name           :    LEDWachDogPthreadFunc  
 *Function       :    Blink the led, life led and error led
@@ -1048,12 +976,12 @@ void *DirTarThreadFunc(void *arg)
 *History:
 *REV1.0.0     feng    2020/7/1  Create
 *********************************************************************/
-void *LEDWachDogPthreadFunc (void *arg)
+void *LEDPthreadFunc (void *arg)
 {
     uint32_t led_period;
     int8_t lifeledfd;
     int8_t errledfd;
-    int8_t watchdogfd;
+    
     uint8_t errtem = 0;
     int16_t timeout;
     static uint8_t s_errledflag = 0;
@@ -1093,13 +1021,12 @@ void *LEDWachDogPthreadFunc (void *arg)
 
     if(0 == g_LinuxDebug)//运行在ZYNQ平台
     {
-        lifeledfd = open(LED_BRIGHTNESS, O_WRONLY);
+        lifeledfd = open(LEDLIFE_BRIGHTNESS, O_WRONLY);
         if (lifeledfd < 0)
         {
             printf("Cannot open Life LED\n");
             snprintf(loginfo, sizeof(loginfo)-1, "Cannot open Life LED");
-            WRITELOGFILE(LOG_ERROR_1,loginfo);
-            //pthread_exit("led exit");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);            
         }
         led_period =  PERIOD_COEFF;
 
@@ -1108,8 +1035,7 @@ void *LEDWachDogPthreadFunc (void *arg)
         {
             printf("Cannot open Err LED\n");
             snprintf(loginfo, sizeof(loginfo)-1, "Cannot open Err LED");
-            WRITELOGFILE(LOG_ERROR_1,loginfo);
-            // pthread_exit("led exit");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);           
         }
 
         sleep(1);
@@ -1131,9 +1057,10 @@ void *LEDWachDogPthreadFunc (void *arg)
         }
         mii = (struct mii_ioctl_data*)&ifr.ifr_data;//将mii与ifr.ifr_date地址关联起来
 
-        while (g_LifeFlag)
+        while (g_LifeFlag>0)
         {
             /******LED*******/
+            #if 0
             memcpy(&errtem,&g_EADSErrInfo_ST,1);
             if((!s_errledflag) && (errtem))/* happen VechWarm*/
             {
@@ -1145,12 +1072,15 @@ void *LEDWachDogPthreadFunc (void *arg)
                 write(errledfd, "1", 2); //off
                 s_errledflag = 0;
             }
+            #endif
             write(lifeledfd, "1", 2); //on
+            write(errledfd, "0", 2); //on
             usleep(led_period);
             write(lifeledfd, "0", 2);//off
+            write(errledfd, "1", 2);//off
             usleep(led_period);
             /******************/
-
+            #if 0
             /******读取PHY芯片寄存器过程*******/
             mii->reg_num  = PHY_COPPER_CONTRL_REG;
             ret = ioctl(sockfd, SIOCGMIIREG, &ifr);//读REG0 控制寄存器
@@ -1273,16 +1203,16 @@ void *LEDWachDogPthreadFunc (void *arg)
             }
             Eth1ReceivePacksLastTime = Eth1ReceivePacks;
             Eth1TransmitPacksLastTime = Eth1TransmitPacks;
+            #endif
         }
     }
     close(errledfd);
-    close(lifeledfd);
-    close(watchdogfd);
+    close(lifeledfd);    
     close(sockfd);
-    printf("LEDWachDogPthreadFunc Quit\n");
+    printf("LEDPthreadFunc Quit\n");
     pthread_exit(NULL);
 }
-#endif
+
 
 /**********************************************************************
 *Name           :   CAN0ThreadFunc  
@@ -1326,7 +1256,7 @@ void *CAN0ThreadFunc(void *arg)
     setsockopt(socket_can0,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
     
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
-    TMS570_Bram_TopPackDataSetFun(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
+    TMS570_Bram_TopPack_Set(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
 
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
@@ -1425,7 +1355,7 @@ void *CAN1ThreadFunc(void *arg)
     setsockopt(socket_can1,SOL_CAN_RAW,CAN_RAW_FILTER,recv_filter,sizeof(recv_filter));/*Filter*/
     
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
-    TMS570_Bram_TopPackDataSetFun(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
+    TMS570_Bram_TopPack_Set(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
     
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\

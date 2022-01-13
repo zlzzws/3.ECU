@@ -82,11 +82,22 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
     BRAM_PACKET_DATA *BramPacketData_ST_p;
     BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
     
-	if(PacketLength != 0)
+    PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;
+
+	if(PacketLength > 0)
     {
-        PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;/*PacketLength include TopPack 12Bytes*/
-        memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);/*CP all data excpet TopPack*/          
-    }	
+        /*copy all data excpet TopPack and crc32*/
+        memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);          
+    }
+    else if (PacketLength == 0)
+    {
+        printf("Receive Bram PakcetLength equal to 12 , it means frame didn't include any data!\n");
+    }
+    else
+    {
+        printf("Invalid Bram PakcetLength ! PakcetLength must be greater than 12!\n");
+    }
+    	
     if(BramPacketData_ST_p -> BLVDSReser_U32[0] == s_BramLife_U32[ChanNum])
     {
         ErrorCode = CODE_ERR; 
@@ -770,47 +781,47 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
     {
         case CAN0_TYPE: 
         /*CAN0-BMS-A9 READ*/
-        candata_RD_filter[0].can_id    = 0x1800D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[0].can_id     = 0x1800D0F4 | CAN_EFF_FLAG;
         candata_RD_filter[0].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[1].can_id    = 0x1801D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[1].can_id     = 0x1801D0F4 | CAN_EFF_FLAG;
         candata_RD_filter[1].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[2].can_id    = 0x1802D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[2].can_id     = 0x1802D0F4 | CAN_EFF_FLAG;
         candata_RD_filter[2].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[3].can_id    = 0x1803D0F4 | CAN_EFF_FLAG;
+        candata_RD_filter[3].can_id     = 0x1803D0F4 | CAN_EFF_FLAG;
         candata_RD_filter[3].can_mask   = CAN_EFF_MASK;
         /*CAN0-DCDC-A9 READ*/
-        candata_RD_filter[4].can_id    = 0x16F4C000 | CAN_EFF_FLAG;
+        candata_RD_filter[4].can_id     = 0x16F4C000 | CAN_EFF_FLAG;
         candata_RD_filter[4].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[5].can_id    = 0x16F4C001 | CAN_EFF_FLAG;
+        candata_RD_filter[5].can_id     = 0x16F4C001 | CAN_EFF_FLAG;
         candata_RD_filter[5].can_mask   = CAN_EFF_MASK;
         /*CAN0-FC-A9 READ*/
-        candata_RD_filter[6].can_id    = 0x18FF3012 | CAN_EFF_FLAG;
+        candata_RD_filter[6].can_id     = 0x18FF3012 | CAN_EFF_FLAG;
         candata_RD_filter[6].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[7].can_id    = 0x18FF3112 | CAN_EFF_FLAG;
+        candata_RD_filter[7].can_id     = 0x18FF3112 | CAN_EFF_FLAG;
         candata_RD_filter[7].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[8].can_id    = 0x18FF3212 | CAN_EFF_FLAG;
+        candata_RD_filter[8].can_id     = 0x18FF3212 | CAN_EFF_FLAG;
         candata_RD_filter[8].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[9].can_id    = 0x18FF3312 | CAN_EFF_FLAG;
+        candata_RD_filter[9].can_id     = 0x18FF3312 | CAN_EFF_FLAG;
         candata_RD_filter[9].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[10].can_id   = 0x18FF6012 | CAN_EFF_FLAG;
+        candata_RD_filter[10].can_id    = 0x18FF6012 | CAN_EFF_FLAG;
         candata_RD_filter[10].can_mask  = CAN_EFF_MASK;
-        candata_RD_filter[11].can_id   = 0x18FF7012 | CAN_EFF_FLAG;
+        candata_RD_filter[11].can_id    = 0x18FF7012 | CAN_EFF_FLAG;
         candata_RD_filter[11].can_mask  = CAN_EFF_MASK;
-        candata_RD_filter[12].can_id   = 0x18FF7112 | CAN_EFF_FLAG;
+        candata_RD_filter[12].can_id    = 0x18FF7112 | CAN_EFF_FLAG;
         candata_RD_filter[12].can_mask  = CAN_EFF_MASK;
         candata_RD_filter[13].can_id    = 0x18FF3013 | CAN_EFF_FLAG;
-        candata_RD_filter[13].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[13].can_mask  = CAN_EFF_MASK;
         candata_RD_filter[14].can_id    = 0x18FF3113 | CAN_EFF_FLAG;
-        candata_RD_filter[14].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[14].can_mask  = CAN_EFF_MASK;
         candata_RD_filter[15].can_id    = 0x18FF3213 | CAN_EFF_FLAG;
-        candata_RD_filter[15].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[15].can_mask  = CAN_EFF_MASK;
         candata_RD_filter[16].can_id    = 0x18FF3313 | CAN_EFF_FLAG;
-        candata_RD_filter[16].can_mask   = CAN_EFF_MASK;
-        candata_RD_filter[17].can_id   = 0x18FF6013 | CAN_EFF_FLAG;
+        candata_RD_filter[16].can_mask  = CAN_EFF_MASK;
+        candata_RD_filter[17].can_id    = 0x18FF6013 | CAN_EFF_FLAG;
         candata_RD_filter[17].can_mask  = CAN_EFF_MASK;
-        candata_RD_filter[18].can_id   = 0x18FF7013 | CAN_EFF_FLAG;
+        candata_RD_filter[18].can_id    = 0x18FF7013 | CAN_EFF_FLAG;
         candata_RD_filter[18].can_mask  = CAN_EFF_MASK;
-        candata_RD_filter[19].can_id   = 0x18FF7113 | CAN_EFF_FLAG;
+        candata_RD_filter[19].can_id    = 0x18FF7113 | CAN_EFF_FLAG;
         candata_RD_filter[19].can_mask  = CAN_EFF_MASK;
         /*CAN0-BMS-A9 WRITE*/
         candata_WR[0].can_id    = 0x1800F4D0 | CAN_EFF_FLAG;
@@ -1112,7 +1123,7 @@ static void Anolog_Data_calculate_3(struct can_frame *candata_rd)
 }
 
 /**
- * @description: 接收CAN数据后进行数据处理
+ * @description: process CAN read data
  * @param:       struct can_frame *candata_rd   --从CAN口获取的CAN数据
  *               TMS570_BRAM_DATA *bramdata_wr  --A9发送给570的BRAM数据 
  *               uint8_t can_devtype   --CAN0 or CAN1
@@ -1238,12 +1249,12 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
 }
 
 /**
- * @description: 初始化TMS570交互的Bram通道包头数据(包含CAN及MVB数据)
+ * @description: Init TMS570 Bram Frame Toppacket
  * @param:       void
  * @return:      void
  * @author:      zlz
  */
-void TMS570_Bram_TopPackDataSetFun(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd_packet_rd,uint8_t can_devtype)
+void TMS570_Bram_TopPack_Set(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd_packet_rd,uint8_t can_devtype)
 {
     //Attention:数据区长度不包含CRC32，PacktLength_u32需要在总长度上-1
     switch (can_devtype)
@@ -1493,11 +1504,11 @@ int8_t  MVB_Bram_Read_Func(BRAM_CMD_PACKET *mvb_packet_rd,TMS570_BRAM_DATA *bram
 }
 
 /**
- * @description: 从TMS570读取数据，向Bram指定区域写MVB数据
- * @param        TMS570_BRAM_DATA *bram_data_mvb_wr 
- *               uint8_t frame_nums  
- * @return       {uint8_t} WriteErr   写数据返回值
- * @author:      zlz
+ * @description:  Write MVB Bram data to FPGA
+ * @param      :  TMS570_BRAM_DATA *bram_data_mvb_wr 
+ *             :  uint8_t frame_nums  
+ * @return     :  {uint8_t} WriteErr 
+ * @author:    :  zlz
  */
 int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bram_data_mvb_wr)
 {
@@ -1512,8 +1523,7 @@ int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bra
     for(i=0;i<MVB_WRITE_FRAME_NUM;i++)
     {        
         TopPackST[i].BLVDSTOP_U32 = mvb_packet_wr[i].protocol_version;
-        TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);
-        TopPackST[i].BLVDSReser_U32[1] = Life_signal | ((16+i)<<16);//FIXME JUST FOR TEST
+        TopPackST[i].BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);        
         /*attention:if multi_thread use the s_bram variable,please use array to isolation */
         s_bram_WR_B_BLVDSBlckAddr_ST.DataU32Length = mvb_packet_wr[i].PacktLength_U32;
         s_bram_WR_B_BLVDSBlckAddr_ST.ChanNum_U8 = mvb_packet_wr[i].ChanNum_U8;
@@ -1525,8 +1535,7 @@ int8_t 	MVB_Bram_Write_Func(BRAM_CMD_PACKET *mvb_packet_wr,TMS570_BRAM_DATA *bra
                 printf("MVB:Write Bram_data[%d][%d]:0x%08x\n",i,j,bram_data_mvb_wr[i].buffer[j]);
         }    
         if(0 == g_LinuxDebug)
-        {
-            bram_data_mvb_wr[i].buffer[0]= (Life_signal+100)<<16 | 0x0100;//FIXME JUST FOR TEST
+        {            
             WriteErr = BramWriteWithChek(&s_bram_WR_B_BLVDSBlckAddr_ST,bram_data_mvb_wr[i].buffer,TopPackST[i]);
             if(WriteErr == CODE_ERR)
             {

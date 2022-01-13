@@ -34,13 +34,9 @@
 /***********************************************************************
 *Global Macro Define Section*
 *********************************************************************/
-#define GPIO_POWDOW  "948" //GPIo 42
-#define GPIO_POWDOW_DIREC  "/sys/class/gpio/gpio948/direction"
-#define GPIO_POWDOW_VALUE  "/sys/class/gpio/gpio948/value"
 
-/*
-#define    LED_BRIGHTNESS   "/sys/class/leds/ledshow/brightness"
-#define    LED_TRIGGER      "/sys/class/leds/ledshow/trigger"
+#define    LEDLIFE_BRIGHTNESS   "/sys/class/leds/applife/brightness"
+#define    LEDLIFE_TRIGGER      "/sys/class/leds/applife/trigger"
 #define    PERIOD_COEFF     500000 //500ms
 
 #define    LEDERR_BRIGHTNESS    "/sys/class/leds/lederr/brightness"
@@ -48,10 +44,14 @@
 #define    LED_On 0
 #define    LED_Off 1
 
+#define GPIO_POWDOW  "948" //GPIo 42
+#define GPIO_POWDOW_DIREC  "/sys/class/gpio/gpio948/direction"
+#define GPIO_POWDOW_VALUE  "/sys/class/gpio/gpio948/value"
+
 #define GPIO_RS485EN  "956" //GPIo 50
 #define GPIO_RS485EN_DIREC  "/sys/class/gpio/gpio956/direction"
 #define GPIO_RS485EN_VALUE  "/sys/class/gpio/gpio956/value"
-*/
+
 /***********************************************************************
 *Global Struct Define Section*
 *********************************************************************/

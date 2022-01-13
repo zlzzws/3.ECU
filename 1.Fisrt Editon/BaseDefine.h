@@ -580,7 +580,7 @@ typedef enum devic_type
 
 typedef struct tms570_bram_data
 {
-    uint32_t buffer[60];//数据区不包含CRC32的4个字节	
+    uint32_t buffer[60];//数据区不包含CRC32的4个字节+帧头12个字节	
 }TMS570_BRAM_DATA;
 
 typedef enum _trans_type
@@ -589,22 +589,6 @@ typedef enum _trans_type
 	CAN1_BRAM = 1,
 	MVB_BRAM  = 2
 }TRANS_TYPE_ENUM;
-
-typedef enum _stack_pressure
-{
-	HIGH_PRESSURE 				= 0,
-	LOW_PRESSURE 				= 1,
-	STACK_A_ENTRY_PRESSURE  	= 2,
-	STACK_B_ENTRY_PRESSURE		= 3
-}STACK_PRESSURE_ENUM;
-
-typedef enum _stack_temperature
-{
-	STACK_A_ENTRY 	= 0,
-	STACK_A_EXIT 	= 1,
-	STACK_B_ENTRY  	= 2,
-	STACK_B_EXIT 	= 3
-}STACK_TEMPERATUER_ENUM;
 
 /***********************************************************************
 *Global Variable Declare Section*
