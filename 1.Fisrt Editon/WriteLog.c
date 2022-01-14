@@ -105,8 +105,7 @@ static uint32_t GetConfigFileIntValue(uint8_t *pszSectionName, uint8_t *pszKeyNa
 *REV1.0.0     feng    2018/6/29  Create
 *********************************************************************/
 int8_t LogFileCreatePowOn(void)
-{
-    //creat  logfile dir;
+{    
     uint8_t File_Directory_U8[LOG_PATH_LENG] = {"/yaffs/REC_LOGGFLT/"}; //for logConFig file error
     GetConfigValue(File_Directory_U8);
     MultiDircCreate(File_Directory_U8);   
@@ -129,8 +128,7 @@ int8_t LogFileCreatePowOn(void)
 *note Para  can improve with Freesize
 *********************************************************************/
 static int8_t LogFileCreate(uint8_t *path)
-{ 
-    //FILE *fd;
+{    
     uint8_t File_LogName_U8[200] = {0};
     uint8_t TryNum = 0;
     int8_t err = 0;
@@ -143,8 +141,7 @@ static int8_t LogFileCreate(uint8_t *path)
     now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
     sprintf(TimeString_U8,"%04d%02d%02d",
           (1900 + now_time_p_ST->tm_year), 
-          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday); 
-         // 获取配置文件中各个配置项的值
+          (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday);          
 
     sprintf(File_LogName_U8,"%s%s_%s.txt",path,LOG_FILE_HEAD,TimeString_U8);
     if(s_LogFile_fd != NULL)
@@ -156,40 +153,36 @@ static int8_t LogFileCreate(uint8_t *path)
     if(s_LogFile_fd == NULL)
     {
         TryNum ++;
-        perror("creat log file failed");
-        /*!!!!! can not write LOG,for fopen failed */
+        perror("creat log file failed!"); 
+        while((TryNum > 0)&&(TryNum < FILETRY_NUM))
+        {
+            s_LogFile_fd = fopen(File_LogName_U8, "at+"); //every time creat the file and write replace   
+            if(NULL == s_LogFile_fd )
+            {
+                TryNum ++;
+                perror("creat log file failed again");
+            }
+            else
+            {
+                TryNum = 0;/*quit the while*/
+                printf("creat log file %s success \n",File_LogName_U8);
+                snprintf(loginfo, sizeof(loginfo)-1, "creat %s success ",File_LogName_U8);
+                WRITELOGFILE(LOG_INFO_1,loginfo); 
+                err = CODE_OK; 
+            }
+        }    
+        if(TryNum >= FILETRY_NUM)
+        {       
+            printf("creat log file failed");
+            err  = CODE_ERR;
+        }       
     }
     else
     {
-        printf("creat log file %s success \n",File_LogName_U8);
-        snprintf(loginfo, sizeof(loginfo)-1, "creat %s success ",File_LogName_U8);
+        printf("creat log file %s success\n",File_LogName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat %s success",File_LogName_U8);
         WRITELOGFILE(LOG_INFO_1,loginfo); 
         err = CODE_OK;
-    }
-    while((TryNum > 0)&&(TryNum < FILETRY_NUM))
-    {
-        s_LogFile_fd = fopen(File_LogName_U8, "at+"); //every time creat the file and write replace   
-        if(NULL == s_LogFile_fd )
-        {
-            TryNum ++;
-            perror("creat log file failed again");
-        }
-        else
-        {
-            TryNum = 0;/*quit the while*/
-            printf("creat log file %s success \n",File_LogName_U8);
-            snprintf(loginfo, sizeof(loginfo)-1, "creat %s success ",File_LogName_U8);
-            WRITELOGFILE(LOG_INFO_1,loginfo); 
-            err = CODE_OK;
- 
-        }
-
-    }
-    if(TryNum >= FILETRY_NUM)
-    {
-        
-        printf("creat log file failed");
-        err  = CODE_ERR;
     }
     return err;
 }
@@ -199,11 +192,9 @@ static int8_t LogFileCreate(uint8_t *path)
 int32_t VersionSave(VERSION * Ver_p)
 {
     char  LogContent[LOG_INFO_LENG] = {0};
-    // 先打印版本相关信息
+    
     snprintf(LogContent,sizeof(LogContent)-1, "Total_Ver %d,Linux_Ver %d,EADS_Ver %d, Build time[%s %s].",Ver_p -> Total_Ver_U16,
-    Ver_p -> Linux_Ver_U16,
-    Ver_p -> ECU_RunVer_U16,
-     __DATE__, __TIME__);
+    Ver_p -> Linux_Ver_U16,Ver_p -> ECU_RunVer_U16,__DATE__,__TIME__);
 
     WRITELOGFILE(LOG_INFO_1, LogContent);
     return CODE_OK; 
@@ -251,13 +242,11 @@ int8_t WriteLogFile(char *FileName, const char * Function, uint32_t CodeLine, ui
     if (inLogLevel > s_LogLevel)
     {
         return;
-    }
-    //printf("s_LogFile_fd %x \n",s_LogFile_fd);
+    }    
     // 写入日志时间
     GetTime(TimeStr);
     fputs(TimeStr,s_LogFile_fd);
     LogLevelInfo = LogLevel(inLogLevel);
-
     // 写入日志内容
     if (1 == s_LogShowLine)    // 在日志信息中显示"文件名/函数名/代码行数"信息
     {

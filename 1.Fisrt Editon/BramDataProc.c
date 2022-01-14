@@ -934,7 +934,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
     for(i=0;i<frames_num;i++)
     {            
         //clock_gettime(CLOCK_MONOTONIC,&begin_ts);
-        tv_select.tv_usec = 5000;
+        tv_select.tv_usec = 10000;
         FD_ZERO(&rfds);
         FD_SET(socket_fd,&rfds);
         ret = select(socket_fd+1,&rfds,NULL,NULL,&tv_select);

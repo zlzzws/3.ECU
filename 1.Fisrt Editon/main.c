@@ -23,7 +23,7 @@
 /***********************************************************************
 *Global Variable Declare Section*
 *********************************************************************/
-sem_t               g_RealSend_sem;
+
 DEBUG_TYPE_ENUM     g_DebugType_EU;
 EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};
 TRAIN_INFO          g_TrainInfo_ST = {0,0};
@@ -83,7 +83,8 @@ int main(int argc, char *argv[])
     uint8_t FifoErr = 0;
     uint16_t FifoWrTime = 0;
 	uint32_t EmmcTotalSizeMB_U32 = 0,EmmcFreeSizeMB_U32 = 0;     
-    char    ArgLogInfo[LOG_INFO_LENG] = {0};    
+    char    ArgLogInfo[LOG_INFO_LENG] = {0}; 
+    uint32_t number = 0;   
 
     LogFileCreatePowOn();
     
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
     
     while(1)
     {      
+        number++;
         if(1 == g_PowDebug)
         {
           PowDownFun();
@@ -197,10 +199,8 @@ int main(int argc, char *argv[])
                     printf("write %d to the FIFO\n",BinLife); 
                 }
             }              
-        }
-              
+        }              
     }
-
     memset(ArgLogInfo,0,LOG_INFO_LENG);
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
     WRITELOGFILE(LOG_ERROR_1,ArgLogInfo);    
@@ -233,13 +233,13 @@ void FuncUsage(void)
  */
 void ArgJudge(void)
 {
-    if( g_DebugType_EU >40)
+    if( g_DebugType_EU > 40)
     {
         g_DebugType_EU = 0;
     }
     if(g_PowDebug > 1)
     {
-        g_PowDebug = 0;
+        g_PowDebug = 1;
     }
 }
 
@@ -258,15 +258,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     int8_t res=0;
     int policy;
     struct sched_param param;
-    char loginfo[LOG_INFO_LENG] = {0};      
-     
-   /* res = sem_init(&g_RealSend_sem, 0, 0);
-    if (res != 0) 
-    {
-        perror("RealSend_sem Semaphore initialization failed");
-        snprintf(loginfo, sizeof(loginfo)-1, "RealSend_sem init failed");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }*/
+    char loginfo[LOG_INFO_LENG] = {0};
 
     res = pthread_rwlock_init(&g_PthreadLock_ST.BramDatalock,NULL);
     if(res != 0)
@@ -371,8 +363,7 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
 int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
 {
     void *thread_result;
-    int8_t res=0;
-    
+    int8_t res=0;    
     res = pthread_join(pthread_ST_p -> FileSaveThread, &thread_result);
     if (res == 0)
     {
@@ -381,8 +372,7 @@ int8_t  ThreadOff(FILE_FD * FileFd_p,PTHREAD_INFO  * pthread_ST_p)
     else 
     {
         perror("pthread_join FileSaveThread failed\n");           
-    }
-    sem_destroy(&g_RealSend_sem);    
+    }       
 }
 
 /**********************************************************************
@@ -404,19 +394,21 @@ int8_t PowDownFun(void)
     uint16_t i= 0;
     static uint8_t s_PowDownNum = 0;
     static uint8_t s_ClearPowNum = 0;
+    struct timespec begin_ts,end_ts;
 
     GPIO_PowDowRead(&PowDowIOValue);
 
     if(0 == PowDowIOValue)
-    {
+    {        
         s_PowDownNum++;
-        //if(s_PowDownNum > POWDOW_FILT)
-        {            
-           //if(0 == g_EADSErrInfo_ST.PowErr)
+        if(s_PowDownNum > POWDOW_FILT)
+        {                 
+           clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+           if(0 == g_EADSErrInfo_ST.PowErr)
             {
-                //g_EADSErrInfo_ST.PowErr = 1;
+                g_EADSErrInfo_ST.PowErr = 1;
                 printf("PowerOff happen,start sync File\n");
-				snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff happen , start sync File");
+				snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff happen,start sync File");
                 WRITELOGFILE(LOG_INFO_1,LogInfo);
 				LogFileSync();                
 
@@ -427,7 +419,6 @@ int8_t PowDownFun(void)
                     fsync(fd);
                     printf("finish evetfile sync\n");
                 }
-
                 if(NULL != g_FileFd_ST.EventBLVDS_fd)
                 {
                     fflush(g_FileFd_ST.EventBLVDS_fd);
@@ -435,12 +426,17 @@ int8_t PowDownFun(void)
                     fsync(fd);
                     printf("finish Blvds_evetfile sync\n");
                 }
-                 
-                snprintf(LogInfo, sizeof(LogInfo)-1,"PowerOff happen,sync File");
+                                 
+                snprintf(LogInfo, sizeof(LogInfo)-1,"PowerOff happen,sync File finish");
                 WRITELOGFILE(LOG_INFO_1,LogInfo);
                 LogFileSync();
                 printf("PowerOff happen,sync File finish\n");          
             }
+            clock_gettime(CLOCK_MONOTONIC,&end_ts);
+            if(g_DebugType_EU == TIME_DEBUG)
+            {
+                printf("Poweroff close file cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
+            }            
             s_PowDownNum = 0;          
         }
         s_ClearPowNum = 0;    
@@ -846,8 +842,7 @@ void *ModbusThreadFunc(void *arg)
     modbus_mapping_free(ModbusMap_p);
     free(ModbusQuery);
     pthread_exit(NULL);
-    printf("Modbus close\n");
-    
+    printf("Modbus close\n");    
 }
 
 /**********************************************************************
@@ -864,14 +859,13 @@ void *ModbusThreadFunc(void *arg)
 *********************************************************************/
 void *FileSaveThreaFunc(void *arg) 
 {   
-    uint8_t i = 0;
+    uint8_t i;
     int8_t event_fd_1;
     int8_t event_fd_2;
-    uint32_t Delayus_U32= 0;
-    TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};
-        
+    uint32_t Delayus_U32;
+    TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};        
     static uint32_t s_EventFileSaveNum_U32 = 0;   
-    struct timeval A_Time_ST,A_TimeEnd_ST;
+    
     printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
     Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//100ms
 	sleep(1);
@@ -882,46 +876,40 @@ void *FileSaveThreaFunc(void *arg)
         
         if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
         {                
-                printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
-                fflush(g_FileFd_ST.EventFile_fd);
-                event_fd_1 = fileno(g_FileFd_ST.EventFile_fd);
-                fsync(event_fd_1);
-                fclose(g_FileFd_ST.EventFile_fd);
-                g_FileFd_ST.EventFile_fd = NULL;
-                EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
-                s_EventFileSaveNum_U32 = 0;            
+            printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
+            fflush(g_FileFd_ST.EventFile_fd);
+            event_fd_1 = fileno(g_FileFd_ST.EventFile_fd);
+            fsync(event_fd_1);
+            fclose(g_FileFd_ST.EventFile_fd);
+            g_FileFd_ST.EventFile_fd = NULL;
+
+            fflush(g_FileFd_ST.EventBLVDS_fd);
+            event_fd_2 = fileno(g_FileFd_ST.EventBLVDS_fd);
+            fsync(event_fd_2);
+            fclose(g_FileFd_ST.EventBLVDS_fd);
+            g_FileFd_ST.EventBLVDS_fd = NULL;
+
+            EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
+            s_EventFileSaveNum_U32 = 0;            
         }
-		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM)) //5min
+		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM))/*1min*/
         {
 			fflush(g_FileFd_ST.EventFile_fd);
             event_fd_1 = fileno(g_FileFd_ST.EventFile_fd);
             fsync(event_fd_1);
-		}
-        
-        if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
-        {                
-                printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
-                fflush(g_FileFd_ST.EventFile_fd);
-                event_fd_2 = fileno(g_FileFd_ST.EventFile_fd);
-                fsync(event_fd_2);
-                fclose(g_FileFd_ST.EventFile_fd);
-                g_FileFd_ST.EventFile_fd = NULL;
-                EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
-                s_EventFileSaveNum_U32 = 0;            
-        }
-		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM)) //5min
-        {
-			fflush(g_FileFd_ST.EventFile_fd);
-            event_fd_2 = fileno(g_FileFd_ST.EventFile_fd);
+
+            fflush(g_FileFd_ST.EventBLVDS_fd);
+            event_fd_2 = fileno(g_FileFd_ST.EventBLVDS_fd);
             fsync(event_fd_2);
 		}
 
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
-        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);
-        s_EventFileSaveNum_U32++;
+        pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
 
-       BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
+        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
+        //TODO ADD MAX10 DATA STORE
+        s_EventFileSaveNum_U32++;
     }
     printf("exit FileSave thread\n");
     pthread_exit(NULL);      
@@ -940,12 +928,11 @@ void *FileSaveThreaFunc(void *arg)
 void *DirTarThreadFunc(void *arg) 
 {
     char loginfo[LOG_INFO_LENG] = {0};
-    sleep(10);/*when pow on have many chan oprt*/
+    sleep(10);
     printf("start DirTar thread\n");
     snprintf(loginfo, sizeof(loginfo)-1, "start DirTar thread");
     WRITELOGFILE(LOG_INFO_1,loginfo);
-
-    FileSpaceProc(&g_Rec_XML_ST);	
+    	
     DirFileTar(&g_Rec_XML_ST);
 
     printf("exit DirTar thread\n");
@@ -1048,8 +1035,7 @@ void *LEDPthreadFunc (void *arg)
 
         while (g_LifeFlag>0)
         {
-            /******LED*******/
-            #if 0
+            /******LED*******/            
             memcpy(&errtem,&g_EADSErrInfo_ST,1);
             if((!s_errledflag) && (errtem))/* happen VechWarm*/
             {
@@ -1060,13 +1046,10 @@ void *LEDPthreadFunc (void *arg)
             {
                 write(errledfd, "1", 2); //off
                 s_errledflag = 0;
-            }
-            #endif
-            write(lifeledfd,"0",2); //on
-            write(errledfd,"0",2); //on
+            }            
+            write(lifeledfd,"0",2); //on            
             usleep(led_period);
-            write(lifeledfd,"1",2);//off
-            write(errledfd,"1",2);//off
+            write(lifeledfd,"1",2);//off            
             usleep(led_period);
             /******************/
             #if 0
@@ -1192,7 +1175,7 @@ void *LEDPthreadFunc (void *arg)
             }
             Eth1ReceivePacksLastTime = Eth1ReceivePacks;
             Eth1TransmitPacksLastTime = Eth1TransmitPacks;
-            #endif
+        #endif
         }
     }
     close(errledfd);
@@ -1215,7 +1198,7 @@ void *LEDPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {     
-    #if 0
+    
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1302,7 +1285,7 @@ void *CAN0ThreadFunc(void *arg)
     }
     close(socket_can0);
     return 0;
-    #endif   
+       
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1316,7 +1299,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {   
-    #if 0
+    
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1405,7 +1388,7 @@ void *CAN1ThreadFunc(void *arg)
     }
     close(socket_can1);
     return 0;
-    #endif      
+         
 }
 
 /**********************************************************************
@@ -1420,7 +1403,7 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {
-    #if 0
+    
     int8_t  i,j;    
     uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
@@ -1460,5 +1443,5 @@ void *MVBThreadFunc(void *arg)
     }
     printf("exit MVBThreadFunc Function!\n");
     pthread_exit(NULL);
-    #endif      
+         
 }

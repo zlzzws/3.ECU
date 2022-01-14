@@ -44,7 +44,7 @@
 #define EVENT_SAVE_NUM 		60000 	// big than 65535,csr drive cannot export to excel
 #define OPERT_SAVE_TIME 	36000 	//* 1800s save fot test*/
 #define EVENT_MAX_NUM 		60000
-#define FILE_SYNC_NUM 		3000 	//for file sync
+#define FILE_SYNC_NUM 		600 	//for file sync
 #define Peri_FILE_SYNC_NUM 	50 
 #define POWOFF_SAVE_NUM 	10000
 #define DIGITAL_NUM_BYTE 	32  	

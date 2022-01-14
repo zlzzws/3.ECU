@@ -2235,90 +2235,30 @@ void FileSaveFunc(peripheralDevice Device_Type_enum,FILE **device_FP,uint8_t *da
 *REV1.0.0     feng    2020/6/29  Create
 *note Para  can improve with Freesize
 *********************************************************************/
-int8_t DirFileTar(RECORD_XML * RrdXml_p)
-{ 
-    //FILE *fd;
-    uint8_t File_EventName_U8[200] = {0};
-    uint8_t File_Directory_U8[200] = {0};
-    uint8_t TimeString_U8[40] = {0};
-    int8_t err = 0;
+int8_t DirFileTar(RECORD_XML *RrdXml_p)
+{      
     time_t timep_ST;   
     struct tm *now_time_p_ST;
+    uint8_t TimeString_U8[40] = {0}; 
     char loginfo[LOG_INFO_LENG] = {0};
+    uint8_t File_Directory_U8[200] = {0};
+    uint8_t File_BLVDS_Directory_U8[200] = {0};
 
     time(&timep_ST);
     now_time_p_ST = localtime(&timep_ST); /*change to the local time*/
     sprintf(TimeString_U8,"%04d%02d%02d%02d%02d%02d",
           (1900 + now_time_p_ST->tm_year), 
           (1 + now_time_p_ST->tm_mon), now_time_p_ST->tm_mday,
-          now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec); 
-        // add year month folder
-	
-	/*firsttar Realflt dir*/
-	memset(File_Directory_U8,0,sizeof(File_Directory_U8));
-	if(0 == g_LinuxDebug)
-	{
-		sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Real_ST.RecPath,TimeString_U8); 
-		
-	}
-	//for ubuntu linux test 
-	else
-	{
-		sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",TimeString_U8);//for ubuntu linux test	
-	} 		
-	/*first tar Realflt file*/
-	if(0 == g_LinuxDebug)
-	{
-		TarDir(RrdXml_p -> Rec_Real_ST.RecPath,File_Directory_U8);
-	}
-	else
-	{
-		TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALFLT/",File_Directory_U8);
-	}
-    /*senond tar event dir*/
+          now_time_p_ST->tm_hour, now_time_p_ST->tm_min, now_time_p_ST->tm_sec);   
+
     if(0 == g_LinuxDebug)
     {
-        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8); 
-   
+        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p->Rec_Event_ST.RecPath,TimeString_U8);
+        sprintf(File_BLVDS_Directory_U8,"%s%8.8s",BLVDS_EVENT_PATH,TimeString_U8);
+        TarDir(RrdXml_p->Rec_Event_ST.RecPath,File_Directory_U8);
+        TarDir(BLVDS_EVENT_PATH,File_BLVDS_Directory_U8);
     }
-    //for ubuntu linux test 
-    else
-    {
-        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",TimeString_U8);//for ubuntu linux test  
-   
-    }
-     /*senond tar event file*/
-    if(0 == g_LinuxDebug)
-    {
-        TarDir(RrdXml_p -> Rec_Event_ST.RecPath,File_Directory_U8);
-    }
-    else
-    {
-        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_EVTDATA/",File_Directory_U8);
-    }   
-    /*last RealOprt dir*/
-    memset(File_Directory_U8,0,sizeof(File_Directory_U8));
-     if(0 == g_LinuxDebug)
-    {
-        sprintf(File_Directory_U8,"%s%8.8s",OPRTFILE_DIR,TimeString_U8); 
-   
-    }
-    //for ubuntu linux test 
-    else
-    {
-        sprintf(File_Directory_U8,"%s%8.8s","/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",TimeString_U8);//for ubuntu linux test  
-   
-    }
-     /*last tar event file*/
-    if(0 == g_LinuxDebug)
-    {
-        TarDir(OPRTFILE_DIR,File_Directory_U8);
-    }
-    else
-    {
-        TarDir("/home/feng/Desktop/xilinx_code/yaffs/REC_REALOPRT/",File_Directory_U8);
-    }
-    return err;
+    return CODE_OK;
 }
 /**********************************************************************
 *Name     	  :   FileWriteWithTry
@@ -2586,19 +2526,19 @@ int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
 *REV1.0.0     feng    2020/6/29  Create
 *********************************************************************/
 int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
-{     
+{   
+    uint8_t TryNum = 0;
+    int8_t  err,err_1,err_2,err_3,err_4;
+    time_t  timep_ST;   
+    struct tm *now_time_p_ST;
+    char    loginfo[LOG_INFO_LENG] = {0};
+    uint8_t TimeString_U8[40] = {0};
     uint8_t File_EventName_U8[200] = {0};
     uint8_t File_BLVDS_EventName_U8[200] = {0};
     uint8_t File_Directory_U8[200] = {0};
-    uint8_t File_BLVDS_Directory_U8[200] = {0};
-    uint8_t TimeString_U8[40] = {0};
-    int8_t err = 0;
-    uint8_t TryNum = 0;
+    uint8_t File_BLVDS_Directory_U8[200] = {0};   
     uint32_t TotalSizeMB_U32_1 = 0,FreeSizeMB_U32_1 = 0;
-    uint32_t TotalSizeMB_U32_2 = 0,FreeSizeMB_U32_2 = 0;
-    time_t timep_ST;   
-    struct tm *now_time_p_ST;
-    char loginfo[LOG_INFO_LENG] = {0};
+    uint32_t TotalSizeMB_U32_2 = 0,FreeSizeMB_U32_2 = 0;    
     static uint8_t s_EventPowOnDataString[10] = {0};
 
     time(&timep_ST);
@@ -2610,15 +2550,15 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     if(0 == g_LinuxDebug)
     {
         sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8);
-        sprintf(File_Directory_U8,"%s%8.8s",BLVDS_EVENT_PATH,TimeString_U8); 
+        sprintf(File_BLVDS_Directory_U8,"%s%8.8s",BLVDS_EVENT_PATH,TimeString_U8); 
     } 
     /*machine power on or run into a new day*/
     if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
     {
-        //exclude the power-on condition
+        // if run into a new day,do the option below
         if(strlen(s_EventPowOnDataString) != 0) 
         {
-			FileSpaceProc(&g_Rec_XML_ST);//for new day
+			FileSpaceProc(&g_Rec_XML_ST);
 			LogFileCreatePowOn();
             printf("Go to a new day:Creat a new logfile!\n");
         }
@@ -2628,11 +2568,11 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             GetMemSize(RrdXml_p->Rec_Event_ST.RecPath,&TotalSizeMB_U32_1,&FreeSizeMB_U32_1);            
             if(FreeSizeMB_U32_1 < g_SpaceJudge_ST.EVENT_RESER_SPACE)
             {
-               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p->Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p->Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
                WRITELOGFILE(LOG_WARN_1,loginfo);
-
-			   err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
+                /*Judge the path is dir or file , 2 == file , 1 == dir*/
+			   err = FileDirJudge(RrdXml_p->Rec_Event_ST.RecPath);
 		       if(REC_FILE_TYPE == err)
 		       {
 		           DeleteEarliestFile(RrdXml_p -> Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
@@ -2649,8 +2589,8 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
                 snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",BLVDS_EVENT_PATH,FreeSizeMB_U32_2,g_SpaceJudge_ST.EVENT_RESER_SPACE);
                 WRITELOGFILE(LOG_WARN_1,loginfo);   
                 
-                err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
-		        if(REC_FILE_TYPE == err)
+                err = FileDirJudge(BLVDS_EVENT_PATH);
+		        if(REC_FILE_TYPE == err )
 		        {
 		           DeleteEarliestFile(BLVDS_EVENT_PATH,RECORD_FILE_TYPE);
 		        }
@@ -2677,16 +2617,16 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     }
 
     snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,\
-        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
+        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p->CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
     snprintf(File_BLVDS_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_BLVDS_Directory_U8,\
-        BLVDS_EVENT_FileName_head,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
+        BLVDS_EVENT_FileName_head,TranInfo_p->CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
 
     file_p->EventFile_fd = fopen(File_EventName_U8,"a+");
     file_p->EventBLVDS_fd = fopen(File_BLVDS_EventName_U8,"a+");
     if(NULL == file_p->EventFile_fd)
     {
         TryNum ++;
-        perror("creat Eventfile.dat file failed");
+        perror("creat Eventfile file failed");
         while(TryNum < FILETRY_NUM)
         {
             file_p->EventFile_fd = fopen(File_EventName_U8, "a+");   
@@ -2700,9 +2640,10 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
                 /*quit the cycle*/
                 TryNum = 0;
                 EADSErrInfo_ST -> EADSErr = 0;
-                printf("creat file %s success\n",File_EventName_U8);
-                snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
-                WRITELOGFILE(LOG_INFO_1,loginfo); 
+                printf("creat Eventfile %s success\n",File_EventName_U8);
+                snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile %s success!",File_EventName_U8);
+                WRITELOGFILE(LOG_INFO_1,loginfo);
+                err_1 = CODE_OK; 
                 break; 
             }
         }
@@ -2711,37 +2652,39 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             EADSErrInfo_ST -> EADSErr = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
-            err = CODE_ERR;            
+            err_1 = CODE_ERR;            
         }
     }
     else
     {
         EADSErrInfo_ST->EADSErr = 0;
-        printf("creat file %s success!\n",File_EventName_U8);
-        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
-        WRITELOGFILE(LOG_INFO_1,loginfo);        
+        printf("creat Eventfile %s success!\n",File_EventName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile %s success!",File_EventName_U8);
+        WRITELOGFILE(LOG_INFO_1,loginfo); 
+        err_1 = CODE_OK;       
     }
 
     if(NULL == file_p->EventBLVDS_fd)
     {
         TryNum ++;
-        perror("creat BLVDS_Eventfile file failed");
+        perror("creat BLVDS_Eventfile failed");
         while(TryNum < FILETRY_NUM)
         {
             file_p->EventBLVDS_fd = fopen(File_BLVDS_EventName_U8,"a+");   
             if(NULL == file_p->EventBLVDS_fd)
             {
                 TryNum ++;
-                perror("creat BLVDS_Eventfile File failed again");
+                perror("creat BLVDS_Eventfile failed again");
             }
             else
             {
                 /*quit the cycle*/
                 TryNum = 0;
                 EADSErrInfo_ST -> EADSErr = 0;
-                printf("creat file %s success\n",File_BLVDS_EventName_U8);
-                snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_BLVDS_EventName_U8);
-                WRITELOGFILE(LOG_INFO_1,loginfo); 
+                printf("creat BLVDS_Eventfile %s success\n",File_BLVDS_EventName_U8);
+                snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile %s success!",File_BLVDS_EventName_U8);
+                WRITELOGFILE(LOG_INFO_1,loginfo);
+                err_2 = CODE_OK; 
                 break; 
             }
         }
@@ -2750,19 +2693,27 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             EADSErrInfo_ST->EADSErr = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
-            err = CODE_ERR;            
+            err_2 = CODE_ERR;            
         }
     }
     else
     {
         EADSErrInfo_ST->EADSErr = 0;
-        printf("creat file %s success!\n",File_BLVDS_EventName_U8);
-        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_BLVDS_EventName_U8);
-        WRITELOGFILE(LOG_INFO_1,loginfo);        
+        printf("creat BLVDS_Eventfile %s success!\n",File_BLVDS_EventName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile %s success!",File_BLVDS_EventName_U8);
+        WRITELOGFILE(LOG_INFO_1,loginfo);
+        err_2 = CODE_OK;        
     }
-    err = EventFileTopSave(file_p->EventFile_fd,RrdXml_p,TranInfo_p);
-    err = EventFileTopSave(file_p->EventBLVDS_fd,RrdXml_p,TranInfo_p);
-    return err;
+    if(err_1 == 0)
+    {
+        err_3 = EventFileTopSave(file_p->EventFile_fd,RrdXml_p,TranInfo_p);
+    }
+    if(err_2 == 0)
+    {
+        err_4 = EventFileTopSave(file_p->EventBLVDS_fd,RrdXml_p,TranInfo_p);
+    }
+    
+    return err_1 || err_2 || err_3 || err_4 ;
 }
 
 /**********************************************************************

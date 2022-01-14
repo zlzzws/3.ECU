@@ -89,8 +89,7 @@ int8_t MultiDircCreate(uint8_t *DirPath)
 
     Len=strlen(DirPath);       
     strncpy(Str, DirPath, Len);
-    //此部分功能主要是旁段目录是否已经存在，避免创建文档报错
-    //只能创建日期之前的部分，比如/yaffs/REC_CAN/20210922,此部分功能只创建/yaffs/REC_CAN/
+
     if(access(Str,F_OK)!= 0) //如果目录不存在
     {
         for(i = 1; i<Len; i++ )//忽略第一个'/' 
@@ -612,31 +611,21 @@ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah)
     int8_t err = 0;
 	int16_t sysstatus = 1;
     uint8_t Len = 0;
-
     char loginfo[LOG_INFO_LENG] = {0};
-    Len=strlen(NowFilePah);     
-
-    // sprintf(SystemCmd,"cd %s",FilePath_p);/* /yaffs/REC_EVTDATA */
-    // printf("%s\n", SystemCmd);
-    // system(SystemCmd);
+    
+    Len=strlen(NowFilePah);
 
     if((DirOpenInfo_p = opendir(FilePath_p)) == NULL)
     {
-
         printf("cannot open dir %s\n",FilePath_p);
         snprintf(loginfo, sizeof(loginfo)-1, "cannot open dir %s\n",FilePath_p);
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         return CODE_ERR;
     }
-   // DirOpenInfo_p = opendir(FilePath_p);/* /datfile */
-
-    /*chdir(FilePath_p);*/ //chage the directory to FilePath,so FileFullName can not have FilePath_p
     while((DirInfo_p = readdir(DirOpenInfo_p))!=NULL) 
-    { 
-
+    {
         /*Skip the current directory and up directory*/
         memset(FileFullName,0,sizeof(FileFullName));
-       // sprintf(FileFullName,"%s",FilePath_p,DirInfo_p->d_name);/*  /yaffs/REC_EVTDATA */
         sprintf(FileFullName,"%s%s",FilePath_p,DirInfo_p->d_name);/*  /yaffs/REC_EVTDATA */
         memset(&FileStat,0,sizeof(struct stat));
         stat(FileFullName,&FileStat);/*get file infomation*/
@@ -646,11 +635,9 @@ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah)
         {
             if((0 == strcmp(DirInfo_p->d_name,".")) || (0 == strcmp(DirInfo_p->d_name,"..")) ||  (0 == strncmp(FileFullName, NowFilePah, Len))) /*the dir is today,so not tar */
             { 
-                continue;
-                       
-            }
-            //sprintf(SystemCmd,"tar zcvf %s.tar.gz %s",DirInfo_p->d_name,DirInfo_p->d_name);/* / //20180308 */
-            sprintf(SystemCmd,"tar zcvf %s.tar.gz -C %s %s",FileFullName,FilePath_p,DirInfo_p->d_name);/* / //20180308 */
+                continue;                       
+            }            
+            sprintf(SystemCmd,"tar zcvf %s.tar.gz -C %s %s",FileFullName,FilePath_p,DirInfo_p->d_name);
             printf("%s\n", SystemCmd);
 			snprintf(loginfo, sizeof(loginfo)-1,"tar dircmd  %s",SystemCmd);
             WRITELOGFILE(LOG_INFO_1,loginfo);
@@ -680,12 +667,9 @@ int8_t TarDir(uint8_t *FilePath_p,uint8_t * NowFilePah)
 				 printf("Donot Delete tar Dir:%s for sysytem failed\n",FileFullName);
 	             snprintf(loginfo, sizeof(loginfo)-1,"Donot  Delete tar Dir:%sfor sysytem  failed",FileFullName);
 	             WRITELOGFILE(LOG_ERROR_1,loginfo); 
-			}
-           
+			}           
         }  
     }
     closedir(DirOpenInfo_p);
-   // system("cd /");
-
     return CODE_OK;
 }
