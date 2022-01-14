@@ -186,7 +186,7 @@ int8_t GPIO_PowDowRead(uint8_t *value)
     {
         printf("gpio_PowDown GPIOValue %s\n",GPIOValueChar);
     }
-    *value = (GPIOValueChar[0] - 48);
+    *value = (GPIOValueChar[0] - 48); //(char-48) to uint    
     return CODE_OK;
 
 }

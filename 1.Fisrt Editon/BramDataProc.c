@@ -61,207 +61,6 @@ static uint8_t *s_bram_WR_TMS_SPCBlckAddr = NULL;
 static uint8_t *s_bram_RD_B_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_WR_B_BLVDSBlckAddr = NULL;
 
-/**********************************************************************
-*Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
-*Function       :   Extract the data of ReadData,without the CurrePackNum judge 提取数据
-*Para           :   uint32_t *Inbuff 
-*                   uint32_t *Outbuff
-*Return         :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2018/3/29  Create
-*REV1.0.1     feng    2020/8/26 note the diffrent board
-*REV1.0.2     feng    2021/2/26  when life lost,also extact data
-*********************************************************************/
-int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
-{
-    uint16_t PacketLength;
-    int8_t ErrorCode = 0;
-    static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};
-    BRAM_PACKET_DATA *BramPacketData_ST_p;
-    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-    
-    PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF)-12;
-
-	if(PacketLength > 0)
-    {
-        /*copy all data excpet TopPack and crc32*/
-        memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);          
-    }
-    else if (PacketLength == 0)
-    {
-        printf("Receive Bram PakcetLength equal to 12 , it means frame didn't include any data!\n");
-    }
-    else
-    {
-        printf("Invalid Bram PakcetLength ! PakcetLength must be greater than 12!\n");
-    }
-    	
-    if(BramPacketData_ST_p -> BLVDSReser_U32[0] == s_BramLife_U32[ChanNum])
-    {
-        ErrorCode = CODE_ERR; 
-    }
-    else 
-    {            
-        ErrorCode = CODE_OK;
-    }       
-    s_BramLife_U32[ChanNum] = BramPacketData_ST_p -> BLVDSReser_U32[0];
-    /*when power on,the read length is 0,should be wait bram fresh by FPGA*/
-    return ErrorCode;
-}
-/**********************************************************************
-*Name           :   BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
-*Function       :   Read the Bram data from the specified addr
-*Para           :   BRAM_ADDRS *BramAddrs_p
-*                   uint32_t *ReadData
-*Return         :   int8_t 0,success;else false.
-*Version        :   REV1.0.0       
-*Author         :   feng
-*History:
-*REV1.0.0     feng    2018/05/07  Create
-*********************************************************************/
-int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
-{
-    uint32_t ReadDataBuf[64] = {0};    
-    int8_t Error = 0;
-    char loginfo[LOG_INFO_LENG] = {0};    
-    
-    Error = BramReadWithChek(BramAddrs_p,ReadDataBuf);
-    if(Error == CODE_ERR)
-    {
-        printf("BramReadWithChek error\n");
-        snprintf(loginfo, sizeof(loginfo)-1,"BramReadWithChek error");
-        WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }
-    Error = ExtraBoardData(ReadDataBuf, ReadData, BramAddrs_p->ChanNum_U8);
-    return Error;
-}
-
-/**********************************************************************
-*Name           :   BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
-*Function       :   Extract the CMD data of ReadData,If the CurrPackNum is equal to the CurrPackNumTemp
-*                   meaning 570 has receiver success,otherwise is failure.
-*Para           :   uint32_t *Inbuff 
-*                   uint16_t TotalPackNum   The  total write packet number
-*                   uint16_t CurrPackNum    The current write packet number
-*Return         :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2018/3/29  Create
-*********************************************************************/
-BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
-{
-    
-    uint16_t TotalPackNumTemp = 0,CurrPackNumTemp = 0;
-    uint8_t UpDateTypeTemp = 0,UpDateStatTemp = 0,UpDateStat = 0;
-    BRAM_RETN_ENUM ErrorCode  = 0;
-    BRAM_PACKET_DATA *BramPacketData_ST_p;
-    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-
-    CurrPackNumTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] & 0xFFFF);
-    UpDateStatTemp =  (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 16) & 0xFF;
-    //UpDateTypeTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 24) & 0xFF;
-
-    UpDateStat =  (CMD_STATUS_ENUM)UpDateStatTemp;
-
-    /*check program update whether right*/
-    if(CurrPackNumTemp == CurrPackNum)
-    {
-        if(CMD_OK == UpDateStat)
-        {              
-            ErrorCode = RETURN_OK;
-            s_bram_WRRDErrNum_U32 = 0;
-        }
-        /*CRC error ,repeat write*/
-        else if(CMD_CRC_ERROR == UpDateStat)
-        {
-            ErrorCode = RETURN_CRC_ERROR;
-            s_bram_WRRDErrNum_U32 ++;
-        }
-        /*another error ,repeat write*/
-        else if(CMD_ERROR == UpDateStat) 
-        {
-            ErrorCode = RETURN_ERROR;
-            s_bram_WRRDErrNum_U32 ++;
-        }
-        else if (CMD_BUSY == UpDateStat)/*for max 10*/
-        {
-            ErrorCode = RETURN_BUSY;
-            s_bram_WRRDErrNum_U32 = 0; 
-        }
-        /*for reset the max10 program*/
-
-    }
-    else
-    {
-        ErrorCode = RETURN_ELSE_ERROR;
-        s_bram_WRRDErrNum_U32 ++;
-    }
-
-    return ErrorCode;
-}
-/**********************************************************************
-*Name           :   int8_t BramWriteAssigVal(uint16_t Length,uint32_t *Inbuf,
-*                   uint8_t ChanNum,uint16_t CurrPackNum,uint8_t CurrCMD,COMMU_MCU_ENUM TargeMCU)
-*                   
-*Function       :   AssigVal to Bram data
-*Para           :   uint16_t Length: data length no include frame top
-*               :   uint32_t *Inbuf: the data 
-*               :   uint8_t ChanNum: Write which Chan 
-*                   uint16_t CurrPackNum:
-*                   uint8_t CurrCMD :
-*                   COMMU_MCU_ENUM TargeMCU :MAX and TMS570
-*Return         :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2018/05/07  Create
-*********************************************************************/
-int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *Inbuf)
-{
-
-    uint16_t i = 0;
-    uint32_t TempCrcValue_U32;
-    uint32_t Framelen = 0;
-    uint32_t Temp32Value = 0;
-    //uint8_t TempBlockID_U8 = 0;
-    BRAM_PACKET_DATA *BramPacketData_ST_p;
-    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Outbuf;
-    
-    /*top */
-    if(CmdPact_p -> TargeMCU == TMS570_MCU)
-    {
-        Temp32Value = 0x11C2;
-    }
-    else if(CmdPact_p -> TargeMCU == MAX10_MCU)
-    {
-        Temp32Value = 0x1144;
-    }
-    else
-    {
-        Temp32Value = 0x0;
-    }
-    /*ChanNum is occupy 6 bit */
-    Temp32Value += ((CmdPact_p -> ChanNum_U8) << 18);
-    Framelen = ((CmdPact_p -> PacktLength_U32) + BRAM_PCKT_TOP_LNGTH_U32) * 4;
-    Temp32Value += (Framelen << 24);
-    BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;
-
-    BramPacketData_ST_p -> BLVDSReser_U32[0] = 0;
-    Temp32Value =  CmdPact_p -> BlockNum_U16;
-    Temp32Value += ((CmdPact_p -> PacktCMD_U8) << 24);
-    BramPacketData_ST_p -> BLVDSReser_U32[1] = Temp32Value;
-    /*data, memcp uinit is byte,so the lenth is Length*4*/
-    memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,(CmdPact_p -> PacktLength_U32) * 4); 
-    TempCrcValue_U32 = Crc32CalU32Bit(Outbuf,(CmdPact_p -> PacktLength_U32) + BRAM_PCKT_TOP_LNGTH_U32);
-    /*small end*/
-    /*crc*/
-    BramPacketData_ST_p -> BLVDSData_U32[CmdPact_p -> PacktLength_U32]= TempCrcValue_U32;
-    //printf("Write CrcValue_U32 %x\n",TempCrcValue_U32); 
-    return CODE_OK;
-}
 
 /**
  * @description: Bram内存映射
@@ -532,65 +331,268 @@ int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)
     }
     return ReadErr;
 }
-#if 0
+
+/**********************************************************************
+*Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
+*Function       :   Extract the data of ReadData,without the CurrePackNum judge 提取数据
+*Para           :   uint32_t *Inbuff 
+*                   uint32_t *Outbuff
+*Return         :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2018/3/29  Create
+*REV1.0.1     feng    2020/8/26 note the diffrent board
+*REV1.0.2     feng    2021/2/26  when life lost,also extact data
+*********************************************************************/
+int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
+{
+    uint16_t PacketLength;
+    int8_t ErrorCode = 0;
+    static uint32_t s_BramLife_U32[BRAM_BOARD_NUM] = {0};
+    BRAM_PACKET_DATA *BramPacketData_ST_p;
+    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
+    
+    PacketLength = ((BramPacketData_ST_p -> BLVDSTOP_U32 >> 24) & 0xFF);
+    if(g_DebugType_EU == BRAM_RD_DEBUG)
+    {
+        printf("Package Length:%d\n",PacketLength);
+    }
+
+    if (PacketLength == 0)
+    {
+        printf("Receive Bram PakcetLength IS 0 , it means frame didn't include any data!\n");
+        return CODE_ERR;
+    }
+    else if(PacketLength > 12)
+    {   /*copy all data excpet TopPack and crc32*/
+        PacketLength -= 12;       
+        memcpy(Outbuff,&BramPacketData_ST_p->BLVDSData_U32,PacketLength);         
+    }
+    else
+    {
+        printf("Invalid Bram PakcetLength ! PakcetLength must be greater than 12!\n");
+    }
+    	
+    if(BramPacketData_ST_p -> BLVDSReser_U32[0] == s_BramLife_U32[ChanNum])
+    {
+        ErrorCode = CODE_ERR; 
+    }
+    else 
+    {            
+        ErrorCode = CODE_OK;
+    }       
+    s_BramLife_U32[ChanNum] = BramPacketData_ST_p -> BLVDSReser_U32[0];
+    /*when power on,the read length is 0,should be wait bram fresh by FPGA*/
+    return ErrorCode;
+}
+/**********************************************************************
+*Name           :   BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
+*Function       :   Read the Bram data from the specified addr
+*Para           :   BRAM_ADDRS *BramAddrs_p
+*                   uint32_t *ReadData
+*Return         :   int8_t 0,success;else false.
+*Version        :   REV1.0.0       
+*Author         :   feng
+*History:
+*REV1.0.0     feng    2018/05/07  Create
+*********************************************************************/
+int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
+{
+    uint32_t ReadDataBuf[64] = {0};    
+    int8_t Error = 0;
+    char loginfo[LOG_INFO_LENG] = {0};    
+    
+    Error = BramReadWithChek(BramAddrs_p,ReadDataBuf);
+    if(Error == CODE_ERR)
+    {
+        printf("BramReadWithChek error\n");
+        snprintf(loginfo, sizeof(loginfo)-1,"BramReadWithChek error");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }    
+    Error = ExtraBoardData(ReadDataBuf,ReadData,BramAddrs_p->ChanNum_U8);
+    return Error;
+}
+
+/**********************************************************************
+*Name           :   BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
+*Function       :   Extract the CMD data of ReadData,If the CurrPackNum is equal to the CurrPackNumTemp
+*                   meaning 570 has receiver success,otherwise is failure.
+*Para           :   uint32_t *Inbuff 
+*                   uint16_t TotalPackNum   The  total write packet number
+*                   uint16_t CurrPackNum    The current write packet number
+*Return         :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2018/3/29  Create
+*********************************************************************/
+BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
+{
+    
+    uint16_t TotalPackNumTemp = 0,CurrPackNumTemp = 0;
+    uint8_t UpDateTypeTemp = 0,UpDateStatTemp = 0,UpDateStat = 0;
+    BRAM_RETN_ENUM ErrorCode  = 0;
+    BRAM_PACKET_DATA *BramPacketData_ST_p;
+    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
+
+    CurrPackNumTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] & 0xFFFF);
+    UpDateStatTemp =  (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 16) & 0xFF;
+    //UpDateTypeTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 24) & 0xFF;
+
+    UpDateStat =  (CMD_STATUS_ENUM)UpDateStatTemp;
+
+    /*check program update whether right*/
+    if(CurrPackNumTemp == CurrPackNum)
+    {
+        if(CMD_OK == UpDateStat)
+        {              
+            ErrorCode = RETURN_OK;
+            s_bram_WRRDErrNum_U32 = 0;
+        }
+        /*CRC error ,repeat write*/
+        else if(CMD_CRC_ERROR == UpDateStat)
+        {
+            ErrorCode = RETURN_CRC_ERROR;
+            s_bram_WRRDErrNum_U32 ++;
+        }
+        /*another error ,repeat write*/
+        else if(CMD_ERROR == UpDateStat) 
+        {
+            ErrorCode = RETURN_ERROR;
+            s_bram_WRRDErrNum_U32 ++;
+        }
+        else if (CMD_BUSY == UpDateStat)/*for max 10*/
+        {
+            ErrorCode = RETURN_BUSY;
+            s_bram_WRRDErrNum_U32 = 0; 
+        }
+        /*for reset the max10 program*/
+
+    }
+    else
+    {
+        ErrorCode = RETURN_ELSE_ERROR;
+        s_bram_WRRDErrNum_U32 ++;
+    }
+
+    return ErrorCode;
+}
+/**********************************************************************
+*Name           :   int8_t BramWriteAssigVal(uint16_t Length,uint32_t *Inbuf,
+*                   uint8_t ChanNum,uint16_t CurrPackNum,uint8_t CurrCMD,COMMU_MCU_ENUM TargeMCU)
+*                   
+*Function       :   AssigVal to Bram data
+*Para           :   uint16_t Length: data length no include frame top
+*               :   uint32_t *Inbuf: the data 
+*               :   uint8_t ChanNum: Write which Chan 
+*                   uint16_t CurrPackNum:
+*                   uint8_t CurrCMD :
+*                   COMMU_MCU_ENUM TargeMCU :MAX and TMS570
+*Return         :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*History:
+*REV1.0.0     feng    2018/05/07  Create
+*********************************************************************/
+int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *Inbuf)
+{
+
+    uint16_t i = 0;
+    uint32_t TempCrcValue_U32;
+    uint32_t Framelen = 0;
+    uint32_t Temp32Value = 0;
+    //uint8_t TempBlockID_U8 = 0;
+    BRAM_PACKET_DATA *BramPacketData_ST_p;
+    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Outbuf;
+    
+    /*top */
+    if(CmdPact_p -> TargeMCU == TMS570_MCU)
+    {
+        Temp32Value = 0x11C2;
+    }
+    else if(CmdPact_p -> TargeMCU == MAX10_MCU)
+    {
+        Temp32Value = 0x1144;
+    }
+    else
+    {
+        Temp32Value = 0x0;
+    }
+    /*ChanNum is occupy 6 bit */
+    Temp32Value += ((CmdPact_p -> ChanNum_U8) << 18);
+    Framelen = ((CmdPact_p -> PacktLength_U32) + BRAM_PCKT_TOP_LNGTH_U32) * 4;
+    Temp32Value += (Framelen << 24);
+    BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;
+
+    BramPacketData_ST_p -> BLVDSReser_U32[0] = 0;
+    Temp32Value =  CmdPact_p -> BlockNum_U16;
+    Temp32Value += ((CmdPact_p -> PacktCMD_U8) << 24);
+    BramPacketData_ST_p -> BLVDSReser_U32[1] = Temp32Value;
+    /*data, memcp uinit is byte,so the lenth is Length*4*/
+    memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,(CmdPact_p -> PacktLength_U32) * 4); 
+    TempCrcValue_U32 = Crc32CalU32Bit(Outbuf,(CmdPact_p -> PacktLength_U32) + BRAM_PCKT_TOP_LNGTH_U32);
+    /*small end*/
+    /*crc*/
+    BramPacketData_ST_p -> BLVDSData_U32[CmdPact_p -> PacktLength_U32]= TempCrcValue_U32;
+    //printf("Write CrcValue_U32 %x\n",TempCrcValue_U32); 
+    return CODE_OK;
+}
+
+
+
 /**
  * @description: BLVDS数据读取线程功能
  * @param {uint8_t} ReadNum_U8
  * @param {uint8_t} EADSType
  * @param {EADS_ERROR_INFO *} EADSErrInfop
- * @return {*}
+ * @return ReadErr
  * @author: zlz
  */
-int8_t BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_INFO * EADSErrInfop) 
+int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErrInfop) 
 {
-
     int8_t ReadErr = 0;
     char loginfo[LOG_INFO_LENG] = {0};
-    static uint8_t s_ADUDataErrFlag = 0;
-    static uint8_t s_CTUDataErrFlag = 0;
-    static uint8_t s_ADUDataErrNum  = 0;
-    static uint8_t s_CTUDataErrNum  = 0;
-    if(BRAM_DEBUG == g_DebugType_EU)
+    static uint8_t ErrFlag = 0;    
+    static uint8_t ErrNum  = 0;    
+
+    s_Bram_A_BLVDSBlckAddr_ST.DataU32Length = 20 ;
+    s_Bram_A_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
+    if(0 == g_LinuxDebug)
     {
-        printf("Read ADU_BOARD BLVDS[%d]:\n",ReadNum_U8);
-    }
-    s_Bram_A_BLVDSBlckAddr_ST.DataU32Length = BRAM_LENGTH_U32 ;
-    s_Bram_A_BLVDSBlckAddr_ST.ChanNum_U8 = ADU_BOARD_ID;
-    if(0 == g_LinuxDebug)//for zynq linux Running
-    {
-        ReadErr = BoardDataRead(&s_Bram_A_BLVDSBlckAddr_ST,&g_BrdRdBufData_ST.Board0_Data_U32[ReadNum_U8][0]);
+        ReadErr = BoardDataRead(&s_Bram_A_BLVDSBlckAddr_ST,bram_rd_data->buffer);
         if(CODE_ERR == ReadErr) 
         {
-            s_ADUDataErrNum++;  
-            if(s_ADUDataErrNum > BRAMERR_NUM) 
+            ErrNum++;  
+            if(ErrNum > BRAMERR_NUM) 
             {
-                if(0 == s_ADUDataErrFlag)
+                if(0 == ErrFlag)
                 {
                     EADSErrInfop -> BLVDSErr = 1; 
-                    s_ADUDataErrFlag = 1;
-                    printf("ADU_BOARD Bram data read err!\n");
-                    snprintf(loginfo, sizeof(loginfo)-1, "ADU_BOARD Bram data read err!");
+                    ErrFlag = 1;
+                    printf("Bram Blvds data read err!\n");
+                    snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data read err!");
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
                 }
-                s_ADUDataErrNum = 0;
+                ErrNum = 0;
             }
         }
         else if(CODE_OK == ReadErr) 
         {
-            s_ADUDataErrNum = 0;
-            if(1 == s_ADUDataErrFlag)
+            ErrNum = 0;
+            if(1 == ErrFlag)
             {
                 EADSErrInfop -> BLVDSErr = 0;
-                s_ADUDataErrFlag = 0;
-                printf("ADU_BOARD Bram data return to normal!\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "ADU_BOARD Bram data return to normal!");
+                ErrFlag = 0;
+                printf("Bram Blvds data return to normal!\n");
+                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data return to normal!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);   
             }
         }
     }     
     return ReadErr;
 }
-#endif
+
 /**
  * @description: just for this page can program use!(pay attention "static")
  * @param:       void life_data,void *life_lasttime,uint8_t *errnum

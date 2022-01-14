@@ -97,51 +97,43 @@
 #define COACH4 4
 #define COACH16 16
 #define COACHZP 5
+
 #define ADU_BOARD_ID 0
 #define CTU_BOARD_ID 1
-#define CAN_CHAN 8
+#define BLVDS_MAX10_CHAN 1
 
+#define CAN_CHAN 8
 #define ALL_CHAN_NUM 80  /*for File save*/
 #define peri_WriteSize 16
 #define MAX_RealWave_Num 40
 #define CURR_CHAN_NUM 14
 #define VOL_CHAN_NUM  40
-
 #define  CODE_CREAT  2
 #define  CODE_EXIST  1
 #define  CODE_OK  0
 #define  CODE_ERR -1
 #define  CODE_WARN  -2
-
 #define VOL_STATUE_NUM  5
 #define CURR_STATUE_NUM  2
 #define FPGA_TIME_BYTE  20
-
-//20200326
 /*ADC data Trans Type*/
 #define NORMTRANTYPE 0
 #define CALIBTRANTYPE 1
-
-#define DIGT_JUDGE_NUM  100 /*3s,loop is 30ms*/
-#define CH_DIGT_JUDGE_NUM  500 /*500ms,loop is 50ms(base the DIGIT_PRO_TIME),for channel over curr and over voltage,*/
-
+#define DIGT_JUDGE_NUM  100 	/*3s,loop is 30ms*/
+#define CH_DIGT_JUDGE_NUM  500 	/*500ms,loop is 50ms(base the DIGIT_PRO_TIME),for channel over curr and over voltage,*/
 #define ADCVOLT_110V 1100
 #define ADCVOLT_0V 0
-
-#define POWDOW_FILT 10 /*filte the powdown io sign*/
-
-#define FILE_CREAT_FLAG 2 /*mean fltreal file oprtreal file have creat*/
-#define FILE_FLT_FLAG 1 /*mean fltreal file oprtreal file have creat*/
-
+#define POWDOW_FILT 10 		/*filte the powdown io sign*/
+#define FILE_CREAT_FLAG 2 	/*mean fltreal file oprtreal file have creat*/
+#define FILE_FLT_FLAG 1 	/*mean fltreal file oprtreal file have creat*/
 #define FILETRY_NUM 3 
 #define TRDPTRY_NUM 5
-
-#define LOG_FILE_TYPE 1 /*for log file delete*/
-#define RECORD_FILE_TYPE 2 /*for drive record file */
-
+#define LOG_FILE_TYPE 1 	/*for log file delete*/
+#define RECORD_FILE_TYPE 2 	/*for drive record file */
 #define PHY_COPPER_CONTRL_REG 0
 #define PHY_COPPER_STATUS_REG 1
 #define PHY_COPPER_CONTRL_REG_OK 0x2100
+#define FIFO_FILE "/tmp/FIFO"
 /***********************************************************************
 *Global Struct Define Section*
 *********************************************************************/
@@ -454,13 +446,7 @@ typedef struct
 typedef struct
 {
 	FILE *EventFile_fd;
-	FILE *EventLifeFile_fd;
-	FILE *OprtNumFile_fd;
-	FILE *OprtRealFile_fd;
-	FILE *FltRealFile_fd;
-	FILE *CalibFile_fd;
-	FILE *CANFile_fd;
-	FILE *UARTFile_fd;
+	FILE *EventBLVDS_fd;
 }FILE_FD;
 
 typedef struct

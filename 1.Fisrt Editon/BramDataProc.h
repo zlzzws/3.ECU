@@ -66,11 +66,10 @@ typedef struct
 /***********************************************************************
 *Global Prototype Declare Section*
 *********************************************************************/
-int8_t 	BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData);
-int8_t 	BLVDSDataReadThreadFunc(uint8_t ReadNum_U8,uint8_t EADSType,EADS_ERROR_INFO * EADSErrInfop);
-int8_t 	SetTimeFromRTC(BRAM_ADDRS *RDSpcBlk_p,BRAM_ADDRS *WRSpcBlk_p);
-int8_t 	BramCloseMap(void);
 int8_t 	Bram_Mapping_Init(EADS_ERROR_INFO * EADSErrInfop);
+int8_t 	BramCloseMap(void);
+int8_t 	BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData);
+int8_t  BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErrInfop);
 void 	CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candata_WR,uint8_t can_devtype);
 int8_t 	CAN_Write_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num,uint8_t dev_type);
 int8_t 	CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t frames_num,uint8_t dev_type);

@@ -2588,11 +2588,14 @@ int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
 int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
 {     
     uint8_t File_EventName_U8[200] = {0};
+    uint8_t File_BLVDS_EventName_U8[200] = {0};
     uint8_t File_Directory_U8[200] = {0};
+    uint8_t File_BLVDS_Directory_U8[200] = {0};
     uint8_t TimeString_U8[40] = {0};
     int8_t err = 0;
     uint8_t TryNum = 0;
-    uint32_t TotalSizeMB_U32 = 0,FreeSizeMB_U32 = 0;
+    uint32_t TotalSizeMB_U32_1 = 0,FreeSizeMB_U32_1 = 0;
+    uint32_t TotalSizeMB_U32_2 = 0,FreeSizeMB_U32_2 = 0;
     time_t timep_ST;   
     struct tm *now_time_p_ST;
     char loginfo[LOG_INFO_LENG] = {0};
@@ -2606,9 +2609,10 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
         
     if(0 == g_LinuxDebug)
     {
-        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8);   
+        sprintf(File_Directory_U8,"%s%8.8s",RrdXml_p-> Rec_Event_ST.RecPath,TimeString_U8);
+        sprintf(File_Directory_U8,"%s%8.8s",BLVDS_EVENT_PATH,TimeString_U8); 
     } 
-    /*machine run into a new day*/
+    /*machine power on or run into a new day*/
     if(strncmp(s_EventPowOnDataString,TimeString_U8,8) < 0)
     {
         //exclude the power-on condition
@@ -2616,28 +2620,44 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
         {
 			FileSpaceProc(&g_Rec_XML_ST);//for new day
 			LogFileCreatePowOn();
-            printf("after LogFileCreatePowOn\n");
+            printf("Go to a new day:Creat a new logfile!\n");
         }
         memcpy(s_EventPowOnDataString,TimeString_U8,8);
         if(0 == g_LinuxDebug)
         {
-            GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-            if(FreeSizeMB_U32 < g_SpaceJudge_ST.EVENT_RESER_SPACE)//whether alway delete until the size is meet the size 
+            GetMemSize(RrdXml_p->Rec_Event_ST.RecPath,&TotalSizeMB_U32_1,&FreeSizeMB_U32_1);            
+            if(FreeSizeMB_U32_1 < g_SpaceJudge_ST.EVENT_RESER_SPACE)
             {
-               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               printf("%s free %uMB,Rrq %uMB \n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+               snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32_1,g_SpaceJudge_ST.EVENT_RESER_SPACE);
                WRITELOGFILE(LOG_WARN_1,loginfo);
+
 			   err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
 		       if(REC_FILE_TYPE == err)
 		       {
 		           DeleteEarliestFile(RrdXml_p -> Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
-
 		       }
 		       else if(REC_DIR_TYPE == err)
 		       {
 		           DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
-
 		       }
+            }
+            GetMemSize(BLVDS_EVENT_PATH,&TotalSizeMB_U32_2,&FreeSizeMB_U32_2);
+            if(FreeSizeMB_U32_2 < g_SpaceJudge_ST.EVENT_RESER_SPACE )            
+            {               	
+                printf("%s free %uMB,Rrq %uMB \n",BLVDS_EVENT_PATH,FreeSizeMB_U32_2,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+                snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",BLVDS_EVENT_PATH,FreeSizeMB_U32_2,g_SpaceJudge_ST.EVENT_RESER_SPACE);
+                WRITELOGFILE(LOG_WARN_1,loginfo);   
+                
+                err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
+		        if(REC_FILE_TYPE == err)
+		        {
+		           DeleteEarliestFile(BLVDS_EVENT_PATH,RECORD_FILE_TYPE);
+		        }
+		        else if(REC_DIR_TYPE == err)
+		        {
+		           DeleteEarliestDir(BLVDS_EVENT_PATH);
+		        }
             }
         }
         err = MultiDircCreate(File_Directory_U8);
@@ -2647,29 +2667,40 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             snprintf(loginfo, sizeof(loginfo)-1, "make Dir %s success",File_Directory_U8);
             WRITELOGFILE(LOG_INFO_1,loginfo); 
         }
+        err = MultiDircCreate(File_BLVDS_Directory_U8);
+        if(CODE_CREAT == err)
+        {
+            memset(loginfo,0,sizeof(loginfo));
+            snprintf(loginfo, sizeof(loginfo)-1, "make Dir %s success",File_BLVDS_Directory_U8);
+            WRITELOGFILE(LOG_INFO_1,loginfo); 
+        }
     }
-    snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,
-        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
 
-    file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");
-    if(NULL ==  file_p ->EventFile_fd)
+    snprintf(File_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_Directory_U8,\
+        RrdXml_p->Rec_Event_ST.RecFileHead,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
+    snprintf(File_BLVDS_EventName_U8,sizeof(File_EventName_U8),"%s/%s%02d_%8.8s-%s.dat",File_BLVDS_Directory_U8,\
+        BLVDS_EVENT_FileName_head,TranInfo_p -> CoachNum_U8,TimeString_U8,&TimeString_U8[8]);
+
+    file_p->EventFile_fd = fopen(File_EventName_U8,"a+");
+    file_p->EventBLVDS_fd = fopen(File_BLVDS_EventName_U8,"a+");
+    if(NULL == file_p->EventFile_fd)
     {
         TryNum ++;
         perror("creat Eventfile.dat file failed");
         while(TryNum < FILETRY_NUM)
         {
-            file_p -> EventFile_fd = fopen(File_EventName_U8, "a+");   
-            if(NULL ==  file_p -> EventFile_fd )
+            file_p->EventFile_fd = fopen(File_EventName_U8, "a+");   
+            if(NULL ==  file_p->EventFile_fd )
             {
                 TryNum ++;
-                perror("creat Eventfile.dat File failed again");
+                perror("creat Eventfile File failed again");
             }
             else
             {
                 /*quit the cycle*/
                 TryNum = 0;
                 EADSErrInfo_ST -> EADSErr = 0;
-                printf("creat file %s\n",File_EventName_U8);
+                printf("creat file %s success\n",File_EventName_U8);
                 snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
                 WRITELOGFILE(LOG_INFO_1,loginfo); 
                 break; 
@@ -2680,20 +2711,58 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             EADSErrInfo_ST -> EADSErr = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
-            err = CODE_ERR;
-            return err;
+            err = CODE_ERR;            
         }
     }
     else
     {
-        EADSErrInfo_ST -> EADSErr = 0;
+        EADSErrInfo_ST->EADSErr = 0;
         printf("creat file %s success!\n",File_EventName_U8);
         snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_EventName_U8);
         WRITELOGFILE(LOG_INFO_1,loginfo);        
     }
-    err = EventFileTopSave(file_p ->EventFile_fd,RrdXml_p,TranInfo_p);
-    return err;
 
+    if(NULL == file_p->EventBLVDS_fd)
+    {
+        TryNum ++;
+        perror("creat BLVDS_Eventfile file failed");
+        while(TryNum < FILETRY_NUM)
+        {
+            file_p->EventBLVDS_fd = fopen(File_BLVDS_EventName_U8,"a+");   
+            if(NULL == file_p->EventBLVDS_fd)
+            {
+                TryNum ++;
+                perror("creat BLVDS_Eventfile File failed again");
+            }
+            else
+            {
+                /*quit the cycle*/
+                TryNum = 0;
+                EADSErrInfo_ST -> EADSErr = 0;
+                printf("creat file %s success\n",File_BLVDS_EventName_U8);
+                snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_BLVDS_EventName_U8);
+                WRITELOGFILE(LOG_INFO_1,loginfo); 
+                break; 
+            }
+        }
+        if(TryNum >= FILETRY_NUM)
+        {        
+            EADSErrInfo_ST->EADSErr = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;            
+        }
+    }
+    else
+    {
+        EADSErrInfo_ST->EADSErr = 0;
+        printf("creat file %s success!\n",File_BLVDS_EventName_U8);
+        snprintf(loginfo, sizeof(loginfo)-1, "creat file %s success!",File_BLVDS_EventName_U8);
+        WRITELOGFILE(LOG_INFO_1,loginfo);        
+    }
+    err = EventFileTopSave(file_p->EventFile_fd,RrdXml_p,TranInfo_p);
+    err = EventFileTopSave(file_p->EventBLVDS_fd,RrdXml_p,TranInfo_p);
+    return err;
 }
 
 /**********************************************************************

@@ -32,8 +32,7 @@
 *Include File Section
 *
 *********************************************************************/
-#include <sys/vfs.h>  
-#include "ModifConfig.h"
+#include <sys/vfs.h>
 #include "Crc.h"
 #include "xml.h"
 #include "DircMng.h"
@@ -52,6 +51,8 @@
 #define ANOLOG_NUM_BYTE 	160
 #define OPRTFILE_DIR       "/yaffs/REC_REALOPRT/" 
 #define OPRTFILE_HEAD       "REC_OPRT_" 
+#define BLVDS_EVENT_PATH   "/yaffs/REC_BLVDS_EVTDATA/"
+#define BLVDS_EVENT_FileName_head "REC_BLVDS_EVTDATA_"
 /***********************************************************************
 *Global Struct Define Section*
 *********************************************************************/
