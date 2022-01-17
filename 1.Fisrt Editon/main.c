@@ -1197,8 +1197,7 @@ void *LEDPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{     
-    
+{  
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1276,12 +1275,11 @@ void *CAN0ThreadFunc(void *arg)
         CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
         /*time test*/
         clock_gettime(CLOCK_MONOTONIC,&end_ts);
+        usleep(50000);
         if(g_DebugType_EU == TIME_DEBUG)
         {
-            printf("SigleCycle-can1 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
-        }       
-
-        usleep(100000);
+            printf("SigleCycle-can0 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
+        } 
     }
     close(socket_can0);
     return 0;
@@ -1343,7 +1341,7 @@ void *CAN1ThreadFunc(void *arg)
     memcpy(&s_tms570_bram_WR_data_ch12_st.buffer[0],testbuff,32);
     while(g_LifeFlag>0)
     {
-        //clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+        clock_gettime(CLOCK_MONOTONIC,&begin_ts);
         tv_select.tv_usec = 100000;
         FD_ZERO(&rfds);
         FD_SET(socket_can1,&rfds);
@@ -1378,13 +1376,12 @@ void *CAN1ThreadFunc(void *arg)
         CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
         /*time test*/
-        //clock_gettime(CLOCK_MONOTONIC,&end_ts);
+        clock_gettime(CLOCK_MONOTONIC,&end_ts);        
+        usleep(50000);
         if(g_DebugType_EU == TIME_DEBUG)
         {
             printf("SigleCycle-can1 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);  
         }
-        
-        usleep(100000);
     }
     close(socket_can1);
     return 0;

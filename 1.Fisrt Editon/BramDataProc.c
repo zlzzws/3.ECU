@@ -927,14 +927,15 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
     uint8_t i,j,nbytes,ret;
     static uint8_t errnum_rd = 0;
     uint8_t errnum_timeout=0;
+    uint8_t lasttime_timeout;
     char loginfo[LOG_INFO_LENG]={0};
     fd_set rfds={0};
     struct timeval tv_select={0};    
 
     for(i=0;i<frames_num;i++)
     {            
-        //clock_gettime(CLOCK_MONOTONIC,&begin_ts);
-        tv_select.tv_usec = 10000;
+        clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+        tv_select.tv_usec = 50000;
         FD_ZERO(&rfds);
         FD_SET(socket_fd,&rfds);
         ret = select(socket_fd+1,&rfds,NULL,NULL,&tv_select);
@@ -944,7 +945,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
             if(nbytes != sizeof(can_frame_data[i]))
             {                
                 printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
-                memset(can_frame_data[i].data,0,8);
+                memset(can_frame_data[i].data,0,8);//TODO Really need to memset to 0?                
                 errnum_rd++;
                 if(errnum_rd >=10)
                 {
@@ -979,7 +980,12 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
                 printf("\n");
             }                                                 
         }
-        //clock_gettime(CLOCK_MONOTONIC,&end_ts);            
+        clock_gettime(CLOCK_MONOTONIC,&end_ts);
+        if(errnum_timeout - lasttime_timeout == 1 )
+        {
+            printf("can%d read frame[%d] cost_time:%ld(us)\n",dev_type,i,1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
+        }    
+        lasttime_timeout =  errnum_timeout;       
     }
     return CODE_OK;    
 }
