@@ -1203,8 +1203,7 @@ void *LEDPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{   
-    #if 0
+{    
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1289,8 +1288,7 @@ void *CAN0ThreadFunc(void *arg)
         } 
     }
     close(socket_can0);
-    return 0;
-    #endif
+    return 0;    
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1377,7 +1375,6 @@ void *CAN1ThreadFunc(void *arg)
             printf("CAN1-select Fun return -1!\n");
             continue;
         }
-
         TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);
         CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
@@ -1404,8 +1401,7 @@ void *CAN1ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
-{   
-    #if 0
+{
     int8_t  i,j;    
     uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
@@ -1443,6 +1439,5 @@ void *MVBThreadFunc(void *arg)
         usleep(64000);       
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);
-    #endif        
+    pthread_exit(NULL);           
 }

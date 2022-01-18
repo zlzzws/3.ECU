@@ -963,25 +963,36 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
 
     for(i=0;i<frames_num;i++)
     {            
-        clock_gettime(CLOCK_MONOTONIC,&begin_ts);            
-        nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
-        if(nbytes != sizeof(can_frame_data[i]))
-        {                
-            printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
-            memset(can_frame_data[i].data,0,8);               
-            errnum_rd++;
-            if(errnum_rd >=10)
+        clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+        tv_select.tv_usec = 200000;
+        FD_ZERO(&rfds);
+        FD_SET(socket_fd,&rfds);
+        ret = select(socket_fd+1,&rfds,NULL,NULL,&tv_select);
+        if(ret >0)
+        {
+            nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
+            if(nbytes != sizeof(can_frame_data[i]))
+            {                
+                printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
+                memset(can_frame_data[i].data,0,8);               
+                errnum_rd++;
+                if(errnum_rd >=10)
+                {
+                    snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame_ID[%u] Error!",dev_type,can_frame_data[i].can_id);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    errnum_rd = 0;
+                }                            
+            }
+            else
             {
-                snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame_ID[%u] Error!",dev_type,can_frame_data[i].can_id);
-                WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_rd = 0;
-            }                            
+            } 
         }
         else
         {
-            errnum_rd = 0;
-        } 
-
+            printf("can%d frame[%d] read time more than 200ms!\n",dev_type,i);
+            continue;
+        }
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {               
             {
