@@ -957,50 +957,30 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
     struct timespec begin_ts,end_ts;  
     uint8_t i,j,nbytes,ret;
     static uint8_t errnum_rd = 0;
-    uint8_t errnum_timeout=0;
-    uint8_t lasttime_timeout;
     char loginfo[LOG_INFO_LENG]={0};
     fd_set rfds={0};
     struct timeval tv_select={0};    
 
     for(i=0;i<frames_num;i++)
     {            
-        clock_gettime(CLOCK_MONOTONIC,&begin_ts);
-        tv_select.tv_usec = 50000;
-        FD_ZERO(&rfds);
-        FD_SET(socket_fd,&rfds);
-        ret = select(socket_fd+1,&rfds,NULL,NULL,&tv_select);
-        if(ret>0)
-        {            
-            nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
-            if(nbytes != sizeof(can_frame_data[i]))
-            {                
-                printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
-                memset(can_frame_data[i].data,0,8);//TODO Really need to memset to 0?                
-                errnum_rd++;
-                if(errnum_rd >=10)
-                {
-                    snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame_ID[%u] Error!",dev_type,can_frame_data[i].can_id);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                    errnum_rd = 0;
-                }                            
-            }
-            else
+        clock_gettime(CLOCK_MONOTONIC,&begin_ts);            
+        nbytes = read(socket_fd,&can_frame_data[i],sizeof(can_frame_data[i]));            
+        if(nbytes != sizeof(can_frame_data[i]))
+        {                
+            printf("CAN%d Receive Error frame[%d]!\n",dev_type,i);
+            memset(can_frame_data[i].data,0,8);               
+            errnum_rd++;
+            if(errnum_rd >=10)
             {
+                snprintf(loginfo, sizeof(loginfo)-1, "CAN%d receive frame_ID[%u] Error!",dev_type,can_frame_data[i].can_id);
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
                 errnum_rd = 0;
-            }
+            }                            
         }
         else
         {
-            errnum_timeout++; 
-        }
-
-        if(i == frames_num-1 && errnum_timeout>0)
-        {
-            printf("Frames incomplete-CAN%d A readcycle lost %d frames!\n",dev_type,errnum_timeout);
-            snprintf(loginfo, sizeof(loginfo)-1, "Frames incomplete-CAN%d A readcycle lost %d frames!",dev_type,errnum_timeout);
-            WRITELOGFILE(LOG_ERROR_1,loginfo);
-        }
+            errnum_rd = 0;
+        } 
 
         if(g_DebugType_EU == CAN_RD_DEBUG)
         {               
@@ -1012,11 +992,10 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
             }                                                 
         }
         clock_gettime(CLOCK_MONOTONIC,&end_ts);
-        if(errnum_timeout - lasttime_timeout == 1 )
+        if(g_DebugType_EU == TIME_DEBUG)
         {
             printf("can%d read frame[%d] cost_time:%ld(us)\n",dev_type,i,1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
-        }    
-        lasttime_timeout =  errnum_timeout;       
+        }          
     }
     return CODE_OK;    
 }
@@ -1078,25 +1057,47 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
  * @return     : 0
  * @author:    : zlz
  */
-static void Anolog_Data_calculate_1(struct can_frame *candata_rd)
+static void Anolog_Data_calculate_1(struct can_frame *candata_rd,BYTE_BIT *sensor_errbit)
 {
     uint16_t    temp_value_u16;    
     float       temp_calc_value_f;
 
+    /*电流电压通道7(电流)-高压*/
     temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    candata_rd->data[2] = (uint8_t)((temp_calc_value_f-4)*18.75); //S=60*(I-4)/16/0.2
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit2 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        candata_rd->data[2] = (uint8_t)((temp_calc_value_f-4)*18.75); //S=60*(I-4)/16/0.2
+    }
+    else
+    {
+        candata_rd->data[2] = 0;
+    }
+    /*电流电压通道8(电流)-低压*/
     temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    temp_value_u16 = (uint16_t)((temp_calc_value_f-4)*250); //S=(I-4)*250
-    candata_rd->data[3] = temp_value_u16 & 0xFF;
-    candata_rd->data[4] = (temp_value_u16>>8) & 0xFF;
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit3 == 0) 
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        temp_value_u16 = (uint16_t)((temp_calc_value_f-4)*250); //S=(I-4)*250
+        candata_rd->data[3] = temp_value_u16 & 0xFF;
+        candata_rd->data[4] = (temp_value_u16>>8) & 0xFF;
+    }
+    else
+    {
+        candata_rd->data[3] = 0;
+        candata_rd->data[4] = 0;
+    }
+    /*电流电压通道9(电流)-A堆入口温度*/
     temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
-    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
-    candata_rd->data[5] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit4 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+        candata_rd->data[5] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
+    }
+    else
+    {
+        candata_rd->data[5] = 0; 
+    }
     memset(&candata_rd->data[6],0,2); 
 }
 /**
@@ -1106,29 +1107,55 @@ static void Anolog_Data_calculate_1(struct can_frame *candata_rd)
  * @return     : 0 
  * @author:    : zlz
  */
-static void Anolog_Data_calculate_2(struct can_frame *candata_rd)
+static void Anolog_Data_calculate_2(struct can_frame *candata_rd,BYTE_BIT *sensor_errbit)
 {
     uint16_t    temp_value_u16;    
     float       temp_calc_value_f;
-    
+    /*电流电压通道10(电流)-A堆出口温度*/
     temp_value_u16 = candata_rd->data[1] << 8 | candata_rd->data[0];
-    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
-    candata_rd->data[0] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit5 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+        candata_rd->data[0] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
+    }
+    else
+    {
+        candata_rd->data[0] = 0;
+    } 
+    /*电流电压通道11(电流)-B堆入口温度*/
     temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
-    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
-    candata_rd->data[1] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit6 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+        candata_rd->data[1] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
+    }
+    else
+    {
+        candata_rd->data[1] = 0;
+    } 
+    /*电流电压通道12(电流)-B堆出口温度*/
     temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
-    temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
-    candata_rd->data[2] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250 
-
+    if(temp_value_u16 >=4000 && sensor_errbit[2].Bit7 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001;  //Number->Current(mA)
+        candata_rd->data[2] = (uint16_t)(temp_calc_value_f*8.75-35); //S=(I-4)*250
+    }
+    else
+    {
+        candata_rd->data[2] = 0;
+    } 
+    /*电流电压通道13(电流)-A堆入口压力*/
     temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    candata_rd->data[3] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
-
-    memset(&candata_rd->data[4],0,4);
-              
+    if(temp_value_u16 >=4000 && sensor_errbit[3].Bit0 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        candata_rd->data[3] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
+    }
+    else
+    {
+        candata_rd->data[3] = 0;
+    }
+    memset(&candata_rd->data[4],0,4);              
 }
 /**
  * @description: extensive_board anolog data process_can_frame_ID(0x19003005)
@@ -1137,28 +1164,54 @@ static void Anolog_Data_calculate_2(struct can_frame *candata_rd)
  * @return     : 0
  * @author:    : zlz
  */
-static void Anolog_Data_calculate_3(struct can_frame *candata_rd)
+static void Anolog_Data_calculate_3(struct can_frame *candata_rd,BYTE_BIT *sensor_errbit)
 {
     uint16_t    temp_value_u16;    
     float       temp_calc_value_f;
-
+    /*电流电压通道14(电流)-B堆入口压力*/
     temp_value_u16 = candata_rd->data[1] << 8 | candata_rd->data[0];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    candata_rd->data[0] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
-
+    if(temp_value_u16 >=4000 && sensor_errbit[3].Bit1 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        candata_rd->data[0] = (uint8_t)((temp_calc_value_f-4)/40); //S=(I-4)/40
+    }
+    else
+    {
+        candata_rd->data[0] = 0;
+    }
+    /*电流电压通道15(电流)-A堆电导率*/
     temp_value_u16 = candata_rd->data[3] << 8 | candata_rd->data[2];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    candata_rd->data[1] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
-
+    if(temp_value_u16 >=4000 && sensor_errbit[3].Bit2 == 0)
+    {
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        candata_rd->data[1] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
+    }
+    else
+    {
+        candata_rd->data[1] = 0;
+    }
+    /*电流电压通道16(电流)-B堆电导率*/
     temp_value_u16 = candata_rd->data[5] << 8 | candata_rd->data[4];
-    temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
-    candata_rd->data[2] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
-
+    if(temp_value_u16 >=4000 && sensor_errbit[3].Bit3 == 0)
+    {    
+        temp_calc_value_f = temp_value_u16 * 0.001; //Number->Current(mA)
+        candata_rd->data[2] = (uint8_t)(temp_calc_value_f*12.5-50); //S=(1.25I-5)/0.1
+    }
+    else
+    {
+        candata_rd->data[2] = 0;
+    }
+    /*电流电压通道17(电流)-电池SOC*/
     temp_value_u16 = candata_rd->data[7] << 8 | candata_rd->data[6];
-    candata_rd->data[3]  = (uint8_t)(temp_value_u16 / 4); //extionsive_board 1->0.001 transform to 1->0.004
- 
+    if(sensor_errbit[3].Bit4 == 0)
+    {    
+        candata_rd->data[3]  = (uint8_t)(temp_value_u16 / 4); //extionsive_board 1->0.001 transform to 1->0.004
+    }
+    else
+    {
+        candata_rd->data[3] = 0;
+    }
     memset(&candata_rd->data[4],0,4);
-
 }
 
 /**
@@ -1177,9 +1230,10 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     uint8_t  temp_value_u8;
     uint16_t temp_value_u16;
     float temp_calc_value_f;
-    static uint8_t life_judge_val[6]={0};
+    static uint8_t  life_judge_val[6]={0};
     static uint16_t VVVF_Exten_life_judge_val=0;
     static uint16_t FCU_AB_Stack_life_judge_val=0;
+    static BYTE_BIT sensor_errbit[4]={0};
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
 
@@ -1256,6 +1310,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     memcpy(&bramdata_wr[4].buffer[4],candata_rd[i].data,8);
                     break;
                 case 0x19003000 :
+                    memcpy(sensor_errbit,&candata_rd[i].data[3],4);
                     memcpy(&bramdata_wr[4].buffer[6],candata_rd[i].data,8);
                     break;
                 case 0x19003001 :
@@ -1265,15 +1320,15 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     memcpy(&bramdata_wr[4].buffer[10],candata_rd[i].data,8);
                     break;
                 case 0x19003003 :
-                    Anolog_Data_calculate_1(&candata_rd[i]);                    
+                    Anolog_Data_calculate_1(&candata_rd[i],sensor_errbit);                    
                     memcpy(&bramdata_wr[4].buffer[12],candata_rd[i].data,8);
                     break;
                 case 0x19003004 :
-                    Anolog_Data_calculate_2(&candata_rd[i]);
+                    Anolog_Data_calculate_2(&candata_rd[i],sensor_errbit);
                     memcpy(&bramdata_wr[4].buffer[14],candata_rd[i].data,8);
                     break;
                 case 0x19003005 :
-                    Anolog_Data_calculate_3(&candata_rd[i]);
+                    Anolog_Data_calculate_3(&candata_rd[i],sensor_errbit);
                     memcpy(&bramdata_wr[4].buffer[16],candata_rd[i].data,8);
                     break;
                 case 0x19003006 :

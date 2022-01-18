@@ -648,7 +648,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     struct sockaddr_in server,client;
     char loginfo[LOG_INFO_LENG]={0};    
    
-    if(-1==(serverfd= socket(AF_INET,SOCK_DGRAM,0)))/*SOCK_DGRAM-使用UDP协议*/ 
+    if(-1==(serverfd= socket(AF_INET,SOCK_DGRAM,0)))/*AF_INET-ipv4,SOCK_DGRAM-使用UDP协议*/ 
     {
         printf("Udp Server socket creat error\n");
         memset(loginfo,0,sizeof(loginfo));
@@ -677,6 +677,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
 
     while(1)
     {
+        #if 0
         if(UDP_DEBUG == g_DebugType_EU)
         {
             printf("UDP_Receive----->\n");
@@ -709,7 +710,8 @@ void *Udp_Intool_ThreadFunc(void *arg)
         {            
             socket_SendFlag ==0;
         }
-
+        #endif
+        socket_SendFlag = 1;
         if(socket_SendFlag)
         {            
             usleep(100000);
@@ -1202,6 +1204,7 @@ void *LEDPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 {   
+    #if 0
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1287,7 +1290,7 @@ void *CAN0ThreadFunc(void *arg)
     }
     close(socket_can0);
     return 0;
- 
+    #endif
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1380,7 +1383,7 @@ void *CAN1ThreadFunc(void *arg)
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
         /*time test*/
         clock_gettime(CLOCK_MONOTONIC,&end_ts);        
-        usleep(50000);
+        usleep(100000);
         if(g_DebugType_EU == TIME_DEBUG)
         {
             printf("SigleCycle-CAN1 cost_time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);  
@@ -1402,6 +1405,7 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {   
+    #if 0
     int8_t  i,j;    
     uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
@@ -1439,5 +1443,6 @@ void *MVBThreadFunc(void *arg)
         usleep(64000);       
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);        
+    pthread_exit(NULL);
+    #endif        
 }
