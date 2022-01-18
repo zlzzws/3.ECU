@@ -101,6 +101,7 @@
 #define ADU_BOARD_ID 0
 #define CTU_BOARD_ID 1
 #define BLVDS_MAX10_CHAN 1
+#define TMS570_MAX10_CHAN 0
 
 #define CAN_CHAN 8
 #define ALL_CHAN_NUM 80  /*for File save*/

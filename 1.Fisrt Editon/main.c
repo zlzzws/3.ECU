@@ -49,6 +49,7 @@ CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the re
 *Local Struct Define Section*
 *********************************************************************/
 static DRIVE_FILE_DATA s_save_to_csr_driver={0};
+static DRIVE_FILE_DATA s_save_to_intool={0};
 /***********************************************************************
 *Local Prototype Declare Section*
 *********************************************************************/
@@ -659,7 +660,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     server.sin_family=AF_INET;
     server.sin_port=htons(1610);//本机端口
     server.sin_addr.s_addr=inet_addr("192.168.3.11");//本机IP
-    
+    sleep(5);
     if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))//绑定服务器socket地址<ZYNQ相当于服务端>
     {
         printf("Udp Server bind error\n");
@@ -676,28 +677,28 @@ void *Udp_Intool_ThreadFunc(void *arg)
 
     while(1)
     {
-        /* if(UDP_DEBUG == g_DebugType_EU)
+        if(UDP_DEBUG == g_DebugType_EU)
         {
             printf("UDP_Receive----->\n");
-        }*/
+        }
         ReadSize = recvfrom(serverfd,readbuf,8,0,(struct sockaddr*)&client,&length);       
         if(ReadSize>0)//获取上位机发来的请求信息并进行解析
         {           
-           /* if(UDP_DEBUG == g_DebugType_EU)
+           if(UDP_DEBUG == g_DebugType_EU)
             {
                 for (i=0;i<8;i++)
                 {
                     printf("readbuf[%d]:%02x\n",i,readbuf[i]);
                 }
                 printf("Value:%d\n",(readbuf[2]>>1)&0x1);
-            }*/ 
+            } 
             if((readbuf[2]>>1)&0x1)
             {
                 socket_SendFlag =1;
-                /* if(UDP_DEBUG == g_DebugType_EU)
+                if(UDP_DEBUG == g_DebugType_EU)
                 {               
                     printf("UDP_Send<-----\n");
-                }*/                
+                }                
             } 
             else
             {
@@ -784,7 +785,7 @@ void *ModbusThreadFunc(void *arg)
 
     ModbusQuery = malloc(MODBUS_TCP_MAX_ADU_LENGTH);
     ModbusCtx = modbus_new_tcp(NULL, PORT);
-    printf("PORT:%d\n",PORT );
+    printf("Modbus port:%d\n",PORT);
     modbus_set_debug(ModbusCtx, FALSE);
    
     /*modbus mapping init*/
@@ -863,7 +864,8 @@ void *FileSaveThreaFunc(void *arg)
     int8_t event_fd_1;
     int8_t event_fd_2;
     uint32_t Delayus_U32;
-    TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};        
+    TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};
+    TMS570_BRAM_DATA TMS570_MAX10_write_Data={0};        
     static uint32_t s_EventFileSaveNum_U32 = 0;   
     
     printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
@@ -906,9 +908,11 @@ void *FileSaveThreaFunc(void *arg)
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
-
+        /**/
         BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
-        //TODO ADD MAX10 DATA STORE
+        MAX10_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+        MAX10_EventDataSave(&g_FileFd_ST,&s_save_to_intool);
+        
         s_EventFileSaveNum_U32++;
     }
     printf("exit FileSave thread\n");
@@ -1197,7 +1201,7 @@ void *LEDPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{  
+{   
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1278,12 +1282,12 @@ void *CAN0ThreadFunc(void *arg)
         usleep(50000);
         if(g_DebugType_EU == TIME_DEBUG)
         {
-            printf("SigleCycle-can0 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
+            printf("SigleCycle-CAN0 cost_time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);
         } 
     }
     close(socket_can0);
     return 0;
-       
+ 
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1297,7 +1301,6 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {   
-    
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1380,12 +1383,11 @@ void *CAN1ThreadFunc(void *arg)
         usleep(50000);
         if(g_DebugType_EU == TIME_DEBUG)
         {
-            printf("SigleCycle-can1 cost time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);  
+            printf("SigleCycle-CAN1 cost_time:%ld(us)\n",1000000*(end_ts.tv_sec-begin_ts.tv_sec)+(end_ts.tv_nsec-begin_ts.tv_nsec)/1000);  
         }
     }
     close(socket_can1);
-    return 0;
-         
+    return 0;    
 }
 
 /**********************************************************************
@@ -1399,8 +1401,7 @@ void *CAN1ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
-{
-    
+{   
     int8_t  i,j;    
     uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
@@ -1422,7 +1423,6 @@ void *MVBThreadFunc(void *arg)
         memcpy(s_mvb_bram_WR_data_st[j].buffer,testbuff_32,32);
     }
     /*Just for test*/
-
     MVB_Bram_Init(&CmdPact_RD_ST,&CmdPact_WR_ST,MVB_CmdPact_RD_ST,MVB_CmdPact_WR_ST);
     while(1)
     {       
@@ -1439,6 +1439,5 @@ void *MVBThreadFunc(void *arg)
         usleep(64000);       
     }
     printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);
-         
+    pthread_exit(NULL);        
 }

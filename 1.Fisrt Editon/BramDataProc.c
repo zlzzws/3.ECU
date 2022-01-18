@@ -47,6 +47,7 @@ extern EADS_ERROR_INFO  g_EADSErrInfo_ST;
 *Static Variable Define Section*
 *********************************************************************/
 static uint8_t s_bram_WRRDErrNum_U32 = 0;
+static BRAM_ADDRS s_Bram_A_TMS570Addr_ST = {0};
 static BRAM_ADDRS s_Bram_A_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_RD_B_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_WR_B_BLVDSBlckAddr_ST = {0};
@@ -55,6 +56,7 @@ static BRAM_ADDRS s_bram_WR_TMS_SPC_Blck_ST[5] = {0};
 static int8_t s_bram_MemFd_I8 = 0;
 static uint8_t *s_bram_RDFlagAddr = NULL;
 static uint8_t *s_bram_WRFlagAddr = NULL;
+static uint8_t *s_Bram_WR_A_TMS570Addr_ST = NULL; 
 static uint8_t *s_bram_RD_A_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_RD_TMS_SPCBlckAddr = NULL;
 static uint8_t *s_bram_WR_TMS_SPCBlckAddr = NULL;
@@ -97,6 +99,29 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
 
     }
+    //内存映射：本系TMS570通道（4K大小）
+    s_Bram_WR_A_TMS570Addr_ST = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_TMS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
+    ErrNum = 0;
+    if(MAP_FAILED == s_Bram_WR_A_TMS570Addr_ST)
+    {
+        ErrNum++;
+        while((ErrNum < MAPERR_NUM) && (MAP_FAILED == s_Bram_WR_A_TMS570Addr_ST)) /*try 3 times*/
+        {
+            s_Bram_WR_A_TMS570Addr_ST = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_TMS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
+            ErrNum++;
+        }
+        if(ErrNum >= MAPERR_NUM)
+        {
+            EADSErrInfop -> EADSErr = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_BLOCK0 failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;
+        }
+        else
+        {
+            err = CODE_OK;
+        }
+    }    
     //内存映射：本系BLVDS通道（4K大小）
     s_bram_RD_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
     ErrNum = 0;
@@ -111,7 +136,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_BLVDS_BLOCK0 failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -134,7 +159,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_B_BLVDS_BLOCK0 failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_B_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -157,7 +182,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_B_BLVDS_BLOCK0  failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_B_BLVDS_BLOCK0  failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -180,7 +205,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_SPCBLOCK0 failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_SPCBLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -204,7 +229,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_SPCBLOCK0 failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_SPCBLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -228,7 +253,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_FLAG failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_FLAG failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -252,7 +277,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         if(ErrNum >= MAPERR_NUM)
         {
             EADSErrInfop -> EADSErr = 1;
-            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_FLAG failed %m");
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_FLAG failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -294,11 +319,17 @@ int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)
     {
         perror("BramOpenMap faled");
     }
-    /*BLVDS ADDR 地址映射 A9读FPGA写*/
+    /*本系TMS570 ADDR 地址映射 */
+    s_Bram_A_TMS570Addr_ST .MapBlckAddr_p = s_Bram_WR_A_TMS570Addr_ST;
+    s_Bram_A_TMS570Addr_ST .MapBlckFlgAddr_p = s_bram_RDFlagAddr;
+    s_Bram_A_TMS570Addr_ST .BramBlckAddr = BRAM_A9_RD_A_TMS_BLOCK0;
+    s_Bram_A_TMS570Addr_ST .BramBlckFlgAddr = BRAM_A9_RD_A_TMS_FLAG;
+    
+    /*本系BLVDS ADDR 地址映射 A9读FPGA写*/
     s_Bram_A_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_A_BLVDSBlckAddr;
     s_Bram_A_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_RDFlagAddr;
     s_Bram_A_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_RD_A_BLVDS_BLOCK0;
-    s_Bram_A_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_TMS_FLAG;
+    s_Bram_A_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_BLVDS_FLAG;
     
     /*他系BLVDS通道 ADDR 地址映射 A9读FPGA写*/
     s_bram_RD_B_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_B_BLVDSBlckAddr;
@@ -539,8 +570,6 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
     return CODE_OK;
 }
 
-
-
 /**
  * @description: BLVDS数据读取线程功能
  * @param {uint8_t} ReadNum_U8
@@ -592,6 +621,8 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
     }     
     return ReadErr;
 }
+
+
 
 /**
  * @description: just for this page can program use!(pay attention "static")
