@@ -1459,7 +1459,7 @@ int8_t TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA bra
         if(TMS570_BRAM_RD_DEBUG == g_DebugType_EU)
         {
             for(j=0;j<25;j++)
-                printf("TMS570:Read from Bram bram_data[%d][%02d]:0x%08u\n",i,j,bram_data[i].buffer[j]);              
+                printf("TMS570:Read from Bram bram_data[%d][%02d]:0x%08u\n",offset+i,j,bram_data[i].buffer[j]);              
         } 
         
     }
@@ -1516,7 +1516,7 @@ int8_t TMS570_Bram_Write_Func(BRAM_CMD_PACKET *cmd_packet_wr,TMS570_BRAM_DATA *b
         if(TMS570_BRAM_WR_DEBUG == g_DebugType_EU)
         {
             for(j=0;j<25;j++)
-                printf("TMS570:Write to Bram bram_data[%d][%02d]:0x%08u\n",i,j,bram_data[i].buffer[j]);
+                printf("TMS570:Write to Bram bram_data[%d][%02d]:0x%08u\n",offset+i,j,bram_data[i].buffer[j]);
         }    
         if(0 == g_LinuxDebug)
         {

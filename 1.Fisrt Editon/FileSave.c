@@ -716,21 +716,77 @@ int8_t MAX10_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p)
 {
     uint8_t i=0,j=0;
     uint8_t temparray_u8[24]={0};
+    uint8_t digital_tempdata[8] = {0};
+    BYTE_BIT digtal_byte_bit[5] = {0};
     uint16_t temparray_u16[10]={0};
     float temparray_f[10]={0};
-        
-    memcpy(Drive_ST_p->DriveDigital_U8,bram_data->buffer,14);
-    memcpy(temparray_u8,&bram_data->buffer[3],24);
+    /*MAX10-DI info*/    
+    memcpy(Drive_ST_p->DriveDigital_U8,bram_data->buffer,10);
+    /*MAX10-DO info*/ 
+    memcpy(digital_tempdata,&bram_data->buffer[2],8);
+    /*
+    for(i=2;i<7;i++)
+    {   
+        printf("digital_tempdata[%d]:%02x\n",i,digital_tempdata[i]);
+    } */    
     
+    for(i=0;i<5;i++)
+    {
+        switch(digital_tempdata[2+i] & 0xF)
+        {
+            case(0x9):
+                digtal_byte_bit[i].Bit0 = 1;/*开通*/
+            break;
+            case(0xa):
+                digtal_byte_bit[i].Bit1 = 1;/*关断*/
+            break;
+            case(0x6):
+                digtal_byte_bit[i].Bit2 = 1;/*过流*/
+            break;
+            case(0x5):
+                digtal_byte_bit[i].Bit3 = 1;/*反馈异常*/
+            break;
+            default:
+            break;            
+        }
+        switch((digital_tempdata[2+i]>>4) & 0xF)
+        {
+            case(0x9):
+                digtal_byte_bit[i].Bit4 = 1;/*开通*/
+            break;
+            case(0xa):
+                digtal_byte_bit[i].Bit5 = 1;/*关断*/
+            break;
+            case(0x6):
+                digtal_byte_bit[i].Bit6 = 1;/*过流*/
+            break;
+            case(0x5):
+                digtal_byte_bit[i].Bit7 = 1;/*反馈异常*/
+            break;
+            default:
+            break;            
+        }
+    } 
+
+    /*for(i=0;i<5;i++)
+    {
+        printf("digtal_byte_bit[%d]:0x%02x\n",i,digtal_byte_bit[i]);
+    } */  
+
+    memcpy(&Drive_ST_p->DriveDigital_U8[10],digtal_byte_bit,5);
+    /*MAX10_Anolog current calculate*/
+    memcpy(temparray_u8,&bram_data->buffer[3],24);    
     for(i=0;i<10;i++)
     {        
-        temparray_u16[i] =  temparray_u8[3+j] | temparray_u8[4+j] << 8 ;           
+        temparray_u16[i] =  temparray_u8[3+j] | temparray_u8[4+j] << 8 ;
+        //printf("temparray_u16[%d]:0x%04d\n",i,temparray_u16[i]);             
         temparray_f[i] =  temparray_u16[i]*1.5;          
         temparray_u16[i] = (uint16_t)(temparray_f[i] - 3103.03);
         j=j+2;       
     }
     memcpy(Drive_ST_p->DriveAnalog_U16,temparray_u16,20);
-    memcpy(&Drive_ST_p->DriveDigital_U8[14],&temparray_u8[23],1);
+    /*MAX10 main mos info*/
+    memcpy(&Drive_ST_p->DriveDigital_U8[15],&temparray_u8[23],1);
     return CODE_OK;
 }
 
