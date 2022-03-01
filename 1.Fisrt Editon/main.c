@@ -40,16 +40,33 @@ uint8_t             g_ChanRealNum = 0;                          /*for the channe
 uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus comunicate*/
 FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
 CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
-
+int                 g_tms570_errflag = 0;                       /*used in Hot standby redundancy*/
 /***********************************************************************
 *Local Macro Define Section*
 *********************************************************************/
 #define WDIOC_SETTIMEOUT _IOWR(WATCHDOG_IOCTL_BASE, 6, int)
 /***********************************************************************
-*Local Struct Define Section*
+*Local Struct AND Variable Define Section*
 *********************************************************************/
+int8_t *s_bram_ret_0    = NULL;
+int8_t *s_bram_ret_1    = NULL;
+int8_t *s_bram_ret_2    = NULL;
 static DRIVE_FILE_DATA s_save_to_csr_driver={0};
 static DRIVE_FILE_DATA s_save_to_intool={0};
+TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};
+TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};
+TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};
+TMS570_BRAM_DATA s_tms570_bram_WR_data_ch9_11_st[3] = {0};
+TMS570_BRAM_DATA s_tms570_bram_RD_data_ch12_st = {0};
+TMS570_BRAM_DATA s_tms570_bram_WR_data_ch12_st = {0};
+TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
+TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};
+struct can_frame s_can0_frame_RD_st[CAN0_READ_FRAME_NUM] = {0};
+struct can_frame s_can0_frame_WR_st[CAN0_WRITE_FRAME_NUM] = {0}; 
+struct can_frame s_can1_frame_RD_st[CAN1_READ_FRAME_NUM] = {0};
+struct can_frame s_can1_frame_WR_st[CAN1_WRITE_FRAME_NUM] = {0};
+TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};
+TMS570_BRAM_DATA Bram_Blvds_Write_Data={0};
 /***********************************************************************
 *Local Prototype Declare Section*
 *********************************************************************/
@@ -67,6 +84,8 @@ void    *LEDPthreadFunc (void *arg);
 void    *CAN0ThreadFunc(void *arg);
 void    *CAN1ThreadFunc(void *arg);
 void    *MVBThreadFunc(void *arg);
+void    *RedundancyThreadFunc(void *arg);
+void    *BlvdsThreadFunc(void *arg);
 
 /***********************************************************************
 *Static Variable Define Section*
@@ -180,8 +199,7 @@ int main(int argc, char *argv[])
         /*fifo tunnel*/
         FifoWrTime++;
         if((FifoWrTime >= 20) && (FifoErr != 1)) /*20ms*/
-        {  
-            
+        {            
             FifoWrTime = 0;
             BinLife++;
             if((FifoWrNum = write(fifofd,&BinLife,1)) == -1)
@@ -198,7 +216,9 @@ int main(int argc, char *argv[])
                     printf("write %d to the FIFO\n",BinLife); 
                 }
             }              
-        }              
+        }
+
+        //g_tms570_errflag = s_bram_ret_0 && s_bram_ret_1 && s_bram_ret_2;             
     }
     memset(ArgLogInfo,0,LOG_INFO_LENG);
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
@@ -352,7 +372,23 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
         perror("create CAN1ThreadFunc failed");
         snprintf(loginfo, sizeof(loginfo)-1, "create CAN1ThreadFunc failed");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
-    }    
+    } 
+
+    res = pthread_create(&pthread_ST_p->RedundancyThread,NULL,RedundancyThreadFunc,NULL);
+    if (res != 0)
+    {
+        perror("create RedundancyThreadFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create RedundancyThreadFunc failed");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    } 
+
+    res = pthread_create(&pthread_ST_p->BlvdsThread,NULL,BlvdsThreadFunc,NULL);
+    if (res != 0)
+    {
+        perror("create BlvdsThreadFunc failed");
+        snprintf(loginfo, sizeof(loginfo)-1, "create BlvdsThreadFunc failed");
+        WRITELOGFILE(LOG_ERROR_1,loginfo);
+    }     
  
     pthread_detach(pthread_ST_p -> DirTarThread);
     pthread_detach(pthread_ST_p -> RealWaveThread);
@@ -361,7 +397,10 @@ int8_t ThreadInit(PTHREAD_INFO * pthread_ST_p)
     pthread_detach(pthread_ST_p -> MVBThread);
     pthread_detach(pthread_ST_p -> CAN0Thread);
     pthread_detach(pthread_ST_p -> CAN1Thread);
-    pthread_detach(pthread_ST_p -> LedThread);       
+    pthread_detach(pthread_ST_p -> LedThread);
+    pthread_detach(pthread_ST_p -> RedundancyThread);
+    pthread_detach(pthread_ST_p -> BlvdsThread);
+
 }
 
 /**********************************************************************
@@ -507,6 +546,9 @@ void *RealWaveThreadFunc(void *arg)
     // 通信断开产生SIGPIPE信号，引导程序异常退出，需要设置忽略SIGPIPE
     action.sa_handler = SIG_IGN;//set function to here
     sigaction(SIGPIPE, &action, 0);
+    
+    //sleep(5);//when machine is restart,Eth configure may cost several seconds
+
     /*creat server socket*/
     if(-1==( serverfd= socket(AF_INET,SOCK_STREAM,0)))
     {
@@ -646,6 +688,7 @@ void *RealWaveThreadFunc(void *arg)
 *********************************************************************/
 void *Udp_Intool_ThreadFunc(void *arg)
 {    
+    #if 0
     int i;
     int serverfd;    
     uint16_t ReadSize = 0;
@@ -662,6 +705,8 @@ void *Udp_Intool_ThreadFunc(void *arg)
     struct sockaddr_in server,client;
     char loginfo[LOG_INFO_LENG]={0};    
    
+    //sleep(5);//when machine is restart,Eth configure may cost several seconds
+
     if(-1==(serverfd= socket(AF_INET,SOCK_DGRAM,0)))/*AF_INET-ipv4,SOCK_DGRAM-使用UDP协议*/ 
     {
         printf("Udp Server socket creat error\n");
@@ -672,7 +717,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
 
     bzero(&server,sizeof(server));
     server.sin_family=AF_INET;
-    server.sin_port=htons(1610);//本机端口
+    server.sin_port=htons(1610);//本机端口//1610
     server.sin_addr.s_addr=inet_addr("192.168.3.11");//本机IP
     sleep(5);
     if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))//绑定服务器socket地址<ZYNQ相当于服务端>
@@ -735,6 +780,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
             sprintf(szUsec,"%09d",(uint32_t)timespec_st.tv_nsec);  // get (ns) the right 9 number,the 9 number stands (s) transform to (ns)
             strncpy(szMsec,szUsec,3);// get the left 3 numbe , the 3 number mean (ms)
             pthread_rwlock_rdlock(&g_PthreadLock_ST.RealDatalock);
+            #if 0
             sendbuf[0]  =   0XA5 ;
             sendbuf[1]  =   0X5A ;
             sendbuf[2]  =   0X2  ;
@@ -755,6 +801,15 @@ void *Udp_Intool_ThreadFunc(void *arg)
             sendbuf[61] =   s_save_to_intool.DriveDigital_U8[12];
             sendbuf[62] =   s_save_to_intool.DriveDigital_U8[11];
             sendbuf[63] =   s_save_to_intool.DriveDigital_U8[10];
+            #endif
+            for(i=0;i<264;i++)
+            {
+                sendbuf[i] = i;
+            }
+            sendbuf[0] = 0xa5;
+            sendbuf[1] = 0x5a; 
+            sendbuf[4] = 0x01;
+            sendbuf[5] = 0x02;
             if(UDP_DEBUG == g_DebugType_EU)
             {
                 printf("EADS_UDP_LIFE:0X%X\n",UDP_LIFE);
@@ -777,7 +832,8 @@ void *Udp_Intool_ThreadFunc(void *arg)
     printf("------------>Upd server close\n");    
     pthread_exit(NULL);
     printf("Exit Upd_Intool_ThreadFunc\n");
-    return CODE_OK;    
+    return CODE_OK;
+    #endif    
 }
 
 /**********************************************************************
@@ -805,7 +861,9 @@ void *ModbusThreadFunc(void *arg)
     ModbusCtx = modbus_new_tcp(NULL, PORT);
     printf("Modbus port:%d\n",PORT);
     modbus_set_debug(ModbusCtx, FALSE);
-   
+    
+    //sleep(5);//when machine is restart,Eth configure may cost several seconds
+
     /*modbus mapping init*/
     ModbusMap_p = modbus_mapping_new_start_address(UT_BITS_ADDRESS_TCP,            UT_BITS_NB_TCP,
                                                     UT_INPUT_BITS_ADDRESS_TCP,      UT_INPUT_BITS_NB_TCP,
@@ -882,8 +940,7 @@ void *FileSaveThreaFunc(void *arg)
     int8_t event_fd_1;
     int8_t event_fd_2;
     uint32_t Delayus_U32;
-    TMS570_BRAM_DATA Bram_Blvds_Read_Data={0};
-    TMS570_BRAM_DATA TMS570_MAX10_write_Data={0};        
+           
     static uint32_t s_EventFileSaveNum_U32 = 0;   
     
     printf("EventFile Delay Time(ms):%u\n",g_Rec_XML_ST.Rec_Event_ST.RecInterval);
@@ -894,7 +951,7 @@ void *FileSaveThreaFunc(void *arg)
     {
         threadDelay(0,Delayus_U32);   
         
-        if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000
+        if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000        
         {                
             printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
             fflush(g_FileFd_ST.EventFile_fd);
@@ -926,11 +983,7 @@ void *FileSaveThreaFunc(void *arg)
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);               
-        /*MAX10_EVENT FILE SAVE*/        
-        pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
-        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
-        MAX10_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
-        pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
+
         
         MAX10_EventDataSave(&g_FileFd_ST,&s_save_to_intool);
         
@@ -1040,7 +1093,8 @@ void *LEDPthreadFunc (void *arg)
             snprintf(loginfo, sizeof(loginfo)-1, "Cannot open Err LED");
             WRITELOGFILE(LOG_ERROR_1,loginfo);           
         }
-
+        #if 0
+        /******读取PHY芯片寄存器-Set*******/
         sleep(1);
         sockfd = socket(PF_LOCAL, SOCK_DGRAM, 0);
         if(sockfd < 0)
@@ -1060,6 +1114,13 @@ void *LEDPthreadFunc (void *arg)
         }
         mii = (struct mii_ioctl_data*)&ifr.ifr_data;//将mii与ifr.ifr_date地址关联起来
 
+        /******读取/proc/net/dev*******/
+        stream = fopen("/proc/net/dev", "r");
+        if(stream == NULL)
+        {
+            printf("Can't open /proc/net/dev!\n");
+        }
+        #endif
         while (g_LifeFlag>0)
         {
             /******LED*******/            
@@ -1079,7 +1140,7 @@ void *LEDPthreadFunc (void *arg)
             write(lifeledfd,"1",2);//off            
             usleep(led_period);
             /******************/
-            
+            #if 0
             /******读取PHY芯片寄存器过程*******/
             mii->reg_num  = PHY_COPPER_CONTRL_REG;
             ret = ioctl(sockfd, SIOCGMIIREG, &ifr);//读REG0 控制寄存器
@@ -1149,12 +1210,8 @@ void *LEDPthreadFunc (void *arg)
                     PhyLinkErrFlag = 1;
                 }
             }
-            /******读取/proc/net/dev过程*******/
-            stream = fopen("/proc/net/dev", "r");
-            if(stream == NULL)
-            {
-                printf("Can't open /proc/net/dev!\n");
-            }
+            
+            /******读取/proc/net/dev*******/
             line_return = fgets (buffer, 256 * sizeof(char), stream);//读取第一行标题栏
             line_count++;
             line_return = fgets (buffer, 256 * sizeof(char), stream);//读取第二行标题栏
@@ -1194,7 +1251,7 @@ void *LEDPthreadFunc (void *arg)
                 Eth1ReceiveErrTimes++;
                 if(Eth1ReceiveErrTimes>=10)
                 {
-                    printf("MAC DIDN'T RECEIVE DATE!\n");
+                    //printf("MAC DIDN'T RECEIVE DATE!\n");
                 }
             } else{
                 Eth1ReceiveErrTimes=0;
@@ -1204,14 +1261,15 @@ void *LEDPthreadFunc (void *arg)
                 Eth1TransmitErrTimes++;
                 if(Eth1TransmitErrTimes>=10)
                 {
-                    printf("MAC DIDN'T SEND DATE!\n");
+                    //printf("MAC DIDN'T SEND DATE!\n");
                 }
             } else{
                 Eth1TransmitErrTimes=0;
             }
             Eth1ReceivePacksLastTime = Eth1ReceivePacks;
-            Eth1TransmitPacksLastTime = Eth1TransmitPacks;        
-        }
+            Eth1TransmitPacksLastTime = Eth1TransmitPacks;
+            #endif                   
+        }        
     }
     close(errledfd);
     close(lifeledfd);    
@@ -1232,7 +1290,8 @@ void *LEDPthreadFunc (void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
-{    
+{ 
+    #if 0
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1247,11 +1306,6 @@ void *CAN0ThreadFunc(void *arg)
     BRAM_CMD_PACKET CmdPact_RD_ST[3] = {0};
     BRAM_CMD_PACKET CmdPact_WR_ST[3] = {0};
     struct can_filter recv_filter[CAN0_READ_FRAME_NUM];
-    struct can_frame s_can0_frame_RD_st[CAN0_READ_FRAME_NUM]    = {0};
-    struct can_frame s_can0_frame_WR_st[CAN0_WRITE_FRAME_NUM]   = {0};
-    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};  //Read  bram data from  tms570
-    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch9_11_st[3] = {0};  //Write bram data to    tms570
-    
     
     socket_can0 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can0.ifr_name, "can0" );
@@ -1283,7 +1337,7 @@ void *CAN0ThreadFunc(void *arg)
         if(ret == 0)
         {         
             errnum_timeout++;
-            printf("can0 read time out %d times!\n",errnum_timeout);
+            //printf("can0 read time out %d times!\n",errnum_timeout);
             if(errnum_timeout >=5)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame time out!");
@@ -1296,16 +1350,21 @@ void *CAN0ThreadFunc(void *arg)
         {
             errnum_timeout=0;
             CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
-            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);            
-            TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
+            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);
+            if(g_tms570_errflag == 0)
+            {            
+                TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
+            }
         }        
         else if(ret == -1)
         {
             printf("CAN0-select Fun return -1!\n");
             continue;
         }
-
-        TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
+        if(g_tms570_errflag == 0)
+        {     
+            s_bram_ret_0 = TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
+        }
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);
         CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
         /*time test*/
@@ -1318,6 +1377,7 @@ void *CAN0ThreadFunc(void *arg)
     }
     close(socket_can0);
     return 0;
+    #endif
 }
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
@@ -1330,7 +1390,8 @@ void *CAN0ThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
-{    
+{   
+    #if 0 
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1345,10 +1406,6 @@ void *CAN1ThreadFunc(void *arg)
     struct can_filter recv_filter[CAN1_READ_FRAME_NUM];
     BRAM_CMD_PACKET CmdPact_RD_ST = {0};
     BRAM_CMD_PACKET CmdPact_WR_ST = {0};
-    struct can_frame s_can1_frame_RD_st[16] = {0};
-    struct can_frame s_can1_frame_WR_st[8] = {0};
-    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch12_st = {0};  //Read  bram data from  tms570
-    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch12_st = {0};  //Write bram data to    tms570      
     
     socket_can1 = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     strcpy(ifr_can1.ifr_name, "can1" );
@@ -1383,7 +1440,7 @@ void *CAN1ThreadFunc(void *arg)
         if(ret == 0)
         {
             errnum_timeout++;
-            printf("can1 read time out %d times!\n",errnum_timeout);
+            //printf("can1 read time out %d times!\n",errnum_timeout);
             if(errnum_timeout >=13)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN1 receive frame time out!");
@@ -1397,14 +1454,20 @@ void *CAN1ThreadFunc(void *arg)
             errnum_timeout=0;
             CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
             CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_ch12_st,CAN1_TYPE);
-            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
+            if(g_tms570_errflag == 0)
+            {  
+                TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
+            }
         }
         else if(ret == -1)
         {
             printf("CAN1-select Fun return -1!\n");
             continue;
         }
-        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);
+        if(g_tms570_errflag == 0)
+        {
+            s_bram_ret_1 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);
+        }    
         CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
         /*time test*/
@@ -1416,7 +1479,8 @@ void *CAN1ThreadFunc(void *arg)
         }
     }
     close(socket_can1);
-    return 0;      
+    return 0;
+    #endif         
 }
 
 /**********************************************************************
@@ -1437,10 +1501,6 @@ void *MVBThreadFunc(void *arg)
     BRAM_CMD_PACKET CmdPact_WR_ST ={0};  
     BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
     BRAM_CMD_PACKET MVB_CmdPact_WR_ST[16] = {0};
-    TMS570_BRAM_DATA s_mvb_bram_RD_data_st[16] = {0};
-    TMS570_BRAM_DATA s_mvb_bram_WR_data_st[16] = {0};    
-    TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};  //Read  bram data from  tms570
-    TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};  //Write bram data  to   tms570        
     
     /*Just for test*/
     for(j=0;j<6;j++)
@@ -1458,9 +1518,12 @@ void *MVBThreadFunc(void *arg)
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);       
-        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
+        if(g_tms570_errflag == 0)
+        {
+            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
         
-        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
+            s_bram_ret_2 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
+        }
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
         MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
         ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
@@ -1469,4 +1532,49 @@ void *MVBThreadFunc(void *arg)
     }
     printf("exit MVBThreadFunc Function!\n");
     pthread_exit(NULL);                   
+}
+
+/**********************************************************************
+*Name           :   RedundancyThreadFunc  
+*Function       :   Hot standby redundancy data process function
+*Para           :  
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*direction      :   software redundancy function
+*History:
+*REV1.0.0       :   zlz    2021/12/4  Create
+*********************************************************************/
+void *RedundancyThreadFunc(void *arg)
+{
+    /*  1.将CAN MVB 的通讯数据进行处理；
+        2.将处理后的数据进行分发
+        3.涉及到接口板的控制数据进行处理发送   
+    */
+    int8_t ret;
+    /*开机诊断*/
+    ret = ECU_Diagnose_function();
+
+
+}
+
+/**********************************************************************
+*Name           :   BlvdsThreadFunc  
+*Function       :   blvds data read/write and process
+*Para           :  
+*Version        :   REV1.0.0       
+*Author:        :   zlz
+*direction      :   blvds data read/write and process
+*History:
+*REV1.0.0       :   zlz    2021/12/4  Create
+*********************************************************************/
+void *BlvdsThreadFunc(void *arg)
+{
+    #if 0 
+    /*MAX10_EVENT FILE SAVE*/        
+    pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
+    BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
+    MAX10_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+    pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
+    //TODO 需要增加写的部分
+    #endif
 }

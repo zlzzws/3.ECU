@@ -471,7 +471,9 @@ typedef struct
 	pthread_t CAN0Thread;
     pthread_t CAN1Thread;
 	pthread_t MVBThread;
-	pthread_t UdpThread;		
+	pthread_t UdpThread;
+	pthread_t RedundancyThread;
+	pthread_t BlvdsThread;	
 }PTHREAD_INFO;
 
 typedef struct
@@ -568,7 +570,8 @@ typedef enum devic_type
 
 typedef struct tms570_bram_data
 {
-    uint32_t buffer[60];//数据区不包含CRC32的4个字节+帧头12个字节	
+    //数据区不包含CRC32的4个字节+帧头12个字节
+	uint32_t buffer[60];	
 }TMS570_BRAM_DATA;
 
 typedef enum _trans_type
