@@ -20,12 +20,14 @@
 #include "GPIOControl.h"
 #include "FileSave.h"
 #include "xml.h"
+#include "ecu.h"
 /***********************************************************************
 *Global Variable Declare Section*
 *********************************************************************/
 sem_t               g_RealSend_sem;
 DEBUG_TYPE_ENUM     g_DebugType_EU;
-EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};
+EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};                     /*TODO:考虑是否保留*/
+ECU_ERROR_INFO      g_ECUErrInfo_ST = {0};
 TRAIN_INFO          g_TrainInfo_ST = {0,0};
 VERSION             g_Version_ST = {0};
 RECORD_XML          g_Rec_XML_ST = {0};
@@ -217,8 +219,8 @@ int main(int argc, char *argv[])
                 }
             }              
         }
-
-        //g_tms570_errflag = s_bram_ret_0 && s_bram_ret_1 && s_bram_ret_2;             
+        //5个TMS570 Bram通道任意有一个通道失效，都将进行热备冗余切换
+        g_tms570_errflag = s_bram_ret_0[0] || s_bram_ret_0[1] || s_bram_ret_0[2] || s_bram_ret_1[0] || s_bram_ret_2[0];             
     }
     memset(ArgLogInfo,0,LOG_INFO_LENG);
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
@@ -1291,7 +1293,7 @@ void *LEDPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 { 
-    #if 0
+    #if 1
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1391,7 +1393,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {   
-    #if 0 
+    #if 1 
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1518,15 +1520,15 @@ void *MVBThreadFunc(void *arg)
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);       
+
+        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
         if(g_tms570_errflag == 0)
         {
-            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
-        
             s_bram_ret_2 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
         }
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
         MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
-        ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
+        //ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
         usleep(64000);       
     }
@@ -1550,11 +1552,38 @@ void *RedundancyThreadFunc(void *arg)
         2.将处理后的数据进行分发
         3.涉及到接口板的控制数据进行处理发送   
     */
-    int8_t ret;
+    int8_t ret,i;
+    int8_t diagnose_flag;
+
     /*开机诊断*/
-    ret = ECU_Diagnose_function();
+    while (g_LifeFlag)
+    {
+        if((Bram_Blvds_Read_Data.buffer[1] & 0x4) && !(Bram_Blvds_Read_Data.buffer[1] & 0x40))
+        {
+            for(i=0;i<4;i++)
+            {
+                ret = ECU_Diagnose_function(&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch12_st,g_ECUErrInfo_ST);
+                if(ret == CODE_OK)
+                {
+                    diagnose_flag = 1 ;
+                    break;
+                }
+                else if(ret == CODE_ERR && i == 3)
+                {
+                    diagnose_flag = 0;
+                    /*将故障写入MVB发送CCU数据帧总，需要在TMS570故障条件下才能写*/
+                }
+            }
 
-
+            if(diagnose_flag)
+            {
+                FCU_Start_Stage(&s_tms570_bram_WR_data_ch9_11_st[2],&s_tms570_bram_RD_data_ch9_11_st[2],&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data);
+            }
+                  
+        }
+    }
+    printf("exit RedundancyThreadFunc!\n");
+    pthread_exit(NULL);
 }
 
 /**********************************************************************
@@ -1569,11 +1598,17 @@ void *RedundancyThreadFunc(void *arg)
 *********************************************************************/
 void *BlvdsThreadFunc(void *arg)
 {
-    #if 0 
+    #if 1
     /*MAX10_EVENT FILE SAVE*/        
     pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
+
     BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
-    MAX10_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+    MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+
+    MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
+
+    BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
+
     pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
     //TODO 需要增加写的部分
     #endif

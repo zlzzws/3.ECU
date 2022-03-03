@@ -53,11 +53,13 @@
 #define BRAM_A9_RD_A_TMS_SPCFLAG       0x4000E010
 /*the A9 Write block data section*/
 #define BRAM_A9_WR_A_TMS_BLOCK0    	 	0x80000000
+#define BRAM_A9_WR_A_BLVDS_BLOCK0  	  	0x80002000
 #define BRAM_A9_WR_B_BLVDS_BLOCK0      	0x80006000
 #define BRAM_A9_WR_A_TMS_SPCBLOCK0      0x80008000
 #define BRAM_A9_WR_A_BLVDS_SPCBLOCK0    0x8000A000
 /*the A9 Write block flag section*/
 #define BRAM_A9_WR_A_TMS_FLAG           0x8000E000
+#define BRAM_A9_WR_A_BLVDS_FLAG			0x8000E004
 #define BRAM_A9_WR_B_BLVDS_FLAG			0x8000E00C
 #define BRAM_A9_WR_A_TMS_SPCFLAG        0x8000E010
 

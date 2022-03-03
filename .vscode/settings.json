@@ -16,5 +16,5 @@
         "mxml.h": "c",
         "crc.h": "c"
     },
-    "C_Cpp.errorSquiggles": "Enabled"
+    "C_Cpp.errorSquiggles": "Disabled"
 }

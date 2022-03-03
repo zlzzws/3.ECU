@@ -707,12 +707,12 @@ int8_t ECU_EventDataSave(FILE_FD *file_p,DRIVE_FILE_DATA *Drive_ST_p)
 }
 
 /**
- * @description: Bram  MAX10 Data Process
- * @param:       FILE_FD *file_p,TMS570_BRAM_DATA *bram__data, DRIVE_FILE_DATA *Drive_ST_p
+ * @description: Bram MAX10 Read Data Process
+ * @param:       TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
  * @return:      uint8_t life stop ->1 life normal ->0
  * @author:      zlz
  */
-int8_t MAX10_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p)
+int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p)
 {
     uint8_t i=0,j=0;
     uint8_t temparray_u8[24]={0};
@@ -790,6 +790,16 @@ int8_t MAX10_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p)
     return CODE_OK;
 }
 
+/**
+ * @description: Bram MAX10 Write Data Process
+ * @param:       TMS570_BRAM_DATA *bram_data
+ * @return:      uint8_t life stop ->1 life normal ->0
+ * @author:      zlz
+ */
+int8_t MAX10_WR_DataProc(TMS570_BRAM_DATA *bram_data)
+{
+
+}
 /**********************************************************************
 *Name       :   int8_t MAX10_EventDataSave
 *Function   :   Save the Event data to event file

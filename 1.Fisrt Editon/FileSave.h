@@ -126,7 +126,8 @@ typedef struct
 *********************************************************************/
 int8_t FileSpaceProc(RECORD_XML * RrdXml_p);
 int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,EADS_ERROR_INFO EADSErrInfoST);
-int8_t MAX10_DataProc(TMS570_BRAM_DATA *bram__data,DRIVE_FILE_DATA *Drive_ST_p);
+int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p);
+int8_t MAX10_WR_DataProc(TMS570_BRAM_DATA *bram_data);
 int8_t ECU_EventDataSave(FILE_FD *file_p,DRIVE_FILE_DATA *Drive_ST_p);
 int8_t MAX10_EventDataSave(FILE_FD *file_p,DRIVE_FILE_DATA *Drive_ST_p);				 
 int8_t EventFileCreateByNum(FILE_FD * file_p,RECORD_XML * RrdXml_p,TRAIN_INFO * TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST);				 

@@ -486,19 +486,6 @@ typedef struct
 
 typedef struct
 {
-    uint8_t BLVDSErr:1; 
-    uint8_t VolWarmErr:1;
-	uint8_t CurrWarmErr:1;
-	uint8_t TemptureErr:1;
-	uint8_t PowErr:1; 
-    uint8_t VechFuctErr:1;
-    uint8_t TRDPErr:1; 
-	uint8_t EADSErr:1;  /*file creat err*/
-}EADS_ERROR_INFO;
-
-
-typedef struct
-{
     uint8_t Bit0:1;
     uint8_t Bit1:1;
     uint8_t Bit2:1;
@@ -509,6 +496,25 @@ typedef struct
 	uint8_t Bit7:1; 
       
 }BYTE_BIT;
+
+typedef struct
+{
+    uint8_t BLVDSErr:1; 
+    uint8_t VolWarmErr:1;
+	uint8_t CurrWarmErr:1;
+	uint8_t TemptureErr:1;
+	uint8_t PowErr:1; 
+    uint8_t VechFuctErr:1;
+    uint8_t TRDPErr:1; 
+	uint8_t EADSErr:1;  /*file creat err*/
+}EADS_ERROR_INFO;
+
+typedef struct
+{
+	uint8_t commu_err;
+}ECU_ERROR_INFO;
+
+
 
 typedef struct 
 {

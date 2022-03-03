@@ -48,16 +48,18 @@ extern EADS_ERROR_INFO  g_EADSErrInfo_ST;
 *********************************************************************/
 static uint8_t s_bram_WRRDErrNum_U32 = 0;
 static BRAM_ADDRS s_Bram_A_TMS570Addr_ST = {0};
-static BRAM_ADDRS s_Bram_A_BLVDSBlckAddr_ST = {0};
+static BRAM_ADDRS s_Bram_A_RD_BLVDSBlckAddr_ST = {0};
+static BRAM_ADDRS s_Bram_A_WR_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_RD_B_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_WR_B_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_RD_TMS_SPC_Blck_ST[5] = {0};
 static BRAM_ADDRS s_bram_WR_TMS_SPC_Blck_ST[5] = {0};
-static int8_t s_bram_MemFd_I8 = 0;
+static int8_t   s_bram_MemFd_I8 = 0;
 static uint8_t *s_bram_RDFlagAddr = NULL;
 static uint8_t *s_bram_WRFlagAddr = NULL;
 static uint8_t *s_Bram_WR_A_TMS570Addr_ST = NULL; 
 static uint8_t *s_bram_RD_A_BLVDSBlckAddr = NULL;
+static uint8_t *s_bram_WR_A_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_RD_TMS_SPCBlckAddr = NULL;
 static uint8_t *s_bram_WR_TMS_SPCBlckAddr = NULL;
 static uint8_t *s_bram_RD_B_BLVDSBlckAddr = NULL;
@@ -99,6 +101,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
 
     }
+    #if 0
     //内存映射：本系TMS570通道（4K大小）
     s_Bram_WR_A_TMS570Addr_ST = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_TMS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
     ErrNum = 0;
@@ -121,8 +124,9 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         {
             err = CODE_OK;
         }
-    }    
-    //内存映射：本系BLVDS通道（4K大小）
+    }
+    #endif    
+    //内存映射：本系BLVDS通道 A9读 FPGA写（4K大小）
     s_bram_RD_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
     ErrNum = 0;
     if(MAP_FAILED == s_bram_RD_A_BLVDSBlckAddr)
@@ -137,6 +141,29 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         {
             EADSErrInfop -> EADSErr = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_BLVDS_BLOCK0 failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;
+        }
+        else
+        {
+            err = CODE_OK;
+        }
+    }
+    //内存映射：本系BLVDS通道 A9写 FPGA读（4K大小）
+    s_bram_WR_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_WR_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
+    ErrNum = 0;
+    if(MAP_FAILED == s_bram_WR_A_BLVDSBlckAddr)
+    {
+        ErrNum++;
+        while((ErrNum < MAPERR_NUM) && (MAP_FAILED == s_bram_WR_A_BLVDSBlckAddr)) /*try 3 times*/
+        {
+            s_bram_WR_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_WR_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
+            ErrNum++;
+        }
+        if(ErrNum >= MAPERR_NUM)
+        {
+            EADSErrInfop -> EADSErr = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
         }
@@ -292,7 +319,9 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
 
 int8_t BramCloseMap(void)
 {
+    /*CloseBram((void *)s_Bram_WR_A_TMS570Addr_ST,BRAM_4BLCK_LNGTH_U8);*/
     CloseBram((void *)s_bram_RD_A_BLVDSBlckAddr,BRAM_4BLCK_LNGTH_U8);
+    CloseBram((void *)s_bram_WR_A_BLVDSBlckAddr,BRAM_4BLCK_LNGTH_U8);
     CloseBram((void *)s_bram_RD_B_BLVDSBlckAddr,BRAM_4BLCK_LNGTH_U8);
     CloseBram((void *)s_bram_WR_B_BLVDSBlckAddr,BRAM_4BLCK_LNGTH_U8);
     CloseBram((void *)s_bram_RD_TMS_SPCBlckAddr,BRAM_4BLCK_LNGTH_U8);
@@ -319,17 +348,24 @@ int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)
     {
         perror("BramOpenMap faled");
     }
+    #if 0
     /*本系TMS570 ADDR 地址映射 */
     s_Bram_A_TMS570Addr_ST .MapBlckAddr_p = s_Bram_WR_A_TMS570Addr_ST;
     s_Bram_A_TMS570Addr_ST .MapBlckFlgAddr_p = s_bram_RDFlagAddr;
     s_Bram_A_TMS570Addr_ST .BramBlckAddr = BRAM_A9_RD_A_TMS_BLOCK0;
     s_Bram_A_TMS570Addr_ST .BramBlckFlgAddr = BRAM_A9_RD_A_TMS_FLAG;
-    
+    #endif
     /*本系BLVDS ADDR 地址映射 A9读FPGA写*/
-    s_Bram_A_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_A_BLVDSBlckAddr;
-    s_Bram_A_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_RDFlagAddr;
-    s_Bram_A_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_RD_A_BLVDS_BLOCK0;
-    s_Bram_A_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_BLVDS_FLAG;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_A_BLVDSBlckAddr;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_RDFlagAddr;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_RD_A_BLVDS_BLOCK0;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_BLVDS_FLAG;
+
+    /*本系BLVDS ADDR 地址映射 A9写FPGA读*/
+    s_Bram_A_WR_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_WR_A_BLVDSBlckAddr;
+    s_Bram_A_WR_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_WRFlagAddr;
+    s_Bram_A_WR_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_WR_A_BLVDS_BLOCK0;
+    s_Bram_A_WR_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_WR_A_BLVDS_FLAG;
     
     /*他系BLVDS通道 ADDR 地址映射 A9读FPGA写*/
     s_bram_RD_B_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_B_BLVDSBlckAddr;
@@ -351,15 +387,16 @@ int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)
         s_bram_RD_TMS_SPC_Blck_ST[i].BramBlckAddr = BRAM_A9_RD_A_TMS_SPCBLOCK0;
         s_bram_RD_TMS_SPC_Blck_ST[i].BramBlckFlgAddr = BRAM_A9_RD_A_TMS_SPCFLAG ; 
     } 
-
+    
+    /*TMS570专用 ADDR 地址映射 A9写FPGA读*/
     for (i=0;i<5;i++)
     {
-        /*TMS570专用 ADDR 地址映射 A9写FPGA读*/
         s_bram_WR_TMS_SPC_Blck_ST[i].MapBlckAddr_p = s_bram_WR_TMS_SPCBlckAddr;
         s_bram_WR_TMS_SPC_Blck_ST[i].MapBlckFlgAddr_p = s_bram_WRFlagAddr;
         s_bram_WR_TMS_SPC_Blck_ST[i].BramBlckAddr = BRAM_A9_WR_A_TMS_SPCBLOCK0;
         s_bram_WR_TMS_SPC_Blck_ST[i].BramBlckFlgAddr = BRAM_A9_WR_A_TMS_SPCFLAG;
     }
+
     return ReadErr;
 }
 
@@ -429,12 +466,11 @@ int8_t ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
 *REV1.0.0     feng    2018/05/07  Create
 *********************************************************************/
 int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
-{
-    uint32_t ReadDataBuf[64] = {0};    
-    int8_t Error = 0;
+{        
+    int8_t Error;
     char loginfo[LOG_INFO_LENG] = {0};    
     
-    Error = BramReadWithChek(BramAddrs_p,ReadDataBuf);
+    Error = BramReadWithChek(BramAddrs_p,ReadData);
     if(Error == CODE_ERR)
     {
         printf("BramReadWithChek error\n");
@@ -571,9 +607,8 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
 }
 
 /**
- * @description: BLVDS数据读取线程功能
- * @param {uint8_t} ReadNum_U8
- * @param {uint8_t} EADSType
+ * @description: BLVDS数据读取功能
+ * @param TMS570_BRAM_DATA *bram_rd_data
  * @param {EADS_ERROR_INFO *} EADSErrInfop
  * @return ReadErr
  * @author: zlz
@@ -585,11 +620,11 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
     static uint8_t ErrFlag = 0;    
     static uint8_t ErrNum  = 0;    
 
-    s_Bram_A_BLVDSBlckAddr_ST.DataU32Length = 20 ;
-    s_Bram_A_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.DataU32Length = 20 ;
+    s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
     if(0 == g_LinuxDebug)
     {
-        ReadErr = BoardDataRead(&s_Bram_A_BLVDSBlckAddr_ST,bram_rd_data->buffer);
+        ReadErr = BoardDataRead(&s_Bram_A_RD_BLVDSBlckAddr_ST,bram_rd_data->buffer);
         if(CODE_ERR == ReadErr) 
         {
             ErrNum++;  
@@ -623,6 +658,40 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
 }
 
 
+/**
+ * @description: BLVDS数据写入功能
+ * @param TMS570_BRAM_DATA *bram_wr_data
+ * @return WritedErr
+ * @author: zlz
+ */
+int8_t BLVDSDataWriteFunc(TMS570_BRAM_DATA *bram_wr_data) 
+{
+    int8_t i,j;
+    static int8_t WriteErr = 0;
+    char loginfo[LOG_INFO_LENG] = {0};  
+    static uint16_t Life_signal = 0;  
+    BRAM_PACKET_TOP TopPackST = {0};   
+        
+    TopPackST.BLVDSTOP_U32 = 0x41c2;
+    TopPackST.BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);        
+
+    s_Bram_A_WR_BLVDSBlckAddr_ST.DataU32Length = 0x11;
+    s_Bram_A_WR_BLVDSBlckAddr_ST.ChanNum_U8 = 1;        
+
+    if(0 == g_LinuxDebug)
+    {            
+        WriteErr = BramWriteWithChek(&s_Bram_A_WR_BLVDSBlckAddr_ST,bram_wr_data->buffer,TopPackST);
+        if(WriteErr == CODE_ERR)
+        {
+            printf("BLVDS-frame write to Bramdata error!\n");
+            snprintf(loginfo, sizeof(loginfo)-1, "BLVDS-frame write to Bramdata error!",i);
+            WRITELOGFILE(LOG_ERROR_1,loginfo); 				 
+        }
+    }        
+
+    Life_signal++;
+    return WriteErr;
+}
 
 /**
  * @description: just for this page can program use!(pay attention "static")
@@ -1421,6 +1490,7 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
     static int8_t LifeJudgeRet[5] = {0};                                
     static int8_t DataErrFlag[5] =  {0};
     static int8_t LifeErrFlag[5] =  {0};
+    static int8_t ErrFlag[5] =      {0};
     char loginfo[LOG_INFO_LENG] =   {0};
 
     if (frame_num >32)
@@ -1428,6 +1498,7 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
         printf("Invalid number for TMS570 BramChannel!(should not >32)\n");
         return NULL;
     }
+
     switch (tans_type)
     {
         case MVB_BRAM:
@@ -1511,14 +1582,17 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
                 }
             }
         }
+        //数据和生命信号任意一个出错，都判定为TMS570 Bram通道失效
+        ErrFlag[offset+i] =  LifeErrFlag[offset+i] || DataErrFlag[offset+i];
 
         if(TMS570_BRAM_RD_DEBUG == g_DebugType_EU)
         {
-            for(j=0;j<25;j++)
+            for(j=0;j<60;j++)
                 printf("TMS570:Read from Bram bram_data[%d][%02d]:0x%08u\n",offset+i,j,bram_data[i].buffer[j]);              
-        }       
+        }
     }
-    return &LifeErrFlag[offset];
+    
+    return &ErrFlag[offset]; //返回地址,可以用索引进行读取相应数据
 }
 
 /**
