@@ -509,9 +509,15 @@ typedef struct
 	uint8_t EADSErr:1;  /*file creat err*/
 }EADS_ERROR_INFO;
 
-typedef struct
+typedef struct _ecu_error_info_
 {
-	uint8_t commu_err;
+	//FIXME 数据结构需要更改
+	uint8_t commu_err[7]; 
+	uint8_t fcu_err_level;	
+	uint8_t bms_err_level;
+	uint8_t dc_dc_err_level;
+	uint8_t h2_store_err_level;
+	uint8_t heat_dissipation_err_level;
 }ECU_ERROR_INFO;
 
 

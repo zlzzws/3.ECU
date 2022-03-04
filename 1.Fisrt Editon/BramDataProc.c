@@ -30,6 +30,7 @@ extern BLVDS_BRD_DATA g_BrdBufData_ST;
 extern uint32_t g_LinuxDebug;
 extern uint32_t g_CAN_RDDate[64];
 extern uint16_t g_MVB_SendFrameNum;
+extern ECU_ERROR_INFO g_ECUErrInfo_ST;
 /***********************************************************************
 *Local Macro Define Section*
 *********************************************************************/
@@ -1316,6 +1317,7 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     static BYTE_BIT sensor_errbit[4]={0};
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
+    memcpy(g_ECUErrInfo_ST.commu_err,life_judge_val,6);
 
     if(can_devtype == CAN0_TYPE)
     {    
@@ -1839,7 +1841,7 @@ int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bra
     memcpy(bram_data_tms570_wr->buffer,bram_data_mvb_rd[0].buffer,32);/*MVB_0XA0*/
     memcpy(&bram_data_tms570_wr->buffer[8],bram_data_mvb_rd[1].buffer,16);/*MVB_0X3F0*/
     memcpy(&bram_data_tms570_wr->buffer[12],&judge_val,1);
-
+    memcpy(&g_ECUErrInfo_ST.commu_err[6],&judge_val,1);/*用作热备冗余功能 MVB通讯故障判断*/
     /*memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);
     if(g_DebugType_EU == LCU_MVB_DEBUG)
         printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);*/                                                

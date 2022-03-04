@@ -690,7 +690,7 @@ void *RealWaveThreadFunc(void *arg)
 *********************************************************************/
 void *Udp_Intool_ThreadFunc(void *arg)
 {    
-    #if 0
+    
     int i;
     int serverfd;    
     uint16_t ReadSize = 0;
@@ -835,7 +835,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Exit Upd_Intool_ThreadFunc\n");
     return CODE_OK;
-    #endif    
+        
 }
 
 /**********************************************************************
@@ -1095,7 +1095,7 @@ void *LEDPthreadFunc (void *arg)
             snprintf(loginfo, sizeof(loginfo)-1, "Cannot open Err LED");
             WRITELOGFILE(LOG_ERROR_1,loginfo);           
         }
-        #if 0
+        
         /******读取PHY芯片寄存器-Set*******/
         sleep(1);
         sockfd = socket(PF_LOCAL, SOCK_DGRAM, 0);
@@ -1122,7 +1122,7 @@ void *LEDPthreadFunc (void *arg)
         {
             printf("Can't open /proc/net/dev!\n");
         }
-        #endif
+        
         while (g_LifeFlag>0)
         {
             /******LED*******/            
@@ -1142,7 +1142,7 @@ void *LEDPthreadFunc (void *arg)
             write(lifeledfd,"1",2);//off            
             usleep(led_period);
             /******************/
-            #if 0
+            
             /******读取PHY芯片寄存器过程*******/
             mii->reg_num  = PHY_COPPER_CONTRL_REG;
             ret = ioctl(sockfd, SIOCGMIIREG, &ifr);//读REG0 控制寄存器
@@ -1270,7 +1270,7 @@ void *LEDPthreadFunc (void *arg)
             }
             Eth1ReceivePacksLastTime = Eth1ReceivePacks;
             Eth1TransmitPacksLastTime = Eth1TransmitPacks;
-            #endif                   
+                               
         }        
     }
     close(errledfd);
@@ -1552,32 +1552,80 @@ void *RedundancyThreadFunc(void *arg)
         2.将处理后的数据进行分发
         3.涉及到接口板的控制数据进行处理发送   
     */
-    int8_t ret,i;
-    int8_t diagnose_flag;
+    uint8_t i;
+    int8_t  diagnose_standby_ret; 
+    int8_t  fcu_state_flag;
+    int8_t  diagnose_standby_flag;
+    uint8_t fault_tempbuffer[100]={0};
+    uint8_t power_tempbuffer[100]={0};
 
     /*开机诊断*/
     while (g_LifeFlag)
     {
+        /*TODO:燃料电池启动电池是脉冲信号，持续1s，判断逻辑需要做调整*/
         if((Bram_Blvds_Read_Data.buffer[1] & 0x4) && !(Bram_Blvds_Read_Data.buffer[1] & 0x40))
         {
             for(i=0;i<4;i++)
             {
-                ret = ECU_Diagnose_function(&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch12_st,g_ECUErrInfo_ST);
-                if(ret == CODE_OK)
+                diagnose_standby_ret = ECU_Diagnose_Standby(&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST);
+                if(diagnose_standby_ret == CODE_OK)
                 {
-                    diagnose_flag = 1 ;
+                    diagnose_standby_flag = 1 ;
                     break;
                 }
-                else if(ret == CODE_ERR && i == 3)
+                else if(diagnose_standby_ret == CODE_ERR && i == 3)
                 {
-                    diagnose_flag = 0;
+                    diagnose_standby_flag = 0;
                     /*将故障写入MVB发送CCU数据帧总，需要在TMS570故障条件下才能写*/
                 }
             }
 
-            if(diagnose_flag)
+            while(diagnose_standby_flag)
             {
-                FCU_Start_Stage(&s_tms570_bram_WR_data_ch9_11_st[2],&s_tms570_bram_RD_data_ch9_11_st[2],&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data);
+                /*燃料电池启动阶段*/               
+                /*TODO设备有牵引和制动的硬线信号，加入功率控制判读之中*/
+                /*TODO电力电池故障，车辆无法运行，运行前先检查动力电池的故障硬线*/
+                /*TODO车辆加速，功率攀升过程总需要控制电流增加斜率*/
+
+                ECU_Diagnose_EV(s_tms570_bram_WR_data_ch9_11_st,&g_ECUErrInfo_ST);
+                if (g_ECUErrInfo_ST.bms_err_level == 3)
+                {
+                    printf("EV system occurred 3rd error grade,ECU ready to shut down!\n");
+                    //不发送相关信息给CCU吗？需要考虑增加
+                    ECU_Shut_down();
+                    break;
+                }                
+                else if(g_ECUErrInfo_ST.fcu_err_level != 3)
+                {
+                    fcu_state_flag = FCU_Start_Stage(s_tms570_bram_WR_data_ch9_11_st,s_tms570_bram_RD_data_ch9_11_st,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data);
+                    /*进入工作循环*/
+                    while (fcu_state_flag)
+                    {
+                        ECU_Diagnose_Hybrid(fault_tempbuffer,s_tms570_bram_WR_data_ch9_11_st,&s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST);
+                        Hybrid_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);
+                        if(g_tms570_errflag == 1)
+                        {
+                            Communicate_Data_process(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                        }
+                        if(g_ECUErrInfo_ST.fcu_err == 3)
+                        {
+                            fcu_state_flag == 0;
+                            printf("FCU system occurred 3rd error grade!\n");
+                            break;
+                            
+                        }
+                        usleep(100000);                   
+                    }
+                }
+                else
+                {                   
+                    EV_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);
+                    if(g_tms570_errflag == 1)
+                    {
+                        Communicate_Data_process(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                    }
+                }
+               
             }
                   
         }
