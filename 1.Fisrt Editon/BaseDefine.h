@@ -387,7 +387,9 @@ typedef enum _DEBUG_TYPE
 	MVB_WR_DEBUG		= 23,
 	MVB_RD_DEBUG		= 24,
 	FileSave_DEBUG 		= 25,				
-	socket_Debug 		= 26				
+	socket_Debug 		= 26,
+	BLVDS_RD_DEBUG		= 27,
+	BLVDS_WR_DEBUG		= 28,				
 }DEBUG_TYPE_ENUM;
 
 typedef enum _COMMU_MCU
@@ -511,13 +513,13 @@ typedef struct
 
 typedef struct _ecu_error_info_
 {
-	//FIXME 数据结构需要更改
-	uint8_t commu_err[7]; 
-	uint8_t fcu_err_level;	
-	uint8_t bms_err_level;
-	uint8_t dc_dc_err_level;
-	uint8_t h2_store_err_level;
-	uint8_t heat_dissipation_err_level;
+	
+	uint8_t commu_err[7];/*0-MVB;1-BMS;2-DCDC;3-FCU-A;4-FCU-B;5-变频器;6-储氢/扩展模块*/ 
+	uint8_t fcu_err_level[3];	
+	uint8_t bms_err_level[3];
+	uint8_t dc_dc_err_level[3];
+	uint8_t h2_store_err_level[3];
+	uint8_t heat_dissipation_err_level[3];
 }ECU_ERROR_INFO;
 
 

@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
             }              
         }
         //5个TMS570 Bram通道任意有一个通道失效，都将进行热备冗余切换
-        g_tms570_errflag = s_bram_ret_0[0] || s_bram_ret_0[1] || s_bram_ret_0[2] || s_bram_ret_1[0] || s_bram_ret_2[0];             
+        //g_tms570_errflag = s_bram_ret_0[0] || s_bram_ret_0[1] || s_bram_ret_0[2] || s_bram_ret_1[0] || s_bram_ret_2[0];             
     }
     memset(ArgLogInfo,0,LOG_INFO_LENG);
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
@@ -1321,14 +1321,6 @@ void *CAN0ThreadFunc(void *arg)
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPack_Set(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
 
-    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                    0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                    0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                    0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    memcpy(&s_tms570_bram_WR_data_ch9_11_st[0].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_ch9_11_st[1].buffer[0],testbuff,32);
-    memcpy(&s_tms570_bram_WR_data_ch9_11_st[2].buffer[0],testbuff,32);
-
     while(g_LifeFlag>0)
     {        
         clock_gettime(CLOCK_MONOTONIC,&begin_ts);
@@ -1367,7 +1359,7 @@ void *CAN0ThreadFunc(void *arg)
         {     
             s_bram_ret_0 = TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
         }
-        CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);
+        CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);        
         CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
         /*time test*/
         clock_gettime(CLOCK_MONOTONIC,&end_ts);
@@ -1420,7 +1412,7 @@ void *CAN1ThreadFunc(void *arg)
     
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPack_Set(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
-    
+    /*TODO 两个变频器 要增加一组变频器的CAN_ID*/
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
@@ -1497,13 +1489,17 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {    
-    int8_t  i,j;    
+    int8_t  i,j,judge_count;
+    static uint32_t loop_num = 0;
+    static uint32_t errnum = 0;
+    uint8_t life_count = 0;
+    uint8_t life_temp = 0;     
     uint8_t testbuff_32[32]={0};    
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
     BRAM_CMD_PACKET CmdPact_WR_ST ={0};  
     BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
     BRAM_CMD_PACKET MVB_CmdPact_WR_ST[16] = {0};
-    
+    char loginfo[LOG_INFO_LENG]={0};
     /*Just for test*/
     for(j=0;j<6;j++)
     {
@@ -1521,12 +1517,39 @@ void *MVBThreadFunc(void *arg)
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);       
 
+        /*FIXME 这个需要用回来
         TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
         if(g_tms570_errflag == 0)
         {
             s_bram_ret_2 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
+        }*/
+
+        /*********************************************TODO JUST FOR TEST****************************************************************/
+        
+        loop_num++;
+        life_count++;       
+        
+        if (life_temp == (s_mvb_bram_RD_data_st[0].buffer[0] >>16 &0xff))
+        {
+                judge_count++;
+                if(judge_count >= 3)
+                {
+                    judge_count = 0;
+                    errnum++;                
+                    printf("mvb_life have lost %d times,total flames:%d\n",errnum,loop_num);
+                    snprintf(loginfo, sizeof(loginfo)-1,"mvb_life have lost %d times,total flames:%d",errnum,loop_num);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo); 
+                }           
         }
+        else
+        {
+            judge_count = 0;
+        }
+        /*******************************************************TODO JUST FOR TEST************************************************/
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
+
+        s_mvb_bram_WR_data_st[0].buffer[0] = life_count << 16; //TODO JUST FOR TEST
+
         MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
         //ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
@@ -1548,90 +1571,154 @@ void *MVBThreadFunc(void *arg)
 *********************************************************************/
 void *RedundancyThreadFunc(void *arg)
 {
-    /*  1.将CAN MVB 的通讯数据进行处理；
-        2.将处理后的数据进行分发
-        3.涉及到接口板的控制数据进行处理发送   
-    */
-    uint8_t i;
-    int8_t  diagnose_standby_ret; 
-    int8_t  fcu_state_flag;
-    int8_t  diagnose_standby_flag;
-    uint8_t fault_tempbuffer[100]={0};
-    uint8_t power_tempbuffer[100]={0};
+    #if  1
 
-    /*开机诊断*/
+    uint8_t i,bms_err_count=0;
+    int8_t  diagnose_standby_ret; 
+    int8_t  fcu_state_flag,fcu_err_count=0,fcu_err_flag=0;
+    int8_t  diagnose_standby_flag;
+    int8_t  loop_diagnose_ret;
+    uint8_t fault_tempbuffer[256]={0};
+    uint8_t power_tempbuffer[256]={0};
+    char loginfo[LOG_INFO_LENG] = {0};
+
+    
     while (g_LifeFlag)
     {
-        /*TODO:燃料电池启动电池是脉冲信号，持续1s，判断逻辑需要做调整*/
+        /*检测投入燃料电池硬线信号置高且切除燃料电池硬线信号置低*/
         if((Bram_Blvds_Read_Data.buffer[1] & 0x4) && !(Bram_Blvds_Read_Data.buffer[1] & 0x40))
         {
             for(i=0;i<4;i++)
             {
-                diagnose_standby_ret = ECU_Diagnose_Standby(&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST);
+                diagnose_standby_ret = ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                                                    &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_STANDBY);
                 if(diagnose_standby_ret == CODE_OK)
                 {
                     diagnose_standby_flag = 1 ;
                     break;
                 }
-                else if(diagnose_standby_ret == CODE_ERR && i == 3)
+                else if(diagnose_standby_ret == CODE_ERR && i == 3) //尝试四次诊断后，故障上报
                 {
                     diagnose_standby_flag = 0;
-                    /*将故障写入MVB发送CCU数据帧总，需要在TMS570故障条件下才能写*/
+                    /*不会进入燃料电池启动流程，也不会进入燃料电池切除流程，需要此处进行数据绑定，否则此次循环不会有正确的通讯数据发送*/
+                    if(g_tms570_errflag == 1)
+                    {
+                        Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                    }                    
                 }
             }
 
-            while(diagnose_standby_flag)
+            while(diagnose_standby_flag == 1)
             {
                 /*燃料电池启动阶段*/               
                 /*TODO设备有牵引和制动的硬线信号，加入功率控制判读之中*/
-                /*TODO电力电池故障，车辆无法运行，运行前先检查动力电池的故障硬线*/
+                
                 /*TODO车辆加速，功率攀升过程总需要控制电流增加斜率*/
+                ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                            &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
 
-                ECU_Diagnose_EV(s_tms570_bram_WR_data_ch9_11_st,&g_ECUErrInfo_ST);
-                if (g_ECUErrInfo_ST.bms_err_level == 3)
+                /* 1-CAN-BMS电池系统状态报故障、2-3 第一簇、第二簇电池报三级故障 、4-硬线信号-BMS电池系统状态故障、5-诊断BMS存在3级故障*/
+                if ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[0] & 0xf) == 0x3 || ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[7] >>24) & 0x3) == 0x3\
+                    || ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[7] >>24) & 0xc) == 0xc || (Bram_Blvds_Read_Data.buffer[0]>>28 &0x4) == 0x4 ||\
+                    g_ECUErrInfo_ST.bms_err_level[2])  
                 {
-                    printf("EV system occurred 3rd error grade,ECU ready to shut down!\n");
-                    //不发送相关信息给CCU吗？需要考虑增加
-                    ECU_Shut_down();
-                    break;
-                }                
-                else if(g_ECUErrInfo_ST.fcu_err_level != 3)
-                {
-                    fcu_state_flag = FCU_Start_Stage(s_tms570_bram_WR_data_ch9_11_st,s_tms570_bram_RD_data_ch9_11_st,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data);
-                    /*进入工作循环*/
-                    while (fcu_state_flag)
+                    bms_err_count++;
+                    if(bms_err_count >= 5) //滤波500ms
                     {
-                        ECU_Diagnose_Hybrid(fault_tempbuffer,s_tms570_bram_WR_data_ch9_11_st,&s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST);
-                        Hybrid_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);
-                        if(g_tms570_errflag == 1)
-                        {
-                            Communicate_Data_process(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
-                        }
-                        if(g_ECUErrInfo_ST.fcu_err == 3)
-                        {
-                            fcu_state_flag == 0;
-                            printf("FCU system occurred 3rd error grade!\n");
-                            break;
-                            
-                        }
-                        usleep(100000);                   
+                        bms_err_count = 0;
+                        g_ECUErrInfo_ST.bms_err_level[2] = 1;
+                        /*输出动力电池故障硬线信号给车辆-DO Ch7*/
+                        Bram_Blvds_Write_Data.buffer[0] = (Bram_Blvds_Write_Data.buffer[0] & 0xf0ffffff) | 0x09000000;                      
+                        
+                        printf("EV system occurred level 3 failure,ECU ready to shut down power system!\n");
+                        snprintf(loginfo, sizeof(loginfo)-1,"EV system occurred level 3 failure,ECU ready to shut down power system!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+
+                        ECU_Shut_down();
+                        diagnose_standby_flag = 0;
+                        break;
                     }
                 }
                 else
-                {                   
-                    EV_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);
-                    if(g_tms570_errflag == 1)
+                {                                
+                    bms_err_count = 0;
+                    EV_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);//要增加堆BMS的控制，比如上高压动作，并且要对BMS返回的数据进行确认是否已经上高压了                    
+                    if(g_ECUErrInfo_ST.fcu_err_level[2])
                     {
-                        Communicate_Data_process(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                        fcu_err_count++;
+                        if (fcu_err_count >=5) //滤波500ms
+                        {                        
+                            fcu_err_count = 0;
+                            g_ECUErrInfo_ST.fcu_err_level[2] = 1; //三级故障
+                            /*输出燃料电池故障硬线信号给车辆-DO Ch6*/
+                            Bram_Blvds_Write_Data.buffer[0] = (Bram_Blvds_Write_Data.buffer[0] & 0xff0fffff) | 0x00900000;
+                            if(fcu_err_flag == 0)
+                            {
+                                fcu_err_flag = 1;
+                                printf("FCU system occurred level 3 failure , ready to run into EV mode!\n");
+                                snprintf(loginfo, sizeof(loginfo)-1,"FCU system occurred level 3 failure , ready to run into EV mode!");
+                                WRITELOGFILE(LOG_ERROR_1,loginfo);
+                            } 
+                        }
                     }
+                    else
+                    {
+                        fcu_err_count = 0;
+                        fcu_state_flag = FCU_Start_Stage(s_tms570_bram_WR_data_ch9_11_st,s_tms570_bram_RD_data_ch9_11_st,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&g_ECUErrInfo_ST);
+                        /*进入混动工作循环*/
+                        while (fcu_state_flag)
+                        {
+                            /*对各部件的三级 甚至二级故障进行判断 对各硬线信号进行判断，利用返回值进行后续程序运行的依据*/
+                            loop_diagnose_ret = ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                                                    &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
+                            
+                            if(loop_diagnose_ret)/*只要系统存在三级故障,关闭燃料电池及附件部件*/
+                            {
+                                printf("Hybride_Mode:System occurred level 3 failure,system will quit Hybride mode and shut down fuel battery and dc_dc!\n");
+                                ECU_Shut_down();
+                                break;     
+                            }
+                            else if(!loop_diagnose_ret)
+                            {
+                                Hybrid_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,s_tms570_bram_WR_data_ch9_11_st,&g_ECUErrInfo_ST);
+                                //进行数据打包
+                                if(g_tms570_errflag == 1)
+                                {
+                                    Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                                }
+                            }                            
+                            else if(g_ECUErrInfo_ST.fcu_err == 3) //FIXME 这个判断条件需要优化
+                            {
+                                fcu_state_flag == 0;
+                                printf("FCU system occurred 3rd error grade!\n");
+                                break;                                
+                            }                                                        
+                            usleep(100000);                   
+                        }
+                    }                   
+                                                      
                 }
-               
-            }
-                  
+                if(g_tms570_errflag == 1)
+                {
+                    Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+                }                
+                usleep(100000);               
+            }                  
         }
+        else
+        {
+            /*当车辆未投入燃料电池阶段/切断燃料电池阶段,A9依然需要具备故障判断的能力*/
+            ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                                                        &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
+            if(g_tms570_errflag == 1)
+            {
+                Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
+            }
+        } 
     }
     printf("exit RedundancyThreadFunc!\n");
     pthread_exit(NULL);
+    #endif
 }
 
 /**********************************************************************
@@ -1647,17 +1734,20 @@ void *RedundancyThreadFunc(void *arg)
 void *BlvdsThreadFunc(void *arg)
 {
     #if 1
-    /*MAX10_EVENT FILE SAVE*/        
-    pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
+    while (1)
+    {           
+        /*MAX10_EVENT FILE SAVE*/        
+        pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
 
-    BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
-    MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
+        MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
 
-    MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
+        //MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
 
-    BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
+        //BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
 
-    pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
-    //TODO 需要增加写的部分
+        pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
+        //TODO 需要增加写的部分
+    }
     #endif
 }

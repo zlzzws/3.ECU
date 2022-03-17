@@ -616,16 +616,41 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
  */
 int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErrInfop) 
 {
-    int8_t ReadErr = 0;
+    int8_t ReadErr = 0,i;
     char loginfo[LOG_INFO_LENG] = {0};
     static uint8_t ErrFlag = 0;    
-    static uint8_t ErrNum  = 0;    
+    static uint8_t ErrNum  = 0;
+    uint8_t Read_LifeErr = 0;
+    static uint8_t DataErrNum=0;      
+    static uint8_t DataErrFlag=0;
+    uint32_t temp_bram_rd_data[64]={0};
 
     s_Bram_A_RD_BLVDSBlckAddr_ST.DataU32Length = 20 ;
     s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
     if(0 == g_LinuxDebug)
     {
-        ReadErr = BoardDataRead(&s_Bram_A_RD_BLVDSBlckAddr_ST,bram_rd_data->buffer);
+        ReadErr = BoardDataRead(&s_Bram_A_RD_BLVDSBlckAddr_ST,temp_bram_rd_data);
+        Read_LifeErr = ExtraBoardData(temp_bram_rd_data,bram_rd_data->buffer,s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8);            
+        if(CODE_ERR == Read_LifeErr)
+        {
+            DataErrNum++;  
+            if(DataErrNum > BRAMERR_NUM) 
+            {
+                if(0 == DataErrFlag)
+                {                    
+                    DataErrFlag = 1;
+                    printf("The [%d] frame Bramdata read from MVB is Err.\n",i);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from MVB is Err.",i);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                }
+                DataErrNum = 0;
+            }
+        }
+        if(BLVDS_RD_DEBUG == g_DebugType_EU)
+        {
+            for(i=0;i<10;i++)
+                printf("BLVDS:Read Bram_data[%02d]:0x%08X\n",i,bram_rd_data->buffer[i]);            
+        } 
         if(CODE_ERR == ReadErr) 
         {
             ErrNum++;  
@@ -1068,7 +1093,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
             {
                 printf("Read CAN%d ID:0x%x:",dev_type,can_frame_data[i].can_id & 0x1FFFFFFF);
                 for (j = 0; j < 8; j++)                    
-                    printf("[%x]",can_frame_data[i].data[j]);
+                    printf("[%02x]",can_frame_data[i].data[j]);
                 printf("\n");
             }                                                 
         }
@@ -1091,7 +1116,8 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
 void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
 {
     uint8_t i,j;
-    
+    static uint8_t life_signal=0; //FIXME just for test
+    life_signal ++ ;
     switch (can_devtype)
     {
         case CAN0_TYPE:
@@ -1099,14 +1125,18 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
             memcpy(candata_wr[1].data,bramdata_rd[2].buffer,8);
             memcpy(candata_wr[2].data,bramdata_rd[3].buffer,8);
             memcpy(candata_wr[3].data,&bramdata_rd[3].buffer[2],8);
+
+            candata_wr[0].data[6] = life_signal;//FIXME just for test
+            candata_wr[1].data[7] = life_signal;//FIXME just for test
+            candata_wr[2].data[0] = life_signal;//FIXME just for test
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
-                for(j=0;j<4;j++)
+                for(j=0;j<CAN0_WRITE_FRAME_NUM;j++)
                 {
-                    printf("candata_wr[%d]:0X",j);
+                     printf("Write can%d ID:0x%X:",can_devtype,candata_wr->can_id & 0x1FFFFFFF);
                     for (i=0;i<8;i++)
-                        printf("[%x]",candata_wr[j].data[i]);
-                    printf("\n");                   
+                        printf("[%02x]",candata_wr[j].data[i]);
+                    printf("\n");                 
                 }                               
             }
             break;
@@ -1115,13 +1145,14 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
             {               
                 memcpy(candata_wr[j].data,&bramdata_rd[4].buffer[j*2],8);                               
             }
+            candata_wr[0].data[0] = life_signal;//FIXME just for test
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
-                for(j=0;j<3;j++)
+                for(j=0;j<CAN1_WRITE_FRAME_NUM;j++)
                 {
-                    printf("candata_wr[%d]:0X",j);
-                    for (i = 0; i < 8; i++)
-                        printf("[%x]",candata_wr[j].data[i]);
+                    printf("Write can%d ID:0x%X:",can_devtype,candata_wr->can_id & 0x1FFFFFFF);
+                    for (i=0;i<8;i++)
+                        printf("[%02x]",candata_wr[j].data[i]);
                     printf("\n");
                 }                                              
             }
