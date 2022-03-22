@@ -565,7 +565,6 @@ BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
 *********************************************************************/
 int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *Inbuf)
 {
-
     uint16_t i = 0;
     uint32_t TempCrcValue_U32;
     uint32_t Framelen = 0;
@@ -639,9 +638,9 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
                 if(0 == DataErrFlag)
                 {                    
                     DataErrFlag = 1;
-                    printf("The [%d] frame Bramdata read from MVB is Err.\n",i);
-                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from MVB is Err.",i);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                    printf("The [%d] frame  read from BLVDS is Err.\n",i);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame BLVDS read from BLVDS is Err.",i);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);                      
                 }
                 DataErrNum = 0;
             }

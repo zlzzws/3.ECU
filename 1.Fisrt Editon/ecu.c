@@ -1,5 +1,41 @@
 #include "ecu.h"
+
+
 #if 1
+
+/**
+ * @description:    H2_SOC_Calculate-Calculate H2 SOC
+ * @param:          float pressure,float *temperature
+ * @return:         float soc_ret
+ * @author:         zlz
+ */
+static float H2_SOC_Calculate(float pressure,float *temperature)
+{
+    uint8_t i,j;
+    float soc_ret;
+    float z_factor[4][6]=Z_COMPRESSION_FACTOR;
+    float z_num=0;
+    float temperature_max;
+    float temperature_k;
+
+    for(i=0;i<11;i++)
+    {
+        temperature_max = temperature_max >= temperature[i] ? temperature_max : temperature[i];
+    }
+
+    temperature_k = 100 / ( temperature_max + 273.15 );
+
+    for(j=0;j<6;j++)
+    {
+        for(i=0;i<4;i++)
+        {
+            z_num += z_factor[i][j] * pow(pressure,j) * pow(temperature_k,i);
+        }
+    }
+
+    return z_num;
+}
+
 /**
  * @description:    H2_Fault_Judge
  * @param:          judge the h2 concentration,temperature,pressure
@@ -8,7 +44,7 @@
  */
 static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
 {
-    uint8_t buffer[30]={0};
+    uint8_t tempbuffer[30]={0};
     uint8_t i,j,k;
     int8_t err_con=0,err_temper=0,err_temper_count=0,err_communication=0;
     int8_t err_high_pre=0,err_low_pre=0,err_sensor=0,ret=0;
@@ -16,17 +52,19 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
     float high_pressure;
     uint16_t low_pressure;
     int8_t h2_temperature[6] = {0};
-    static uint32_t count = 0 ;    
+    static uint32_t count = 0 ;
+    float h2_soc; 
+    uint8_t h2_soc_uint8;   
 
-    memcpy(buffer,&bram_tms_data->buffer[10],21);//储氢系统相关的模拟量数据
-    memcpy(&buffer[21],&bram_tms_data->buffer[8],8);//传感器故障数据
+    memcpy(tempbuffer,&bram_tms_data->buffer[10],21);//储氢系统相关的模拟量数据
+    memcpy(&tempbuffer[21],&bram_tms_data->buffer[8],8);//传感器故障数据
     
     /*氢瓶内高压判断*/
-    high_pressure = buffer[17]*0.2 ;
+    high_pressure = tempbuffer[17]*0.2 ;
     if(high_pressure <= 2)              //瓶内高压低于2Mpa,认为2级故障,需要降载并关闭燃料电池
     {
         err_high_pre = 2;
-        faultbuffer[0] = 0x10;       
+        faultbuffer[62] = 0x10;       
     }
     else if(high_pressure > 40)
     {
@@ -34,18 +72,17 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
         faultbuffer[0] = 0x1;
     }    
     /*中压管低压判断*/
-    low_pressure  = buffer[18] | buffer[19] << 8; 
+    low_pressure  = tempbuffer[18] | tempbuffer[19] << 8; 
     if(low_pressure > 2800)             //中压管低压高于2800kpa,认为3级故障，立即切断储氢设备（FCU关闭，进入EV模式）
     {
         err_low_pre = 3;
         faultbuffer[1] = 0x4;
-    }    
-    //TODO 氢气剩余量公式计算,增加soc计算部分内容
+    }   
 
     /*氢瓶温度判断*/
     for (i=0;i<6;i++)
     {
-        h2_temperature[i] = buffer[i+11]-40;
+        h2_temperature[i] = tempbuffer[i+11]-40;
         if (h2_temperature[i] <= -40)    //氢瓶温度超过2个低于-40℃，则认为2级故障
         {
             err_temper = 2;
@@ -62,11 +99,11 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
     for(i=0;i<11;i++)
     {
         /*传感器判断*/
-        if(buffer[24] || buffer[25] )
+        if(tempbuffer[24] || tempbuffer[25] )
         {
             err_sensor = 1;
-            faultbuffer[20] = buffer[24] ;                  //请浓度传感器1-8故障
-            faultbuffer[21] = buffer[25] & 0x7;             //氢浓度传感器9-11故障            
+            faultbuffer[20] = tempbuffer[24] ;                  //请浓度传感器1-8故障
+            faultbuffer[21] = tempbuffer[25] & 0x7;             //氢浓度传感器9-11故障            
         }
         /*储氢/扩展单元通讯判断*/
         if(err_info->commu_err[6])
@@ -75,7 +112,7 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
             (faultbuffer[21] >>3) = err_info->commu_err[6]; //通讯故障
         }
         /*氢泄露浓度判断*/
-        h2_concentration[i] = buffer[i]*0.0002;
+        h2_concentration[i] = tempbuffer[i]*0.0002;
         if ((h2_concentration[i] >= 0.004 && h2_concentration[i] < 0.01) && count >=300) //持续30s,假定1个循环是100ms,输出尽快停车指令
         {
             err_con = 1;
@@ -119,6 +156,10 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
             }
         }            
     }
+    /*氢气剩余量计算*/
+    h2_soc =  H2_SOC_Calculate(high_pressure,h2_concentration);
+    h2_soc_uint8 = (uint8_t)(h2_soc / 0.004);
+    faultbuffer[29] = h2_soc_uint8;
 
     /*三级故障*/
     if(err_con == 3 || err_low_pre == 3)
@@ -162,8 +203,9 @@ static int8_t H2_Fault_Judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffe
  * @return:      err
  * @author:      zlz
  */
-static int8_t FCU_falut_judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
+static int8_t FCU_falut_judge(TMS570_BRAM_DATA *blvds_rd_data,TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
 {
+    /*TODO 增加硬线信号对于故障的判断*/
     /*A/B堆出现3级故障，但是需要细分 A B堆分别的故障状态*/
     err_info->fcu_err_level[2] =  ((bram_tms_data[2].buffer[0]>>8 & 0xff == 0x04) ? 1 : 0)  ||   ((bram_tms_data[2].buffer[14]>>8 & 0xff == 0x04) ? 1 : 0);
     err_info->fcu_err_level[1] =  ((bram_tms_data[2].buffer[0]>>8 & 0xff == 0x02) ? 1 : 0)  ||   ((bram_tms_data[2].buffer[14]>>8 & 0xff == 0x02) ? 1 : 0);
@@ -315,23 +357,122 @@ static int8_t DCDC_falut_judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuf
  * @return:         err
  * @author:         zlz
  */
-static int8_t BMS_falut_judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
+static int8_t BMS_falut_judge(TMS570_BRAM_DATA *blvds_rd_data,TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
 {
-   
+   /*TODO考虑动力电池硬线信号对故障的判断*/
     float soc_bat1;
     float soc_bat2;
+    float soc_bat;
+    uint8_t soc_lower_err_1,soc_lower_err_2,soc_lower_err_3;
+    uint8_t bat1_level1_err,bat2_level1_err;
+    uint8_t bat1_level2_err,bat2_level2_err;
+    uint8_t bat1_level3_err,bat2_level3_err;
     uint8_t battery_status_err;
-    BYTE_BIT temperbuffer[20]={0};
+    uint8_t temperbuffer[32]={0};
+    float output_voltage;
+    uint8_t over_voltage_err_1,over_voltage_err_2,over_voltage_err_3;
+    uint8_t under_voltage_err_1,under_voltage_err_2,under_voltage_err_3;
+    uint8_t hardwire_bms_err;
 
-    memcpy(temperbuffer,&bram_tms_data->buffer[0],2);
-    memcpy(&temperbuffer[2],&bram_tms_data->buffer[5],11);
+    memcpy(temperbuffer,&bram_tms_data->buffer[0],32);
 
-    battery_status_err = (temperbuffer[0] & 0xf) == 0x0011 ? 1 : 0 ;
+    battery_status_err = (temperbuffer[0] & 0xf) == 0x0011 ? 1 : 0 ; //暂时不知道用处是什么
 
-    
+    bat1_level1_err = temperbuffer[31] & 0x1 == 0x1 ? 1 : 0;
+    bat1_level2_err = temperbuffer[31] & 0x2 == 0x2 ? 1 : 0;
+    bat1_level3_err = temperbuffer[31] & 0x3 == 0x3 ? 1 : 0;
 
+    bat2_level1_err = temperbuffer[31] & 0x4 == 0x4 ? 1 : 0;
+    bat2_level2_err = temperbuffer[31] & 0x8 == 0x8 ? 1 : 0;
+    bat2_level3_err = temperbuffer[31] & 0xc == 0xc ? 1 : 0;
+    /*关于电池的输入过压、输入欠压,ECU(系统)的判断条件会更严苛*/
+    output_voltage = (temperbuffer[2] << 8 | temperbuffer[3])*0.1;
 
+    if(output_voltage <580)
+    {
+        under_voltage_err_3 = 1;
+    }
+    else if (output_voltage >= 580 && output_voltage <610)
+    {
+        under_voltage_err_2 = 1;
+    }
+    else if (output_voltage >= 610 && output_voltage <640)
+    {
+        under_voltage_err_1 = 1;
+    }
+    else if(output_voltage >= 835 && output_voltage <845)
+    {
+        over_voltage_err_1 = 1;
+    }
+    else if (output_voltage >= 845 && output_voltage < 860)
+    {
+        over_voltage_err_2 = 1;
+    }
+    else if (output_voltage >= 860)
+    {
+        over_voltage_err_3 = 1;
+    }
+    else
+    {
+        over_voltage_err_1=0;
+        over_voltage_err_2=0;
+        over_voltage_err_3=0;
 
+        under_voltage_err_1=0;
+        under_voltage_err_2=0;
+        under_voltage_err_3=0;
+    }
+    /*关于电池剩余电量判断*/
+    soc_bat1 = temperbuffer[1] *0.004;
+    soc_bat2 = temperbuffer[24] *0.004;
+    soc_bat = soc_bat1 >= soc_bat2 ? soc_bat2 : soc_bat1;
+
+    if(soc_bat >= 0.2 && soc_bat <= 0.3)
+    {
+        soc_lower_err_1 = 1;
+    }
+    else if (soc_bat >= 0.05 && soc_bat < 0.2)
+    {
+        soc_lower_err_2 = 1;
+    }
+    else if (soc_bat < 0.05)
+    {
+        soc_lower_err_3 = 1;
+    }
+    else
+    {
+        soc_lower_err_1 = 0;
+        soc_lower_err_2 = 0;
+        soc_lower_err_3 = 0;
+    }
+    /*总体故障判断*/
+    if(under_voltage_err_3 || over_voltage_err_3 || bat1_level3_err || bat2_level3_err || soc_lower_err_3)
+    {
+        err_info->bms_err_level[2] = 1;
+    }
+    else
+    {
+        err_info->bms_err_level[2] = 0;
+    }
+
+    if (under_voltage_err_2 || over_voltage_err_2 || bat1_level2_err || bat2_level2_err || soc_lower_err_2)
+    {
+        err_info->bms_err_level[1] = 1;
+    }
+    else
+    {
+        err_info->bms_err_level[1] = 0;
+    }
+
+    if (under_voltage_err_1 || over_voltage_err_1 || bat1_level1_err || bat2_level1_err || soc_lower_err_1)
+    {
+        err_info->bms_err_level[0] = 1;
+    }
+    else
+    {
+        err_info->bms_err_level[1] = 0;
+    }
+    return CODE_OK;
 }
 
 /**
@@ -356,16 +497,17 @@ static int8_t commuication_fault_judge(uint8_t *faultbuffer,ECU_ERROR_INFO *err_
 }
 
 /**
- * @description:  inverter_Fault_Judge-judge the inverter fault
+ * @description:  Cooling_system_fault_judge-judge the inverter fault cooling system fault
  * @param:       TMS570_BRAM_DATA *bram_tms_data,
  * @param:       uint8_t *faultbuffer.
  * @param:       ECU_ERROR_INFO *err_info
  * @return:      err
  * @author:      zlz
  */
-static int8_t inverter_fault_judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
+static int8_t Cooling_system_fault_judge(TMS570_BRAM_DATA *bram_tms_data,uint8_t *faultbuffer,ECU_ERROR_INFO *err_info)
 {
     //需要在特定工况下，风扇才会开启
+    //
 }
 
 
@@ -459,7 +601,7 @@ int8_t ECU_Diagnose(uint8_t *fault_buffer,TMS570_BRAM_DATA *blvds_bram_rd_data,T
     int8_t err=0;
     int8_t comm_ret=0;
     int8_t h2_ret,fcu_ret,bms_ret;
-    int8_t dcdc_ret,inverter_ret;
+    int8_t dcdc_ret,cooling_system_ret;
     
     switch (diagnose_type)
     {
@@ -480,22 +622,24 @@ int8_t ECU_Diagnose(uint8_t *fault_buffer,TMS570_BRAM_DATA *blvds_bram_rd_data,T
             }
             err = h2_ret || comm_ret;
             break;
-        case DIAGNOSE_EV_HYBRID:
+        case DIAGNOSE_HYBRID:
             h2_ret = H2_Fault_Judge(tms_wr_data_12,fault_buffer,err_info);
-            inverter_ret = inverter_fault_judge(tms_wr_data_12,fault_buffer,err_info);
-            fcu_ret = FCU_falut_judge(tms_wr_data_9_11,fault_buffer,err_info);
-            bms_ret = BMS_falut_judge(tms_wr_data_9_11,fault_buffer,err_info);
+            cooling_system_ret = Cooling_system_fault_judge(tms_wr_data_12,fault_buffer,err_info);
+            fcu_ret = FCU_falut_judge(blvds_bram_rd_data,tms_wr_data_9_11,fault_buffer,err_info);
+            bms_ret = BMS_falut_judge(blvds_bram_rd_data,tms_wr_data_9_11,fault_buffer,err_info);
             dcdc_ret = DCDC_falut_judge(tms_wr_data_9_11,fault_buffer,err_info);
             comm_ret = commuication_fault_judge(fault_buffer,err_info);
             /*系统存在三级故障*/
-            err = h2_ret || inverter_ret || fcu_ret || bms_ret || dcdc_ret || comm_ret;
+            err = h2_ret || cooling_system_ret || fcu_ret || bms_ret || dcdc_ret || comm_ret;
+            break;
+        case DIAGNOSE_EV:
+            //在EV阶段 不要去诊断FCU,FCU故障状态保持在关机前状态，否则关机后，各种异常可能会清零导致误判（但通讯肯定会在15min后关闭）
             break;
         default:
             break;
     }
     return err;
 }
-
 
 /**
  * @description: power_control_fun
@@ -508,6 +652,7 @@ int8_t ECU_Diagnose(uint8_t *fault_buffer,TMS570_BRAM_DATA *blvds_bram_rd_data,T
  */
 int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TMS570_BRAM_DATA *tms_wr_data_9_11,ECU_ERROR_INFO *err_info)
 {
+    static struct timespec begin_ts,last_ts;    //计时间
     static uint8_t i=0;
     uint8_t level2_err;
     uint8_t train_status;
@@ -530,9 +675,12 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
     float max_sigle_voltage_bms;   
     static uint8_t power_160kw_limit_flag =0,power_120kw_limit_flag =0,power_80kw_limit_flag =0;
     uint8_t fcu_max_power;
+    uint8_t fcu_power_target;
+    uint8_t fcu_step_increase;
     uint8_t fcu_set_power;
     uint8_t bms_set_power;
     static uint8_t life_signal=0;
+    static uint8_t last_second_power=0;//上一秒周期的功率需求
     uint16_t fcu_stack_voltage;
     uint16_t fcu_stack_current;
     uint16_t fcu_allow_current;
@@ -547,21 +695,13 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
     }
     else //正常运行
     {
-        //车辆功率需求，车辆状态
-        //BMS 电池soc的电量判断
-        //存在功率限制工况
-        //FCU的功率控制 DCDC的参数需求
-        //电流斜率控制
-        //充电放电控制
-        //动力电池的功率计算
-        //
-        memcpy(temperbuffer,&tms_wr_data_8->buffer[8],13);  /*TCMS*/
-        memcpy(temperbuffer[13],&tms_wr_data_9_11[0].buffer[0],22);/*BMS*/
-        memcpy(temperbuffer[35],&tms_wr_data_9_11[0].buffer[6],1);/*BMS*/
-        memcpy(temperbuffer[36],&tms_wr_data_9_11[1].buffer[0],10);/*DCDC*/
-        memcpy(temperbuffer[46],&tms_wr_data_9_11[2].buffer[0],14);/*FCU*/
+    
+        memcpy(temperbuffer,&tms_wr_data_8->buffer[8],13);              /*TCMS*/
+        memcpy(temperbuffer[13],&tms_wr_data_9_11[0].buffer[0],22);     /*BMS*/
+        memcpy(temperbuffer[35],&tms_wr_data_9_11[0].buffer[6],1);      /*BMS*/
+        memcpy(temperbuffer[36],&tms_wr_data_9_11[1].buffer[0],10);     /*DCDC*/
+        memcpy(temperbuffer[46],&tms_wr_data_9_11[2].buffer[0],14);     /*FCU*/
 
-        /*TODO 功率因素是什么*/
         /*DC-DC温度判断*/
         temperature_dcdc = (temperbuffer[40]<<8 | temperbuffer[41])*0.1-40;
         /*DC-DC输出电压*/
@@ -635,16 +775,16 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
         
         /*车辆工控判断*/
         if(train_status == 0x1)
-        {
+        {            
             if( demand_power >= fcu_max_power+accelerate_bms_power_limit)
             {
                 printf("In rapidly accelerate stage,system can't apply the demand_power!\n");
-                fcu_set_power = fcu_max_power;
+                fcu_power_target = fcu_max_power;
                 bms_set_power = accelerate_bms_power_limit;
             }
             else if(demand_power >= fcu_max_power)
             {
-                fcu_set_power = fcu_max_power;
+                fcu_power_target = fcu_max_power;
                 bms_set_power = demand_power - fcu_set_power;
             }
             else if(demand_power <= 200 && demand_power > 20)
@@ -653,39 +793,58 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
                 {
                     if((fcu_max_power - demand_power) <= brake_bms_power_limit)
                     {
-                        fcu_set_power = fcu_max_power;
+                        fcu_power_target = fcu_max_power;
                     }
                     else
                     {
-                        fcu_set_power = demand_power + brake_bms_power_limit;
+                        fcu_power_target = demand_power + brake_bms_power_limit;
                     }                   
                 }
                 else if(battery_soc >= 0.45 && battery_soc <= 0.55)
                 {
-                    fcu_set_power = fcu_max_power >= 150 ? 150 : fcu_max_power;
+                    fcu_power_target = fcu_max_power >= 150 ? 150 : fcu_max_power;
                     bms_set_power = demand_power - fcu_set_power > 0 ? demand_power -fcu_set_power : 0;
                 }
                 else if(battery_soc > 0.55 && battery_soc <= 0.65)
                 {
-                    fcu_set_power = fcu_max_power >= 120 ? 120 : fcu_max_power;
+                    fcu_power_target = fcu_max_power >= 120 ? 120 : fcu_max_power;
                     bms_set_power = demand_power - fcu_set_power > 0 ? demand_power -fcu_set_power : 0;
                 }
                 else if(battery_soc > 0.65)
                 {
-                    fcu_set_power = fcu_max_power >= 20 ? 20 : fcu_max_power;
+                    fcu_power_target = fcu_max_power >= 20 ? 20 : fcu_max_power;
                     bms_set_power = demand_power - fcu_set_power > 0 ? demand_power -fcu_set_power : 0;
                 }
             }
+            
+            /*控制燃料电池在急加速过程中的电流上升斜率，0~400A以内，30A/1s，>400A,20A/1s*/
+            clock_gettime(CLOCK_MONOTONIC,&begin_ts);
+            
+            if(begin_ts.tv_sec-last_ts.tv_sec >= 1)
+            {
+                if(fcu_stack_current >0 && fcu_stack_current <=400 )
+                {
+                    fcu_step_increase = (uint8_t)(fcu_stack_voltage*30/1000);
+                    fcu_set_power =  fcu_power_target - last_second_power > fcu_step_increase ? last_second_power + fcu_step_increase : fcu_power_target;
+                }
+                else if(fcu_stack_current > 400)
+                {
+                    fcu_step_increase = (uint8_t)(fcu_stack_voltage*20/1000);
+                    fcu_set_power =  fcu_power_target - last_second_power > fcu_step_increase ? last_second_power + fcu_step_increase : fcu_power_target;
+                }
+            } 
+            last_ts = begin_ts; 
+            last_second_power = fcu_set_power;          
         }
         else if(train_status == 0x2)
         {
-            fcu_set_power = 25;
+            fcu_power_target = 25;
         }
-        else if((temperbuffer[8] << 8 | temperbuffer[9]) == 0)
+        else if((temperbuffer[8] << 8 | temperbuffer[9]) == 0)//车辆静止
         {
             if(battery_soc <0.4)
             {
-                fcu_set_power = fcu_max_power >= 180 ? 180 : fcu_max_power;
+                fcu_power_target = fcu_max_power >= 180 ? 180 : fcu_max_power;
                 /*TODO监测是否超出最大充电功率*/
                 if((fcu_set_power-20) <= brake_bms_power_limit)
                 {
@@ -693,21 +852,21 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
                 }
                 else
                 {
-                    fcu_set_power = 20 + brake_bms_power_limit;
+                    fcu_power_target = 20 + brake_bms_power_limit;
                 } 
             }
             else if(battery_soc >= 0.45 && battery_soc <= 0.55)
             {
-                fcu_set_power = fcu_max_power >= 150 ? 150 : fcu_max_power;
+                fcu_power_target = fcu_max_power >= 150 ? 150 : fcu_max_power;
                 
             }
             else if(battery_soc > 0.55 && battery_soc <= 0.65)
             {
-                fcu_set_power = fcu_max_power >= 120 ? 120 : fcu_max_power;
+                fcu_power_target = fcu_max_power >= 120 ? 120 : fcu_max_power;
             }
             else if(battery_soc > 0.65)
             {
-                fcu_set_power = fcu_max_power >= 20 ? 20 : fcu_max_power;
+                fcu_power_target = fcu_max_power >= 20 ? 20 : fcu_max_power;
             }
         }
         /****************BMS CAN帧数据填充********************/        
@@ -738,20 +897,10 @@ int8_t Hybrid_Power_ctrl(int8_t *power_buffer,TMS570_BRAM_DATA *tms_wr_data_8,TM
         power_buffer[23] = 0;
         
         life_signal++; 
-    }
-
-
-    
-    
+    }   
 
 }
 
-int8_t EV_Power_ctrl(int8_t *buffer,TMS570_BRAM_DATA *tms_wr_data_8,ECU_ERROR_INFO *err_info)
-{
-    static uint8_t i;
-
-
-}
 
 /**
  * @description: Send_Data_binding
@@ -768,9 +917,16 @@ int8_t Send_Data_binding(uint8_t *fault_buffer,uint8_t *power_buffer,TMS570_BRAM
 
 }
 
-int8_t ECU_Shut_down()
+int8_t FCU_DCDC_Shut_down()
 {
 
 }
+
+
+int8_t EV_Shut_down()
+{
+
+}
+
 
 #endif

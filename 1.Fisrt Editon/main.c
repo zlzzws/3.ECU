@@ -1572,16 +1572,16 @@ void *MVBThreadFunc(void *arg)
 void *RedundancyThreadFunc(void *arg)
 {
     #if  1
-
     uint8_t i,bms_err_count=0;
-    int8_t  diagnose_standby_ret; 
+    int8_t  diagnose_standby_ret;
     int8_t  fcu_state_flag,fcu_err_count=0,fcu_err_flag=0;
     int8_t  diagnose_standby_flag;
-    int8_t  loop_diagnose_ret;
+    int8_t  loop_diagnose_ret=0;
     uint8_t fault_tempbuffer[256]={0};
     uint8_t power_tempbuffer[256]={0};
     char loginfo[LOG_INFO_LENG] = {0};
 
+    sleep(1);
     
     while (g_LifeFlag)
     {
@@ -1608,19 +1608,14 @@ void *RedundancyThreadFunc(void *arg)
                 }
             }
 
-            while(diagnose_standby_flag == 1)
+            while(diagnose_standby_flag == 1)//意味着进入了EV模式
             {
                 /*燃料电池启动阶段*/               
                 /*TODO设备有牵引和制动的硬线信号，加入功率控制判读之中*/
-                
-                /*TODO车辆加速，功率攀升过程总需要控制电流增加斜率*/
-                ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
-                            &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
 
                 /* 1-CAN-BMS电池系统状态报故障、2-3 第一簇、第二簇电池报三级故障 、4-硬线信号-BMS电池系统状态故障、5-诊断BMS存在3级故障*/
                 if ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[0] & 0xf) == 0x3 || ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[7] >>24) & 0x3) == 0x3\
-                    || ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[7] >>24) & 0xc) == 0xc || (Bram_Blvds_Read_Data.buffer[0]>>28 &0x4) == 0x4 ||\
-                    g_ECUErrInfo_ST.bms_err_level[2])  
+                    || ((s_tms570_bram_WR_data_ch9_11_st[0].buffer[7] >>24) & 0xc) == 0xc || (Bram_Blvds_Read_Data.buffer[0]>>28 &0x4) == 0x4 || g_ECUErrInfo_ST.bms_err_level[2])  
                 {
                     bms_err_count++;
                     if(bms_err_count >= 5) //滤波500ms
@@ -1628,28 +1623,24 @@ void *RedundancyThreadFunc(void *arg)
                         bms_err_count = 0;
                         g_ECUErrInfo_ST.bms_err_level[2] = 1;
                         /*输出动力电池故障硬线信号给车辆-DO Ch7*/
-                        Bram_Blvds_Write_Data.buffer[0] = (Bram_Blvds_Write_Data.buffer[0] & 0xf0ffffff) | 0x09000000;                      
-                        
+                        Bram_Blvds_Write_Data.buffer[0] = (Bram_Blvds_Write_Data.buffer[0] & 0xf0ffffff) | 0x09000000;
                         printf("EV system occurred level 3 failure,ECU ready to shut down power system!\n");
                         snprintf(loginfo, sizeof(loginfo)-1,"EV system occurred level 3 failure,ECU ready to shut down power system!");
-                        WRITELOGFILE(LOG_ERROR_1,loginfo);
-
-                        ECU_Shut_down();
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                        EV_Shut_down();/*没什么实际作用，BMS基本不受ECU控制*/
                         diagnose_standby_flag = 0;
                         break;
                     }
                 }
                 else
-                {                                
-                    bms_err_count = 0;
-                    EV_Power_ctrl(power_tempbuffer,&s_tms570_bram_WR_data_ch8_st,&g_ECUErrInfo_ST);//要增加堆BMS的控制，比如上高压动作，并且要对BMS返回的数据进行确认是否已经上高压了                    
+                {                   
+                    bms_err_count = 0;                                        
                     if(g_ECUErrInfo_ST.fcu_err_level[2])
                     {
                         fcu_err_count++;
                         if (fcu_err_count >=5) //滤波500ms
                         {                        
-                            fcu_err_count = 0;
-                            g_ECUErrInfo_ST.fcu_err_level[2] = 1; //三级故障
+                            fcu_err_count = 0;                            
                             /*输出燃料电池故障硬线信号给车辆-DO Ch6*/
                             Bram_Blvds_Write_Data.buffer[0] = (Bram_Blvds_Write_Data.buffer[0] & 0xff0fffff) | 0x00900000;
                             if(fcu_err_flag == 0)
@@ -1661,21 +1652,17 @@ void *RedundancyThreadFunc(void *arg)
                             } 
                         }
                     }
-                    else
-                    {
+                    else 
+                    {                        
                         fcu_err_count = 0;
                         fcu_state_flag = FCU_Start_Stage(s_tms570_bram_WR_data_ch9_11_st,s_tms570_bram_RD_data_ch9_11_st,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&g_ECUErrInfo_ST);
-                        /*进入混动工作循环*/
+                        
                         while (fcu_state_flag)
-                        {
-                            /*对各部件的三级 甚至二级故障进行判断 对各硬线信号进行判断，利用返回值进行后续程序运行的依据*/
-                            loop_diagnose_ret = ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
-                                                    &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
-                            
+                        {                           
                             if(loop_diagnose_ret)/*只要系统存在三级故障,关闭燃料电池及附件部件*/
                             {
                                 printf("Hybride_Mode:System occurred level 3 failure,system will quit Hybride mode and shut down fuel battery and dc_dc!\n");
-                                ECU_Shut_down();
+                                FCU_DCDC_Shut_down();
                                 break;     
                             }
                             else if(!loop_diagnose_ret)
@@ -1686,22 +1673,30 @@ void *RedundancyThreadFunc(void *arg)
                                 {
                                     Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
                                 }
-                            }                            
-                            else if(g_ECUErrInfo_ST.fcu_err == 3) //FIXME 这个判断条件需要优化
-                            {
-                                fcu_state_flag == 0;
-                                printf("FCU system occurred 3rd error grade!\n");
-                                break;                                
-                            }                                                        
-                            usleep(100000);                   
+                            }
+                            /*对各部件的三级 甚至二级故障进行判断 对各硬线信号进行判断，利用返回值进行后续程序运行的依据*/                                                       
+                            usleep(100000);
+                            loop_diagnose_ret = ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                                                                &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_HYBRID);                   
                         }
-                    }                   
-                                                      
+                    }                                                    
                 }
+                if(loop_diagnose_ret == 0) /*避免混动模式退出的那一次,重复诊断*/
+                {
+                    ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
+                            &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_STANDBY);
+                }
+
+                loop_diagnose_ret = 0;/*避免混动模式退出的那一次,重复诊断*/
+
                 if(g_tms570_errflag == 1)
                 {
                     Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
-                }                
+                }
+                
+                /*FIXME司机室发出切除燃料电池后需要退出当前循环，但是考虑燃料电池关机需要很久,所以需要考虑这个条件设置的合理性*/
+                /*不合理，需要在EV模式循环至少运行15min，因为FCU关机至少需要15min*/
+                //diagnose_standby_flag =  (Bram_Blvds_Read_Data.buffer[1] & 0x4) && !(Bram_Blvds_Read_Data.buffer[1] & 0x40);               
                 usleep(100000);               
             }                  
         }
@@ -1709,7 +1704,7 @@ void *RedundancyThreadFunc(void *arg)
         {
             /*当车辆未投入燃料电池阶段/切断燃料电池阶段,A9依然需要具备故障判断的能力*/
             ECU_Diagnose(fault_tempbuffer,&Bram_Blvds_Read_Data,&Bram_Blvds_Write_Data,&s_tms570_bram_WR_data_ch9_11_st,\
-                                                        &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_EV_HYBRID);
+                                                        &s_tms570_bram_WR_data_ch12_st,&g_ECUErrInfo_ST,DIAGNOSE_STANDBY);
             if(g_tms570_errflag == 1)
             {
                 Send_Data_binding(fault_tempbuffer,power_tempbuffer,&s_tms570_bram_RD_data_ch8_st,s_tms570_bram_RD_data_ch9_11_st,&s_tms570_bram_RD_data_ch12_st);
