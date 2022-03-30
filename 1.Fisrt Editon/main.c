@@ -51,11 +51,14 @@ int                 g_tms570_errflag = 0;                       /*used in Hot st
 /***********************************************************************
 *Local Struct AND Variable Define Section*
 *********************************************************************/
+#ifdef REDUNDANCY_FUNCION
 int8_t *s_bram_ret_0    = NULL;
 int8_t *s_bram_ret_1    = NULL;
 int8_t *s_bram_ret_2    = NULL;
-static DRIVE_FILE_DATA s_save_to_csr_driver={0};            //存储值上位机CSR_DRIVER
-static DRIVE_FILE_DATA s_save_to_intool={0};                //存储至上位机Intool
+#endif
+
+static DRIVE_FILE_DATA s_save_to_csr_driver={0};        //存储值EMMC,上位机CSR_DRIVER可解析
+static DRIVE_FILE_DATA s_save_to_intool={0};            //存储值EMMC,上位机CSR_DRIVER可解析 根据需要可以发送给INTOOL实时显示数字量
 TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};
 TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};
 TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};
@@ -631,7 +634,7 @@ void *RealWaveThreadFunc(void *arg)
         {
             pthread_rwlock_rdlock(&g_PthreadLock_ST.RealDatalock);
             memset(returnbuf,0,sizeof(returnbuf));
-            RealWaveData(returnbuf,g_ChanRealWave,&s_save_to_intool,g_ChanRealNum);
+            RealWaveData(returnbuf,g_ChanRealWave,&s_save_to_csr_driver,g_ChanRealNum);
             pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
 
             if(TCP_DEBUG == g_DebugType_EU)
@@ -1132,7 +1135,7 @@ void *LEDPthreadFunc (void *arg)
         
         while (g_LifeFlag)
         {
-            /******LED*******/            
+            /******LED Blink*******/            
             memcpy(&errtem,&g_EADSErrInfo_ST,1);
             if((!s_errledflag) && (errtem))/* happen VechWarm*/
             {
@@ -1143,16 +1146,18 @@ void *LEDPthreadFunc (void *arg)
             {
                 write(errledfd, "1", 2); //off
                 s_errledflag = 0;
-            }            
+            }
+
             write(lifeledfd,"0",2); //on            
             usleep(led_period);
             write(lifeledfd,"1",2);//off            
             usleep(led_period);
-            /******************/
+            
             
             /******读取PHY芯片寄存器过程*******/
+            /*读取REG0 控制寄存器*/
             mii->reg_num  = PHY_COPPER_CONTRL_REG;
-            ret = ioctl(sockfd, SIOCGMIIREG, &ifr);//读REG0 控制寄存器
+            ret = ioctl(sockfd, SIOCGMIIREG, &ifr);
             if(ret < 0)
             {
                 printf("Phy Read Control Reg Failed!\n");
@@ -1184,9 +1189,9 @@ void *LEDPthreadFunc (void *arg)
                     PhyErrFlag = 1;
                 }
             }
-
+            /*读取REG1 状态寄存器*/
             mii->reg_num  = PHY_COPPER_STATUS_REG;
-            ret = ioctl(sockfd, SIOCGMIIREG, &ifr);//读取REG1 状态寄存器
+            ret = ioctl(sockfd, SIOCGMIIREG, &ifr);
             if(ret < 0)
             {
                 printf("Phy Read Status Reg Failed!\n");
@@ -1219,7 +1224,8 @@ void *LEDPthreadFunc (void *arg)
                     PhyLinkErrFlag = 1;
                 }
             }
-            
+
+            #ifdef ETH_FRAME_COUNT
             /******读取/proc/net/dev*******/
             line_return = fgets (buffer, 256 * sizeof(char), stream);//读取第一行标题栏
             line_count++;
@@ -1260,7 +1266,7 @@ void *LEDPthreadFunc (void *arg)
                 Eth1ReceiveErrTimes++;
                 if(Eth1ReceiveErrTimes>=10)
                 {
-                    //printf("MAC DIDN'T RECEIVE DATE!\n");
+                    printf("MAC DIDN'T RECEIVE DATE!\n");
                 }
             } else{
                 Eth1ReceiveErrTimes=0;
@@ -1270,13 +1276,16 @@ void *LEDPthreadFunc (void *arg)
                 Eth1TransmitErrTimes++;
                 if(Eth1TransmitErrTimes>=10)
                 {
-                    //printf("MAC DIDN'T SEND DATE!\n");
+                    printf("MAC DIDN'T SEND DATE!\n");
                 }
-            } else{
+            }
+            else
+            {
                 Eth1TransmitErrTimes=0;
             }
             Eth1ReceivePacksLastTime = Eth1ReceivePacks;
             Eth1TransmitPacksLastTime = Eth1TransmitPacks;
+            #endif
                                
         }        
     }
@@ -1338,7 +1347,10 @@ void *CAN0ThreadFunc(void *arg)
         if(ret == 0)
         {         
             errnum_timeout++;
-            //printf("can0 read time out %d times!\n",errnum_timeout);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {
+                printf("can0 read time out %d times!\n",errnum_timeout);
+            }
             if(errnum_timeout >=5)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN0 receive frame time out!");
@@ -1351,21 +1363,17 @@ void *CAN0ThreadFunc(void *arg)
         {
             errnum_timeout=0;
             CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
-            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);
-            if(g_tms570_errflag == 0)
-            {            
-                TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
-            }
+            CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);           
+            TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
+
         }        
         else if(ret == -1)
         {
-            printf("CAN0-select Fun return -1!\n");
+            printf("CAN0-select Fun return -1,it means select err!\n");
             continue;
         }
-        if(g_tms570_errflag == 0)
-        {     
-            s_bram_ret_0 = TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
-        }
+    
+        TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);        
         CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
         /*time test*/
@@ -1423,18 +1431,7 @@ void *CAN1ThreadFunc(void *arg)
     
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPack_Set(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
-    /*JUST FOR TEST*/
-    uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
-                    0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
-                    0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
-                    0x78,0x65,0x32,0x10,0x54,0x23,0x99,0xaa};
-    /*memcpy(&s_tms570_bram_WR_data_st[4].buffer[0],testbuff,32);*/
-    for (i=0;i<3;i++)
-    {
-        memcpy(&s_can1_frame_WR_st[i].data[0],testbuff,8);
-    }    
-    memcpy(&s_tms570_bram_WR_data_ch12_st.buffer[0],testbuff,32);
-    /*JUST FOR TEST*/
+
     while(g_LifeFlag)
     {
         clock_gettime(CLOCK_MONOTONIC,&begin_ts);
@@ -1446,7 +1443,11 @@ void *CAN1ThreadFunc(void *arg)
         if(ret == 0)
         {
             errnum_timeout++;
-            //printf("can1 read time out %d times!\n",errnum_timeout);
+            if(g_DebugType_EU == CAN_RD_DEBUG)
+            {
+                printf("can1 read time out %d times!\n",errnum_timeout);
+            }
+            
             if(errnum_timeout >=13)
             {
                 snprintf(loginfo, sizeof(loginfo)-1, "CAN1 receive frame time out!");
@@ -1459,23 +1460,19 @@ void *CAN1ThreadFunc(void *arg)
         {            
             errnum_timeout=0;
             CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
-            CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_ch12_st,CAN1_TYPE);
-            if(g_tms570_errflag == 0)
-            {  
-                TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
-            }
+            CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_ch12_st,CAN1_TYPE);  
+            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
         }
         else if(ret == -1)
         {
-            printf("CAN1-select Fun return -1!\n");
+            printf("CAN1-select Fun return -1,it means select err!\n");
             continue;
         }
-        if(g_tms570_errflag == 0)
-        {
-            s_bram_ret_1 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);
-        }    
+
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);  
         CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
+
         /*time test*/
         clock_gettime(CLOCK_MONOTONIC,&end_ts);        
         usleep(100000);
@@ -1522,7 +1519,6 @@ void *MVBThreadFunc(void *arg)
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);        
         TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);
-
 
         TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
@@ -1717,9 +1713,8 @@ void *BlvdsThreadFunc(void *arg)
     {              
         pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
 
-        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
-        /*从Bram读取MAX10_EVENT数据,以便于记录*/ 
-        MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
+        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);         
+        MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);/*从Bram读取MAX10_EVENT数据,以便于记录*/
 
         #ifdef REDUNDANCY_FUNCTION
         MAX10_WR_DataProc(&Bram_Blvds_Write_Data);

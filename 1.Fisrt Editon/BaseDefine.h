@@ -68,6 +68,7 @@
 /*Function Select*/
 //#define REDUNDANCY_FUNCION
 //#define UDP_FUNCTION
+//#define ETH_FRAME_COUNT
 #define CAN0_FUNCTION
 #define CAN1_FUNCTION
 #define MVB_FUNCTION
@@ -512,9 +513,9 @@ typedef struct _ecu_communication_error_
 	uint8_t dcdc_can_err:1;
 	uint8_t fcu_a_can_err:1;
 	uint8_t fcu_b_can_err:1;
-	uint8_t inverter_can_err:1;
+	uint8_t inverter_1_can_err:1;
+	uint8_t inverter_2_can_err:1;
 	uint8_t extension_can_err:1;
-	uint8_t reserve:1;
 }communication_err;
 
 typedef struct _device_err_level_

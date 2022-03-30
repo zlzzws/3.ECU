@@ -1156,8 +1156,7 @@ int8_t CAN_Read_Option(int8_t socket_fd,struct can_frame *can_frame_data,uint8_t
 void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_rd,uint8_t can_devtype)
 {
     uint8_t i,j;
-    static uint8_t life_signal=0; //FIXME just for test
-    life_signal ++ ;
+    
     switch (can_devtype)
     {
         case CAN0_TYPE:
@@ -1166,9 +1165,6 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
             memcpy(candata_wr[2].data,bramdata_rd[3].buffer,8);
             memcpy(candata_wr[3].data,&bramdata_rd[3].buffer[2],8);
 
-            candata_wr[0].data[6] = life_signal;//FIXME just for test
-            candata_wr[1].data[7] = life_signal;//FIXME just for test
-            candata_wr[2].data[0] = life_signal;//FIXME just for test
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
                 for(j=0;j<CAN0_WRITE_FRAME_NUM;j++)
@@ -1181,11 +1177,11 @@ void CAN_WriteData_Pro(struct can_frame *candata_wr,TMS570_BRAM_DATA *bramdata_r
             }
             break;
         case CAN1_TYPE:                        
-            for(j=0;j<3;j++)
+            for(j=0;j<CAN1_WRITE_FRAME_NUM;j++)
             {               
                 memcpy(candata_wr[j].data,&bramdata_rd[4].buffer[j*2],8);                               
             }
-            candata_wr[0].data[0] = life_signal;//FIXME just for test
+            
             if(g_DebugType_EU == CAN_WR_DEBUG)
             {               
                 for(j=0;j<CAN1_WRITE_FRAME_NUM;j++)
@@ -1388,8 +1384,14 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     static BYTE_BIT sensor_errbit[4]={0};               //扩展模块-传感器故障
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
-    //FIXME
-    //memcpy(g_ECUErrInfo_ST.ecu_commu_err,life_judge_val,6);
+
+    g_ECUErrInfo_ST.ecu_commu_err.bms_can_err =         life_judge_val[0] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.dcdc_can_err =        life_judge_val[1] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.fcu_a_can_err =       life_judge_val[2] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.fcu_b_can_err =       life_judge_val[3] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.inverter_1_can_err =  life_judge_val[4] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.inverter_2_can_err =  life_judge_val[5] & 0x1;
+    g_ECUErrInfo_ST.ecu_commu_err.extension_can_err =   life_judge_val[6] & 0x1;
 
     if(can_devtype == CAN0_TYPE)
     {    
@@ -1461,33 +1463,45 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
                     memcpy(&bramdata_wr[4].buffer[4],candata_rd[i].data,8);
                     break;
                 case 0x15003003 :
-                    memcpy(&bramdata_wr[4].buffer[4],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[6],candata_rd[i].data,8);
+                    break;
+                case 0x15003100 :
+                    memcpy(&bramdata_wr[4].buffer[8],candata_rd[i].data,8);
+                    break;
+                case 0x15003101 :
+                    memcpy(&bramdata_wr[4].buffer[10],candata_rd[i].data,8);
+                    break;
+                case 0x15003102 :
+                    memcpy(&bramdata_wr[4].buffer[12],candata_rd[i].data,8);
+                    break;
+                case 0x15003103 :
+                    memcpy(&bramdata_wr[4].buffer[14],candata_rd[i].data,8);
                     break;
                 case 0x19003000 :
                     memcpy(sensor_errbit,&candata_rd[i].data[3],4);
-                    memcpy(&bramdata_wr[4].buffer[6],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[16],candata_rd[i].data,8);
                     break;
                 case 0x19003001 :
-                    memcpy(&bramdata_wr[4].buffer[8],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[18],candata_rd[i].data,8);
                     break;
                 case 0x19003002 :
-                    memcpy(&bramdata_wr[4].buffer[10],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[20],candata_rd[i].data,8);
                     break;
                 case 0x19003003 :
                     Anolog_Data_calculate_1(&candata_rd[i],sensor_errbit);                    
-                    memcpy(&bramdata_wr[4].buffer[12],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[22],candata_rd[i].data,8);
                     break;
                 case 0x19003004 :
                     Anolog_Data_calculate_2(&candata_rd[i],sensor_errbit);
-                    memcpy(&bramdata_wr[4].buffer[14],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[24],candata_rd[i].data,8);
                     break;
                 case 0x19003005 :
                     Anolog_Data_calculate_3(&candata_rd[i],sensor_errbit);
-                    memcpy(&bramdata_wr[4].buffer[16],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[26],candata_rd[i].data,8);
                     break;
                 case 0x19003006 :
-                    memcpy(&bramdata_wr[4].buffer[18],candata_rd[i].data,8);
-                    memcpy(&bramdata_wr[4].buffer[20],&VVVF_Exten_life_judge_val,2);
+                    memcpy(&bramdata_wr[4].buffer[28],candata_rd[i].data,8);
+                    memcpy(&bramdata_wr[4].buffer[30],&VVVF_Exten_life_judge_val,2);
                     break;
                 default:
                     break;    
@@ -1873,16 +1887,11 @@ int8_t MVB_WR_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_wr,TMS570_BRAM_DATA *bra
     memcpy(&bram_data_tms570_rd->buffer[20],bram_data_mvb_wr[3].buffer,32);/*MVB_0X3FB*/
     memcpy(&bram_data_tms570_rd->buffer[28],bram_data_mvb_wr[4].buffer,32);/*MVB_0X3FC*/
     memcpy(&bram_data_tms570_rd->buffer[36],bram_data_mvb_wr[5].buffer,32);/*MVB_0X3FD*/
-
-   /*memcpy(&bram_data_mvb_wr[5].buffer[6],&bram_data_tms570_rd->buffer[42],4);
-    if(g_DebugType_EU == LCU_MVB_DEBUG)
-        printf("MVB->LCU:%08x\n",bram_data_mvb_wr[5].buffer[6]);*/  
 }
 
 /**
  * @description:    mvb readdata process to tms570 bram writedata
- * @param      :    TMS570_BRAM_DATA *bram_data_mvb_wr 
- *                 
+ * @param      :    TMS570_BRAM_DATA *bram_data_mvb_wr                  
  * @return     :    void
  * @author     :    zlz
  */
@@ -1909,13 +1918,13 @@ int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bra
     
     frame_life_1=bram_data_mvb_rd[0].buffer[0]&0xffff;
     frame_life_2=bram_data_mvb_rd[1].buffer[0]&0xffff;
+    /*MVB通讯故障*/
+    g_ECUErrInfo_ST.ecu_commu_err.mvb_err = judge_val & 0x1;
 
     memcpy(bram_data_tms570_wr->buffer,bram_data_mvb_rd[0].buffer,32);/*MVB_0XA0*/
     memcpy(&bram_data_tms570_wr->buffer[8],bram_data_mvb_rd[1].buffer,16);/*MVB_0X3F0*/
     memcpy(&bram_data_tms570_wr->buffer[12],&judge_val,1);
-    //FIXMEmemcpy(&g_ECUErrInfo_ST.commu_err[6],&judge_val,1);/*用作热备冗余功能 MVB通讯故障判断*/
-    /*memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);
-    if(g_DebugType_EU == LCU_MVB_DEBUG)
-        printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);*/                                                
+    
+                                               
 }
 
