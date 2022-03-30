@@ -1,7 +1,6 @@
+#ifdef  REDUNDANCY_FUNCION
+
 #include "ecu.h"
-
-
-#if 1
 
 /**
  * @description:    H2_SOC_Calculate-Calculate H2 SOC
@@ -30,6 +29,7 @@ static float H2_SOC_Calculate(float pressure,float *temperature)
         for(i=0;i<4;i++)
         {
             z_num += z_factor[i][j] * pow(pressure,j) * pow(temperature_k,i);
+            /*FIXME 这只是计算了压缩因子Z，还有氢剩余量没有计算*/
         }
     }
 

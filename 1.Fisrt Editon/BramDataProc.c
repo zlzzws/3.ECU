@@ -126,7 +126,8 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
             err = CODE_OK;
         }
     }
-    #endif    
+    #endif
+        
     //内存映射：本系BLVDS通道 A9读 FPGA写（4K大小）
     s_bram_RD_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
     ErrNum = 0;
@@ -633,36 +634,37 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
         if(CODE_ERR == Read_LifeErr)
         {
             DataErrNum++;  
-            if(DataErrNum > BRAMERR_NUM) 
-            {
-                if(0 == DataErrFlag)
-                {                    
-                    DataErrFlag = 1;
-                    printf("The [%d] frame  read from BLVDS is Err.\n",i);
-                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame BLVDS read from BLVDS is Err.",i);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);                      
-                }
+            if(DataErrNum > BRAMERR_NUM && 0 == DataErrFlag) 
+            {     
+                DataErrFlag = 1;
+                printf("The MAX10_BLVDS lifesignal is stop.\n");
+                snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS lifesignal is stop.");
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
                 DataErrNum = 0;
             }
         }
-        if(BLVDS_RD_DEBUG == g_DebugType_EU)
+        else if(Read_LifeErr == CODE_OK)
         {
-            for(i=0;i<10;i++)
-                printf("BLVDS:Read Bram_data[%02d]:0x%08X\n",i,bram_rd_data->buffer[i]);            
-        } 
+            DataErrNum = 0;
+            if(DataErrFlag == 1)
+            {
+                DataErrFlag = 0;
+                printf("The MAX10_BLVDS lifesignal recover.\n");
+                snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS lifesignal recover.");
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
+            }            
+        }
+
         if(CODE_ERR == ReadErr) 
         {
             ErrNum++;  
-            if(ErrNum > BRAMERR_NUM) 
+            if(ErrNum > BRAMERR_NUM && 0 == ErrFlag) 
             {
-                if(0 == ErrFlag)
-                {
-                    EADSErrInfop -> BLVDSErr = 1; 
-                    ErrFlag = 1;
-                    printf("Bram Blvds data read err!\n");
-                    snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data read err!");
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);
-                }
+                EADSErrInfop -> BLVDSErr = 1; 
+                ErrFlag = 1;
+                printf("Bram Blvds data from Max10 crc_check err!\n");
+                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data from Max10 crc_check err!");
+                WRITELOGFILE(LOG_ERROR_1,loginfo);                
                 ErrNum = 0;
             }
         }
@@ -673,15 +675,21 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErr
             {
                 EADSErrInfop -> BLVDSErr = 0;
                 ErrFlag = 0;
-                printf("Bram Blvds data return to normal!\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data return to normal!");
+                printf("Bram Blvds data from Max10 crc_check return to normal!\n");
+                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data from Max10 crc_check return to normal!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);   
             }
         }
-    }     
-    return ReadErr;
-}
+        
+        if(BLVDS_RD_DEBUG == g_DebugType_EU)
+        {
+            for(i=0;i<10;i++)
+                printf("BLVDS:Read Bram_data[%02d]:0x%08X\n",i,bram_rd_data->buffer[i]);            
+        }
+    }
 
+    return ReadErr || Read_LifeErr;
+}
 
 /**
  * @description: BLVDS数据写入功能
@@ -753,9 +761,9 @@ static uint8_t Life_Judge_Fun(uint8_t life_data,uint8_t *life_lasttime,uint8_t *
 static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t can_devtype)
 {
     uint8_t i;
-    static uint8_t errnum[6]= {0};    
-    static uint8_t errflag[6] = {0};
-    static uint8_t life_lasttime[6] = {0};  
+    static uint8_t errnum[7]= {0};    
+    static uint8_t errflag[7] = {0};
+    static uint8_t life_lasttime[7] = {0};  
     char loginfo[LOG_INFO_LENG] = {0};
 
     if (can_devtype == CAN0_TYPE)
@@ -811,13 +819,13 @@ static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t 
                     }
                     if(judge_val[2]==1 && errflag[2]==0)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3012] lifesignal have stopped!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-A-CAN_ID:[0x18FF3012] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[2]=1;
                     }                    
                     else if(judge_val[2]==0 && errflag[2]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3012] lifesignal have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-A-CAN_ID:[0x18FF3012] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[2]=0;
                     }
@@ -830,13 +838,13 @@ static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t 
                     }
                     if(judge_val[3]==1 && errflag[3]==0)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3013] lifesignal have stopped!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-B-CAN_ID:[0x18FF3013] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[3]=1;
                     }                    
                     else if(judge_val[3]==0 && errflag[3]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "FC-CAN_ID:[0x18FF3013] lifesignal have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "FC-B-CAN_ID:[0x18FF3013] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[3]=0;
                     }
@@ -860,34 +868,53 @@ static void CAN_Life_Judge(struct can_frame *candata,uint8_t *judge_val,uint8_t 
                     }                   
                     if(judge_val[4]==1 && errflag[4]==0)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have stopped!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-1-CAN_ID:[0x15003000] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=1;
                     }
                     else if(judge_val[4]==0 && errflag[4]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-CAN_ID:[0x15003000] lifesignal have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-1-CAN_ID:[0x15003000] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[4]=0;
                     }
-                    break;                
-                case 0x19003000 :                    
+                    break;
+                case 0x15003100 :                  
                     Life_Judge_Fun(candata[i].data[0],&life_lasttime[5],&errnum[5],&judge_val[5]);
                     if(g_DebugType_EU == CAN_RD_DEBUG)
                     {
-                        printf("errnum[5]:%u\n",errnum[5]);                
-                    } 
+                        printf("errnum[5]:%u\n",errnum[5]);                 
+                    }                   
                     if(judge_val[5]==1 && errflag[5]==0)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have stopped!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-2-CAN_ID:[0x15003100] lifesignal have stopped!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[5]=1;
                     }
                     else if(judge_val[5]==0 && errflag[5]==1)
                     {
-                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have recovered!");
+                        snprintf(loginfo, sizeof(loginfo)-1, "VVVF-2-CAN_ID:[0x15003100] lifesignal have recovered!");
                         WRITELOGFILE(LOG_ERROR_1,loginfo);
                         errflag[5]=0;
+                    }
+                    break;                 
+                case 0x19003000 :                    
+                    Life_Judge_Fun(candata[i].data[0],&life_lasttime[6],&errnum[6],&judge_val[6]);
+                    if(g_DebugType_EU == CAN_RD_DEBUG)
+                    {
+                        printf("errnum[6]:%u\n",errnum[6]);                
+                    } 
+                    if(judge_val[6]==1 && errflag[6]==0)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have stopped!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[6]=1;
+                    }
+                    else if(judge_val[6]==0 && errflag[6]==1)
+                    {
+                        snprintf(loginfo, sizeof(loginfo)-1, "Extension-CAN_ID:[0x19003000] lifesignal have recovered!");
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);
+                        errflag[6]=0;
                     }                   
                     break;                
                 default:
@@ -963,7 +990,7 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
         candata_WR[3].can_dlc   = 8;
         break;
         case CAN1_TYPE:
-        /*CAN1-变频器-A9 READ*/        
+        /*CAN1-变频器1-A9 READ*/        
         candata_RD_filter[0].can_id    = 0x15003000 | CAN_EFF_FLAG;
         candata_RD_filter[0].can_mask   = CAN_EFF_MASK;
         candata_RD_filter[1].can_id    = 0x15003001 | CAN_EFF_FLAG;
@@ -972,6 +999,15 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
         candata_RD_filter[2].can_mask   = CAN_EFF_MASK;
         candata_RD_filter[3].can_id    = 0x15003003 | CAN_EFF_FLAG;
         candata_RD_filter[3].can_mask   = CAN_EFF_MASK;
+        /*CAN1-变频器2-A9 READ*/
+        candata_RD_filter[11].can_id    = 0x15003100 | CAN_EFF_FLAG;
+        candata_RD_filter[11].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[12].can_id    = 0x15003101 | CAN_EFF_FLAG;
+        candata_RD_filter[12].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[13].can_id    = 0x15003102 | CAN_EFF_FLAG;
+        candata_RD_filter[13].can_mask   = CAN_EFF_MASK;
+        candata_RD_filter[14].can_id    = 0x15003103 | CAN_EFF_FLAG;
+        candata_RD_filter[14].can_mask   = CAN_EFF_MASK;
         /*CAN1-扩展模块-A9 READ*/ 
         candata_RD_filter[4].can_id    = 0x19003000 | CAN_EFF_FLAG;
         candata_RD_filter[4].can_mask   = CAN_EFF_MASK;
@@ -987,14 +1023,19 @@ void CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candat
         candata_RD_filter[9].can_mask   = CAN_EFF_MASK;
         candata_RD_filter[10].can_id    = 0x19003006 | CAN_EFF_FLAG;
         candata_RD_filter[10].can_mask   = CAN_EFF_MASK;
-        /*CAN1-A9-变频器 Write*/
+        /*CAN1-A9-变频器1 Write*/
         candata_WR[0].can_id    = 0x15004000 | CAN_EFF_FLAG;
         candata_WR[0].can_dlc   = 8;
         candata_WR[1].can_id    = 0x15004001 | CAN_EFF_FLAG;
         candata_WR[1].can_dlc   = 8;
-        /*CAN1-A9-扩展单元 Write*/
-        candata_WR[2].can_id    = 0x19004000 | CAN_EFF_FLAG;
+        /*CAN1-A9-变频器2 Write*/
+        candata_WR[2].can_id    = 0x15004100 | CAN_EFF_FLAG;
         candata_WR[2].can_dlc   = 8;
+        candata_WR[3].can_id    = 0x15004101 | CAN_EFF_FLAG;
+        candata_WR[3].can_dlc   = 8;
+        /*CAN1-A9-扩展单元 Write*/
+        candata_WR[4].can_id    = 0x19004000 | CAN_EFF_FLAG;
+        candata_WR[4].can_dlc   = 8;
         break;
         default:
             printf("invalid can_devtype!\n");
@@ -1341,13 +1382,14 @@ void CAN_ReadData_Pro(struct can_frame *candata_rd,TMS570_BRAM_DATA *bramdata_wr
     uint8_t  temp_value_u8;
     uint16_t temp_value_u16;
     float temp_calc_value_f;
-    static uint8_t  life_judge_val[6]={0};
+    static uint8_t  life_judge_val[7]={0};
     static uint16_t VVVF_Exten_life_judge_val=0;
     static uint16_t FCU_AB_Stack_life_judge_val=0;
-    static BYTE_BIT sensor_errbit[4]={0};
+    static BYTE_BIT sensor_errbit[4]={0};               //扩展模块-传感器故障
 
     CAN_Life_Judge(candata_rd,life_judge_val,can_devtype);
-    memcpy(g_ECUErrInfo_ST.commu_err,life_judge_val,6);
+    //FIXME
+    //memcpy(g_ECUErrInfo_ST.ecu_commu_err,life_judge_val,6);
 
     if(can_devtype == CAN0_TYPE)
     {    
@@ -1871,7 +1913,7 @@ int8_t MVB_RD_Data_Proc(TMS570_BRAM_DATA *bram_data_mvb_rd,TMS570_BRAM_DATA *bra
     memcpy(bram_data_tms570_wr->buffer,bram_data_mvb_rd[0].buffer,32);/*MVB_0XA0*/
     memcpy(&bram_data_tms570_wr->buffer[8],bram_data_mvb_rd[1].buffer,16);/*MVB_0X3F0*/
     memcpy(&bram_data_tms570_wr->buffer[12],&judge_val,1);
-    memcpy(&g_ECUErrInfo_ST.commu_err[6],&judge_val,1);/*用作热备冗余功能 MVB通讯故障判断*/
+    //FIXMEmemcpy(&g_ECUErrInfo_ST.commu_err[6],&judge_val,1);/*用作热备冗余功能 MVB通讯故障判断*/
     /*memcpy(&bram_data_tms570_wr->buffer[6],&bram_data_mvb_rd[0].buffer[6],8);
     if(g_DebugType_EU == LCU_MVB_DEBUG)
         printf("LCU->MVB:%08x\n",(bram_data_tms570_wr->buffer[6]>>8 | bram_data_tms570_wr->buffer[7] << 24)&0xffffffff);*/                                                

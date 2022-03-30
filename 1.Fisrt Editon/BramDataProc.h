@@ -39,8 +39,8 @@
 #define CAN1_TYPE 1
 #define CAN0_READ_FRAME_NUM  20
 #define CAN0_WRITE_FRAME_NUM 4
-#define CAN1_READ_FRAME_NUM  11
-#define CAN1_WRITE_FRAME_NUM 3
+#define CAN1_READ_FRAME_NUM  15
+#define CAN1_WRITE_FRAME_NUM 5
 #define MVB_READ_FRAME_NUM  2
 #define MVB_WRITE_FRAME_NUM 6
 /**********************************************************************

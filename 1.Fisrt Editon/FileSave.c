@@ -29,25 +29,15 @@
 *Global Variable Declare Section
 *
 *********************************************************************/
-//extern CHAN_THREHOLD_VALUE g_channel_ThreValue_ST;
-//20200328ssdsd
-extern DEBUG_TYPE_ENUM g_DebugType_EU;
-extern FILE_FD   g_FileFd_ST;
-extern RECORD_XML g_Rec_XML_ST;
-extern TRAIN_INFO g_TrainInfo_ST;
-extern PTHREAD_LOCK g_PthreadLock_ST;
-extern SPACE_JUDGE_VALUE  g_SpaceJudge_ST;
+extern DEBUG_TYPE_ENUM      g_DebugType_EU;
+extern FILE_FD              g_FileFd_ST;
+extern RECORD_XML           g_Rec_XML_ST;
+extern TRAIN_INFO           g_TrainInfo_ST;
+extern PTHREAD_LOCK         g_PthreadLock_ST;
+extern SPACE_JUDGE_VALUE    g_SpaceJudge_ST;
 
-extern CHAN_DATA g_ChanData_ST[CHAN_BUFFER_NUM];
-extern CHAN_DATA  g_ChanRealBuf_ST[REAL_BUFFER_NUM];
-extern CHAN_DATA  g_ChanSendBuf_ST[CHAN_BUFFER_NUM];  /*304 byte*/
-//extern CHAN_LG_INFO g_ChanLgInfo_ST;
-
-extern EADS_ERROR_INFO     g_EADSErrInfo_ST;
-//extern VECH_EADS_INFO      g_CCU_EADsInfo_ST;
-
-extern uint32_t g_LinuxDebug;
-//extern uint32_t g_RealBufNum_U32;
+extern EADS_ERROR_INFO      g_EADSErrInfo_ST;
+extern uint32_t             g_LinuxDebug;
 
 /**********************************************************************
 *

@@ -35,17 +35,17 @@
 // 函数宏定义
 #define WRITELOGFILE(level, msg)  WriteLogFile(__FILE__, __FUNCTION__, __LINE__, level, msg)
 // 日志级别定义
-#define LOG_FATAL_1       0     // 严重错误
-#define LOG_ERROR_1       1     // 一般错误
-#define LOG_WARN_1        2     // 警告
-#define LOG_INFO_1        3     // 一般信息
-#define LOG_TRACE_1       4     // 跟踪信息
-#define LOG_DEBUG_1       5     // 调试信息
-#define LOG_ALL_1         6     // 所有信息
-#define LOG_CFG  "/tffs0/LogConFig.ini"
-#define LOG_FILE_HEAD   "Log"   
-#define LOG_PATH_LENG   100
-#define LOG_INFO_LENG   200
+#define LOG_FATAL_1         0     // 严重错误
+#define LOG_ERROR_1         1     // 一般错误
+#define LOG_WARN_1          2     // 警告
+#define LOG_INFO_1          3     // 一般信息
+#define LOG_TRACE_1         4     // 跟踪信息
+#define LOG_DEBUG_1         5     // 调试信息
+#define LOG_ALL_1           6     // 所有信息
+#define LOG_CFG             "/tffs0/LogConFig.ini"
+#define LOG_FILE_HEAD       "Log"   
+#define LOG_PATH_LENG       100
+#define LOG_INFO_LENG       200
 /***********************************************************************
 Global Struct Define Section
 *********************************************************************/

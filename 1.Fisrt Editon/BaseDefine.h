@@ -65,76 +65,57 @@
 *Global Macro Define Section
 *
 *********************************************************************/
+/*Function Select*/
+//#define REDUNDANCY_FUNCION
+//#define UDP_FUNCTION
+#define CAN0_FUNCTION
+#define CAN1_FUNCTION
+#define MVB_FUNCTION
 
 /*EADS Versionasd History*/
-#define EADS_VERSION 100 
-#define EADS_VERSION_PTU 100
-#define TOTAL_VERSION 100
-#define LINUX_VERSION 440
-#define BOOT_VERSION 100
-#define DTB_VERSION 100
-#define RAMDISK_VERSION 100
-#define FPGA_VERSION 100
-#define BRAM_BLOCK_LENGTH 256
-#define BRAM_BLOCK_NUM 128
-#define ECU_VERSION_PTU 100
-/*the channel number of once judgea */
-//570 channel
-#define OUTIO570_CHAN 1
-#define COMMAND570_CHAN 3
-#define RD_570FEDERR_NUM 10
-#define UPSURE_BLOCKNUM 0xDDDD
-#define UPSTAR_BLOCKNUM 0xEEEE
-#define UPSUCC_BLOCKNUM 0xFFFF
-#define CHAN_BUFFER_NUM 5
-#define REAL_BUFFER_NUM 500   
-/*Board Date LengthID*/
-#define ADU_BRD_RD_LENGTH_U32  29 
-#define CTU_BRD_RD_LENGTH_U32  29
-#define COACH1 1
-#define COACH2 2
-#define COACH3 3
-#define COACH4 4
-#define COACH16 16
-#define COACHZP 5
+#define EADS_VERSION 				100 
+#define EADS_VERSION_PTU 			100
+#define TOTAL_VERSION 				100
+#define LINUX_VERSION 				440
+#define BOOT_VERSION 				100
+#define DTB_VERSION 				100
+#define RAMDISK_VERSION 			100
+#define FPGA_VERSION 				100
+#define BRAM_BLOCK_LENGTH 			256
+#define BRAM_BLOCK_NUM 				128
+#define ECU_VERSION_PTU 			100  
 
-#define ADU_BOARD_ID 0
-#define CTU_BOARD_ID 1
-#define BLVDS_MAX10_CHAN 1
-#define TMS570_MAX10_CHAN 0
+#define BLVDS_MAX10_CHAN 			1
+#define ALL_CHAN_NUM 				80  	/*文件存储时，CSR_DRIVER模拟量通道数量80*/
+#define MAX_RealWave_Num 			40
+#define CURR_CHAN_NUM 				14
+#define VOL_CHAN_NUM  				40
+/*CODE_STATUS*/
+#define CODE_CREAT  				2
+#define CODE_EXIST  				1
+#define CODE_OK  					0
+#define CODE_ERR 					-1
+#define CODE_WARN  					-2
 
-#define CAN_CHAN 8
-#define ALL_CHAN_NUM 80  /*for File save*/
-#define peri_WriteSize 16
-#define MAX_RealWave_Num 40
-#define CURR_CHAN_NUM 14
-#define VOL_CHAN_NUM  40
-#define  CODE_CREAT  2
-#define  CODE_EXIST  1
-#define  CODE_OK  0
-#define  CODE_ERR -1
-#define  CODE_WARN  -2
-#define VOL_STATUE_NUM  5
-#define CURR_STATUE_NUM  2
-#define FPGA_TIME_BYTE  20
-/*ADC data Trans Type*/
-#define NORMTRANTYPE 0
-#define CALIBTRANTYPE 1
-#define DIGT_JUDGE_NUM  100 	/*3s,loop is 30ms*/
-#define CH_DIGT_JUDGE_NUM  500 	/*500ms,loop is 50ms(base the DIGIT_PRO_TIME),for channel over curr and over voltage,*/
-#define ADCVOLT_110V 1100
-#define ADCVOLT_0V 0
-#define POWDOW_FILT 10 		/*filte the powdown io sign*/
-#define FILE_CREAT_FLAG 2 	/*mean fltreal file oprtreal file have creat*/
-#define FILE_FLT_FLAG 1 	/*mean fltreal file oprtreal file have creat*/
-#define FILETRY_NUM 3 
-#define TRDPTRY_NUM 5
-#define LOG_FILE_TYPE 1 	/*for log file delete*/
-#define RECORD_FILE_TYPE 2 	/*for drive record file */
-#define PHY_COPPER_CONTRL_REG 0
-#define PHY_COPPER_STATUS_REG 1
-#define PHY_COPPER_CONTRL_REG_OK 0x2100
-#define FIFO_FILE "/tmp/FIFO"
+#define VOL_STATUE_NUM  			5
+#define CURR_STATUE_NUM  			2
+#define FPGA_TIME_BYTE  			20
+
+#define POWDOW_FILT 				10 		/*filte the powdown io sign*/
+
+#define FILE_CREAT_FLAG 			2 		/*mean fltreal file oprtreal file have creat*/
+#define FILE_FLT_FLAG 				1 		/*mean fltreal file oprtreal file have creat*/
+#define FILETRY_NUM 				3 
+
+#define LOG_FILE_TYPE 				1 		/*for log file delete*/
+#define RECORD_FILE_TYPE 			2 		/*for drive record file */
+
+#define PHY_COPPER_CONTRL_REG 		0
+#define PHY_COPPER_STATUS_REG 		1
+#define PHY_COPPER_CONTRL_REG_OK 	0x2100
+
+#define FIFO_FILE 					"/tmp/FIFO"
+
 /***********************************************************************
 *Global Struct Define Section*
 *********************************************************************/
@@ -511,18 +492,49 @@ typedef struct
 	uint8_t EADSErr:1;  /*file creat err*/
 }EADS_ERROR_INFO;
 
-typedef struct _ecu_error_info_
+
+
+typedef struct _ecu_app_error_
 {
-	
-	uint8_t commu_err[7];/*0-MVB;1-BMS;2-DCDC;3-FCU-A;4-FCU-B;5-变频器;6-储氢/扩展模块*/ 
-	uint8_t fcu_err_level[3];	
-	uint8_t bms_err_level[3];
-	uint8_t dc_dc_err_level[3];
-	uint8_t h2_store_err_level[3];
-	uint8_t heat_dissipation_err_level[3];
+	uint8_t blvds_err:1;
+	uint8_t filesave_err:1;
+	uint8_t bram_init_err:1;
+	uint8_t tcp_err:1;
+	uint8_t modbus_err:1;
+	uint8_t udp_err:1;
+	uint8_t reserve:2;
+}app_err;
+
+typedef struct _ecu_communication_error_
+{
+	uint8_t mvb_err:1;
+	uint8_t bms_can_err:1;
+	uint8_t dcdc_can_err:1;
+	uint8_t fcu_a_can_err:1;
+	uint8_t fcu_b_can_err:1;
+	uint8_t inverter_can_err:1;
+	uint8_t extension_can_err:1;
+	uint8_t reserve:1;
+}communication_err;
+
+typedef struct _device_err_level_
+{
+	uint8_t level1:1;
+	uint8_t level2:1;
+	uint8_t level3:1;
+	uint8_t reserve:5;
+}err_level;
+
+typedef struct _ecu_error_info_
+{	
+	app_err ecu_app_err;
+	communication_err ecu_commu_err;
+	err_level fcu_err_level;	
+	err_level bms_err_level;
+	err_level dc_dc_err_level;
+	err_level h2_store_err_level;
+	err_level heat_dissipation_err_level;
 }ECU_ERROR_INFO;
-
-
 
 typedef struct 
 {

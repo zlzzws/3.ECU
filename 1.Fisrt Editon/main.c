@@ -26,7 +26,7 @@
 *********************************************************************/
 sem_t               g_RealSend_sem;
 DEBUG_TYPE_ENUM     g_DebugType_EU;
-EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};                     /*TODO:考虑是否保留*/
+EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};                     
 ECU_ERROR_INFO      g_ECUErrInfo_ST = {0};
 TRAIN_INFO          g_TrainInfo_ST = {0,0};
 VERSION             g_Version_ST = {0};
@@ -47,14 +47,15 @@ int                 g_tms570_errflag = 0;                       /*used in Hot st
 *Local Macro Define Section*
 *********************************************************************/
 #define WDIOC_SETTIMEOUT _IOWR(WATCHDOG_IOCTL_BASE, 6, int)
+
 /***********************************************************************
 *Local Struct AND Variable Define Section*
 *********************************************************************/
 int8_t *s_bram_ret_0    = NULL;
 int8_t *s_bram_ret_1    = NULL;
 int8_t *s_bram_ret_2    = NULL;
-static DRIVE_FILE_DATA s_save_to_csr_driver={0};
-static DRIVE_FILE_DATA s_save_to_intool={0};
+static DRIVE_FILE_DATA s_save_to_csr_driver={0};            //存储值上位机CSR_DRIVER
+static DRIVE_FILE_DATA s_save_to_intool={0};                //存储至上位机Intool
 TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};
 TMS570_BRAM_DATA s_tms570_bram_WR_data_ch8_st = {0};
 TMS570_BRAM_DATA s_tms570_bram_RD_data_ch9_11_st[3] = {0};
@@ -146,7 +147,7 @@ int main(int argc, char *argv[])
     g_LifeFlag      =   1;
     g_LinuxDebug    =   0;                                                  //软件运行环境:0:ZYNQ 1:Ubuntu       
     g_DebugType_EU  =   (DEBUG_TYPE_ENUM)strtoul(argv[1],NULL,10);                    
-    g_PowDebug      =   (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测 , 0-不使能                                                                   
+    g_PowDebug      =   (uint16_t)strtoul(argv[2],NULL,10);                 //电源选项，1-使能掉电监测 , 0-不使能掉电监测                                                                 
     g_Version_ST.ECU_RunVer_U16 = ECU_VERSION_PTU;
 
     ArgJudge();
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
     }
 
     /*RTC Test*/
-    RTCTesT();//FIXME Please add timeshow in logfile and printf
+    RTCTesT();
 
     /*I2C*/
     i2cbus_fd=open(DEFAULT_I2C_BUS,O_RDWR);  
@@ -219,8 +220,10 @@ int main(int argc, char *argv[])
                 }
             }              
         }
-        //5个TMS570 Bram通道任意有一个通道失效，都将进行热备冗余切换
-        //g_tms570_errflag = s_bram_ret_0[0] || s_bram_ret_0[1] || s_bram_ret_0[2] || s_bram_ret_1[0] || s_bram_ret_2[0];             
+
+        #ifdef REDUNDANCY_FUNCION
+        g_tms570_errflag = s_bram_ret_0[0] || s_bram_ret_0[1] || s_bram_ret_0[2] || s_bram_ret_1[0] || s_bram_ret_2[0];
+        #endif             
     }
     memset(ArgLogInfo,0,LOG_INFO_LENG);
     snprintf(ArgLogInfo, sizeof(ArgLogInfo)-1, "Main thread exit ! Ready to close all thread and BramMap !");
@@ -458,7 +461,7 @@ int8_t PowDownFun(void)
     if(0 == PowDowIOValue)
     {        
         s_PowDownNum++;
-        //if(s_PowDownNum > POWDOW_FILT)
+        if(s_PowDownNum > POWDOW_FILT)
         {                 
            clock_gettime(CLOCK_MONOTONIC,&begin_ts);
            if(0 == g_EADSErrInfo_ST.PowErr)
@@ -547,10 +550,8 @@ void *RealWaveThreadFunc(void *arg)
     action.sa_flags = 0;    
     // 通信断开产生SIGPIPE信号，引导程序异常退出，需要设置忽略SIGPIPE
     action.sa_handler = SIG_IGN;//set function to here
-    sigaction(SIGPIPE, &action, 0);
+    sigaction(SIGPIPE, &action, 0);    
     
-    //sleep(5);//when machine is restart,Eth configure may cost several seconds
-
     /*creat server socket*/
     if(-1==( serverfd= socket(AF_INET,SOCK_STREAM,0)))
     {
@@ -588,7 +589,7 @@ void *RealWaveThreadFunc(void *arg)
     }
     socklen_t len = sizeof(client);
     bzero(&client,len); 
-    while(g_LifeFlag > 0)
+    while(g_LifeFlag)
     {
         if(-1==(clientfd = accept(serverfd,(struct sockaddr *)&client,&len)))
         {
@@ -689,8 +690,9 @@ void *RealWaveThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2022/1/6  Create
 *********************************************************************/
 void *Udp_Intool_ThreadFunc(void *arg)
-{    
-    
+{   
+    #ifdef UDP_FUNCTION
+
     int i;
     int serverfd;    
     uint16_t ReadSize = 0;
@@ -737,8 +739,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     client.sin_addr.s_addr=inet_addr("192.168.3.100");//目标IP
 
     while(1)
-    {
-        #if 0
+    {        
         if(UDP_DEBUG == g_DebugType_EU)
         {
             printf("UDP_Receive----->\n");
@@ -771,7 +772,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
         {            
             socket_SendFlag ==0;
         }
-        #endif
+        
         socket_SendFlag = 1;
         if(socket_SendFlag)
         {            
@@ -782,7 +783,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
             sprintf(szUsec,"%09d",(uint32_t)timespec_st.tv_nsec);  // get (ns) the right 9 number,the 9 number stands (s) transform to (ns)
             strncpy(szMsec,szUsec,3);// get the left 3 numbe , the 3 number mean (ms)
             pthread_rwlock_rdlock(&g_PthreadLock_ST.RealDatalock);
-            #if 0
+            
             sendbuf[0]  =   0XA5 ;
             sendbuf[1]  =   0X5A ;
             sendbuf[2]  =   0X2  ;
@@ -803,7 +804,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
             sendbuf[61] =   s_save_to_intool.DriveDigital_U8[12];
             sendbuf[62] =   s_save_to_intool.DriveDigital_U8[11];
             sendbuf[63] =   s_save_to_intool.DriveDigital_U8[10];
-            #endif
+            
             for(i=0;i<264;i++)
             {
                 sendbuf[i] = i;
@@ -835,7 +836,8 @@ void *Udp_Intool_ThreadFunc(void *arg)
     pthread_exit(NULL);
     printf("Exit Upd_Intool_ThreadFunc\n");
     return CODE_OK;
-        
+    
+    #endif        
 }
 
 /**********************************************************************
@@ -883,7 +885,7 @@ void *ModbusThreadFunc(void *arg)
     /*start to listen when the first time of click the connect button */
     ModbusSocket = modbus_tcp_listen(ModbusCtx, 1);
     /*run forever when listened until close application*/
-    while(g_LifeFlag > 0) 
+    while(g_LifeFlag) 
     {
         if(-1 == modbus_tcp_accept(ModbusCtx, &ModbusSocket))
         {
@@ -942,6 +944,7 @@ void *FileSaveThreaFunc(void *arg)
     int8_t event_fd_1;
     int8_t event_fd_2;
     uint32_t Delayus_U32;
+    char loginfo[LOG_INFO_LENG]={0};
            
     static uint32_t s_EventFileSaveNum_U32 = 0;   
     
@@ -949,19 +952,20 @@ void *FileSaveThreaFunc(void *arg)
     Delayus_U32 = g_Rec_XML_ST.Rec_Event_ST.RecInterval * 1000;//100ms
 	sleep(1);
 
-    while(g_LifeFlag > 0)
+    while(g_LifeFlag)
     {
         threadDelay(0,Delayus_U32);   
         
-        if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000        
+        if(s_EventFileSaveNum_U32 >= g_Rec_XML_ST.Rec_Event_ST.RecToTalNum)//60000 ~1.66h       
         {                
             printf("EventFile-Frames Number Reach:%d\n",s_EventFileSaveNum_U32);
+            /*EVENT FILE*/
             fflush(g_FileFd_ST.EventFile_fd);
             event_fd_1 = fileno(g_FileFd_ST.EventFile_fd);
             fsync(event_fd_1);
             fclose(g_FileFd_ST.EventFile_fd);
             g_FileFd_ST.EventFile_fd = NULL;
-
+            /*BLVDS EVENT FILE*/
             fflush(g_FileFd_ST.EventBLVDS_fd);
             event_fd_2 = fileno(g_FileFd_ST.EventBLVDS_fd);
             fsync(event_fd_2);
@@ -981,19 +985,22 @@ void *FileSaveThreaFunc(void *arg)
             event_fd_2 = fileno(g_FileFd_ST.EventBLVDS_fd);
             fsync(event_fd_2);
 		}
+
         /*MVB_EVENT FILE SAVE*/
         pthread_rwlock_rdlock(&g_PthreadLock_ST.BramDatalock);	        
         ECU_EventDataSave(&g_FileFd_ST,&s_save_to_csr_driver);
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);               
-
-        
+        /*Max10_EVENT FILE SAVE*/
+        pthread_rwlock_rdlock(&g_PthreadLock_ST.RealDatalock);        
         MAX10_EventDataSave(&g_FileFd_ST,&s_save_to_intool);
-        
-             
+        pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);             
         
         s_EventFileSaveNum_U32++;
     }
-    printf("exit FileSave thread\n");
+    printf("Exit FileSave thread\n");
+    memset(loginfo,0,sizeof(loginfo));
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit FileSave thread");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
     pthread_exit(NULL);      
 }
 
@@ -1123,7 +1130,7 @@ void *LEDPthreadFunc (void *arg)
             printf("Can't open /proc/net/dev!\n");
         }
         
-        while (g_LifeFlag>0)
+        while (g_LifeFlag)
         {
             /******LED*******/            
             memcpy(&errtem,&g_EADSErrInfo_ST,1);
@@ -1293,7 +1300,7 @@ void *LEDPthreadFunc (void *arg)
 *********************************************************************/
 void *CAN0ThreadFunc(void *arg)
 { 
-    #if 1
+    #ifdef CAN0_FUNCTION
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1321,7 +1328,7 @@ void *CAN0ThreadFunc(void *arg)
     CAN_FrameInit(recv_filter,s_can0_frame_WR_st,CAN0_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPack_Set(CmdPact_WR_ST,CmdPact_RD_ST,CAN0_TYPE); /*TMS570 Bram TopPack Init*/
 
-    while(g_LifeFlag>0)
+    while(g_LifeFlag)
     {        
         clock_gettime(CLOCK_MONOTONIC,&begin_ts);
         tv_select.tv_usec = 100000;
@@ -1370,9 +1377,13 @@ void *CAN0ThreadFunc(void *arg)
         } 
     }
     close(socket_can0);
-    return 0;
+    printf("Exit CAN0Thread Function!\n");
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit CAN0Thread Function!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
+    pthread_exit(NULL);
     #endif
 }
+
 /**********************************************************************
 *Name           :   CAN1ThreadFunc  
 *Function       :   read/write the CAN1 data
@@ -1385,7 +1396,7 @@ void *CAN0ThreadFunc(void *arg)
 *********************************************************************/
 void *CAN1ThreadFunc(void *arg)
 {   
-    #if 1 
+    #ifdef CAN1_FUNCTION
     /*time test*/
     struct timespec begin_ts,end_ts;    
     /*time test*/
@@ -1412,7 +1423,7 @@ void *CAN1ThreadFunc(void *arg)
     
     CAN_FrameInit(recv_filter,s_can1_frame_WR_st,CAN1_TYPE);/*CAN_ID Init*/
     TMS570_Bram_TopPack_Set(&CmdPact_WR_ST,&CmdPact_RD_ST,CAN1_TYPE); /*TMS570 Bram TopPack Init*/    
-    /*TODO 两个变频器 要增加一组变频器的CAN_ID*/
+    /*JUST FOR TEST*/
     uint8_t testbuff[32]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,\
                     0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,\
                     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,\
@@ -1423,7 +1434,8 @@ void *CAN1ThreadFunc(void *arg)
         memcpy(&s_can1_frame_WR_st[i].data[0],testbuff,8);
     }    
     memcpy(&s_tms570_bram_WR_data_ch12_st.buffer[0],testbuff,32);
-    while(g_LifeFlag>0)
+    /*JUST FOR TEST*/
+    while(g_LifeFlag)
     {
         clock_gettime(CLOCK_MONOTONIC,&begin_ts);
         tv_select.tv_usec = 100000;
@@ -1473,7 +1485,10 @@ void *CAN1ThreadFunc(void *arg)
         }
     }
     close(socket_can1);
-    return 0;
+    printf("Exit CAN1Thread Function!\n");
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit CAN1Thread Function!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
+    pthread_exit(NULL);
     #endif         
 }
 
@@ -1489,74 +1504,40 @@ void *CAN1ThreadFunc(void *arg)
 *********************************************************************/
 void *MVBThreadFunc(void *arg)
 {    
-    int8_t  i,j,judge_count;
-    static uint32_t loop_num = 0;
-    static uint32_t errnum = 0;
-    uint8_t life_count = 0;
-    uint8_t life_temp = 0;     
-    uint8_t testbuff_32[32]={0};    
+    #ifdef MVB_FUNCTION
+    int8_t  i,j,judge_count;     
+        
     BRAM_CMD_PACKET CmdPact_RD_ST ={0};
     BRAM_CMD_PACKET CmdPact_WR_ST ={0};  
     BRAM_CMD_PACKET MVB_CmdPact_RD_ST[16] = {0};
     BRAM_CMD_PACKET MVB_CmdPact_WR_ST[16] = {0};
     char loginfo[LOG_INFO_LENG]={0};
-    /*Just for test*/
-    for(j=0;j<6;j++)
-    {
-        for (i=0;i<32;i++)
-        {
-            testbuff_32[i] = i+j;
-        }
-        memcpy(s_mvb_bram_WR_data_st[j].buffer,testbuff_32,32);
-    }
-    /*Just for test*/
+    
     MVB_Bram_Init(&CmdPact_RD_ST,&CmdPact_WR_ST,MVB_CmdPact_RD_ST,MVB_CmdPact_WR_ST);
-    while(1)
+
+    while(g_LifeFlag)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
+
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
-        MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);       
+        MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);        
+        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);
 
-        /*FIXME 这个需要用回来
-        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);  
-        if(g_tms570_errflag == 0)
-        {
-            s_bram_ret_2 = TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
-        }*/
 
-        /*********************************************TODO JUST FOR TEST****************************************************************/
-        
-        loop_num++;
-        life_count++;       
-        
-        if (life_temp == (s_mvb_bram_RD_data_st[0].buffer[0] >>16 &0xff))
-        {
-                judge_count++;
-                if(judge_count >= 3)
-                {
-                    judge_count = 0;
-                    errnum++;                
-                    printf("mvb_life have lost %d times,total flames:%d\n",errnum,loop_num);
-                    snprintf(loginfo, sizeof(loginfo)-1,"mvb_life have lost %d times,total flames:%d",errnum,loop_num);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo); 
-                }           
-        }
-        else
-        {
-            judge_count = 0;
-        }
-        /*******************************************************TODO JUST FOR TEST************************************************/
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
-
-        s_mvb_bram_WR_data_st[0].buffer[0] = life_count << 16; //TODO JUST FOR TEST
-
         MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
-        //ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
+        /*处理从TMS570读取的MVB数据,以便于文件记录*/
+        ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
+
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
         usleep(64000);       
     }
-    printf("exit MVBThreadFunc Function!\n");
-    pthread_exit(NULL);                   
+    printf("Exit MVBThread Function!\n");
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit MVBThread Function!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
+    pthread_exit(NULL);
+    #endif                   
 }
 
 /**********************************************************************
@@ -1571,7 +1552,7 @@ void *MVBThreadFunc(void *arg)
 *********************************************************************/
 void *RedundancyThreadFunc(void *arg)
 {
-    #if  1
+    #ifdef  REDUNDANCY_FUNCION
     uint8_t i,bms_err_count=0;
     int8_t  diagnose_standby_ret;
     int8_t  fcu_state_flag,fcu_err_count=0,fcu_err_flag=0;
@@ -1711,7 +1692,9 @@ void *RedundancyThreadFunc(void *arg)
             }
         } 
     }
-    printf("exit RedundancyThreadFunc!\n");
+    printf("Exit RedundancyThread Function!\n");
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit RedundancyThread Function!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
     pthread_exit(NULL);
     #endif
 }
@@ -1727,22 +1710,27 @@ void *RedundancyThreadFunc(void *arg)
 *REV1.0.0       :   zlz    2021/12/4  Create
 *********************************************************************/
 void *BlvdsThreadFunc(void *arg)
-{
-    #if 1
-    while (1)
-    {           
-        /*MAX10_EVENT FILE SAVE*/        
+{    
+    char loginfo[LOG_INFO_LENG]={0};
+
+    while (g_LifeFlag)
+    {              
         pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
 
         BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);
+        /*从Bram读取MAX10_EVENT数据,以便于记录*/ 
         MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);
 
-        //MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
-
-        //BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
+        #ifdef REDUNDANCY_FUNCTION
+        MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
+        BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
+        #endif
 
         pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
-        //TODO 需要增加写的部分
+        
     }
-    #endif
+    printf("Exit BlvdsThreadFunc!\n");
+    snprintf(loginfo, sizeof(loginfo)-1, "Exit BlvdsThreadFunc!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
+    pthread_exit(NULL);
 }
