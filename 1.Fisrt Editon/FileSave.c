@@ -578,8 +578,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
 *REV1.0.0     zlz    2021/12/29  Create                                                              
 *********************************************************************/
 int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,EADS_ERROR_INFO EADSErrInfoST)
-{  
-    //TODO 确认第39-48通道的数据是否安装大端存储，是否需要大小端转换
+{    
     uint8_t j= 0;
     uint8_t i = 0;
     uint8_t temp_rd_buffer[240]={0};
