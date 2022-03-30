@@ -67,7 +67,7 @@
 *********************************************************************/
 /*Function Select*/
 //#define REDUNDANCY_FUNCION
-//#define UDP_FUNCTION
+#define UDP_FUNCTION
 //#define ETH_FRAME_COUNT
 #define CAN0_FUNCTION
 #define CAN1_FUNCTION
@@ -497,13 +497,22 @@ typedef struct
 
 typedef struct _ecu_app_error_
 {
-	uint8_t blvds_err:1;
-	uint8_t filesave_err:1;
-	uint8_t bram_init_err:1;
-	uint8_t tcp_err:1;
-	uint8_t modbus_err:1;
-	uint8_t udp_err:1;
-	uint8_t reserve:2;
+	uint16_t bram_blvds_rd_err:1;
+	uint16_t bram_blvds_wr_err:1;
+	uint16_t bram_emif_rd_err:1;
+	uint16_t bram_emif_wr_err:1;
+	uint16_t bram_mvb_rd_err:1;
+	uint16_t bram_mvb_wr_err:1;
+	uint16_t filesave_EVENT_err:1;
+	uint16_t filesave_BLVDS_err:1;
+	uint16_t bram_init_err:1;
+	uint16_t tcp_err:1;
+	uint16_t modbus_err:1;
+	uint16_t udp_err:1;
+	uint16_t phy_link_err:1;
+	uint16_t power_err:1;
+	uint16_t max10_life_err:1;
+	uint16_t tms570_life_err:1;
 }app_err;
 
 typedef struct _ecu_communication_error_

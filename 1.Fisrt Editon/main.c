@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 	/*Bram Init*/
     if (0 == g_LinuxDebug)
     {
-       Bram_Mapping_Init(&g_EADSErrInfo_ST);     
+       Bram_Mapping_Init(&g_ECUErrInfo_ST);     
     }
 
     /*RTC Test*/
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
     /*Event File xml_config_file*/
     SysXmlParInit(ECU_CONFIG,&g_Rec_XML_ST,&g_Version_ST);
     XmlParJudge(&g_Rec_XML_ST);   
-    EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
+    EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_ECUErrInfo_ST);
     VersionInit(&g_Version_ST);                
     VersionSave(&g_Version_ST);               
     ThreadInit(&g_Pthread_ST);
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 void FuncUsage(void)
 {    
     printf("Usage introduce:\nCommand consist of : /tffs0/Demo_Run_bin <DebugTest_EU> <g_PowDebug>\n");
-    printf("you can type such command: :/tffs0/Demo_Run_bin 0 1\n");
+    printf("you can type such command: /tffs0/Demo_Run_bin 0 1\n");
 }
 
 /**
@@ -263,10 +263,12 @@ void ArgJudge(void)
     if( g_DebugType_EU > 40)
     {
         g_DebugType_EU = 0;
+        printf("Invalid DebugType!\n");
     }
     if(g_PowDebug > 1)
     {
         g_PowDebug = 1;
+        printf("Invalid PowerDebugType!\n");
     }
 }
 
@@ -467,9 +469,9 @@ int8_t PowDownFun(void)
         if(s_PowDownNum > POWDOW_FILT)
         {                 
            clock_gettime(CLOCK_MONOTONIC,&begin_ts);
-           if(0 == g_EADSErrInfo_ST.PowErr)
+           if(0 == g_ECUErrInfo_ST.ecu_app_err.power_err)
             {
-                g_EADSErrInfo_ST.PowErr = 1;
+                g_ECUErrInfo_ST.ecu_app_err.power_err = 1;
                 printf("PowerOff happen,start sync File\n");
 				snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff happen,start sync File");
                 WRITELOGFILE(LOG_INFO_1,LogInfo);
@@ -511,9 +513,9 @@ int8_t PowDownFun(void)
         s_ClearPowNum++;
         if(s_ClearPowNum > POWDOW_FILT)/*10ms*/
         {            
-            if(1 == g_EADSErrInfo_ST.PowErr)
+            if(1 == g_ECUErrInfo_ST.ecu_app_err.power_err)
             {            
-                g_EADSErrInfo_ST.PowErr = 0;
+                g_ECUErrInfo_ST.ecu_app_err.power_err = 0;
                 printf("PowerOff recover\n");
                 snprintf(LogInfo, sizeof(LogInfo)-1, "PowerOff recover");
                 WRITELOGFILE(LOG_INFO_1,LogInfo);               
@@ -558,6 +560,7 @@ void *RealWaveThreadFunc(void *arg)
     /*creat server socket*/
     if(-1==( serverfd= socket(AF_INET,SOCK_STREAM,0)))
     {
+        g_ECUErrInfo_ST.ecu_app_err.tcp_err = 1;
         perror("RealWaveThreadFunc socket error\n");
         snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc socket error!");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -573,7 +576,8 @@ void *RealWaveThreadFunc(void *arg)
     /*bind socket and ipaddr*/
     if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))
     {
-        perror("bind error\n");
+        g_ECUErrInfo_ST.ecu_app_err.tcp_err = 1;
+        perror("TCP bind error\n");
         snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc bind error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
         pthread_exit(NULL);
@@ -581,6 +585,7 @@ void *RealWaveThreadFunc(void *arg)
     /*enter listen mode*/
     if(-1 == listen(serverfd,10))
     {
+        g_ECUErrInfo_ST.ecu_app_err.tcp_err = 1;
         perror("listen error\n");
         snprintf(loginfo, sizeof(loginfo)-1, "RealWaveThreadFunc listen error");
         WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -596,6 +601,7 @@ void *RealWaveThreadFunc(void *arg)
     {
         if(-1==(clientfd = accept(serverfd,(struct sockaddr *)&client,&len)))
         {
+            g_ECUErrInfo_ST.ecu_app_err.tcp_err = 1;
             perror("accept error\n");
             snprintf(loginfo, sizeof(loginfo)-1, "listen error");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -612,7 +618,7 @@ void *RealWaveThreadFunc(void *arg)
         snprintf(loginfo, sizeof(loginfo)-1, "TCP communicate succeeded!");
         WRITELOGFILE(LOG_INFO_1,loginfo);
         printf("start TCP read:\n");
-        if(read(clientfd ,readbuf,sizeof(readbuf))>0)
+        if(read(clientfd ,readbuf,sizeof(readbuf)) > 0)
         {            
             if(TCP_DEBUG == g_DebugType_EU)
             {
@@ -716,6 +722,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
 
     if(-1==(serverfd= socket(AF_INET,SOCK_DGRAM,0)))/*AF_INET-ipv4,SOCK_DGRAM-使用UDP协议*/ 
     {
+        g_ECUErrInfo_ST.ecu_app_err.udp_err = 1;
         printf("Udp Server socket creat error\n");
         memset(loginfo,0,sizeof(loginfo));
         snprintf(loginfo, sizeof(loginfo)-1, "Udp Server socket creat error");
@@ -729,6 +736,7 @@ void *Udp_Intool_ThreadFunc(void *arg)
     sleep(5);
     if(-1 == bind(serverfd,(struct sockaddr *)&server,sizeof(server)))//绑定服务器socket地址<ZYNQ相当于服务端>
     {
+        g_ECUErrInfo_ST.ecu_app_err.udp_err = 1;
         printf("Udp Server bind error\n");
         memset(loginfo,0,sizeof(loginfo));
         snprintf(loginfo, sizeof(loginfo)-1, "Udp Server bind error");
@@ -879,6 +887,7 @@ void *ModbusThreadFunc(void *arg)
     /*modbus mapping init failure*/
     if(ModbusMap_p == NULL) 
     {
+        g_ECUErrInfo_ST.ecu_app_err.modbus_err = 1;
         perror("Failed allocate Modbus mapping");
         modbus_free(ModbusCtx);
         snprintf(loginfo, sizeof(loginfo)-1, "Failed to allocate the mapping: %s",modbus_strerror(errno));
@@ -892,6 +901,7 @@ void *ModbusThreadFunc(void *arg)
     {
         if(-1 == modbus_tcp_accept(ModbusCtx, &ModbusSocket))
         {
+            continue;
             /*accept none*/
         }
         else /*accept data*/
@@ -925,8 +935,12 @@ void *ModbusThreadFunc(void *arg)
     close(ModbusSocket);
     modbus_mapping_free(ModbusMap_p);
     free(ModbusQuery);
+    printf("Modbusthread close!\n");
+    memset(loginfo,0,sizeof(loginfo));
+    snprintf(loginfo, sizeof(loginfo)-1, "Modbusthread close!");
+    WRITELOGFILE(LOG_ERROR_1,loginfo);
     pthread_exit(NULL);
-    printf("Modbus close\n");    
+       
 }
 
 /**********************************************************************
@@ -975,7 +989,7 @@ void *FileSaveThreaFunc(void *arg)
             fclose(g_FileFd_ST.EventBLVDS_fd);
             g_FileFd_ST.EventBLVDS_fd = NULL;
 
-            EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_EADSErrInfo_ST);
+            EventFileCreateByNum(&g_FileFd_ST,&g_Rec_XML_ST,&g_TrainInfo_ST,&g_ECUErrInfo_ST);
             s_EventFileSaveNum_U32 = 0;            
         }
 		else if(0 == (s_EventFileSaveNum_U32 % FILE_SYNC_NUM))/*1min*/
@@ -1050,7 +1064,7 @@ void *LEDPthreadFunc (void *arg)
     int8_t lifeledfd;
     int8_t errledfd;
     
-    uint8_t errtem = 0;
+    uint16_t errtem = 0;
     int16_t timeout;
     static uint8_t s_errledflag = 0;
     char loginfo[LOG_INFO_LENG] = {0};
@@ -1111,6 +1125,7 @@ void *LEDPthreadFunc (void *arg)
         sockfd = socket(PF_LOCAL, SOCK_DGRAM, 0);
         if(sockfd < 0)
         {
+            g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
             printf("Creat Sockets failed!\n");
             snprintf(loginfo, sizeof(loginfo)-1,"Creat Sockets failed!!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1119,6 +1134,7 @@ void *LEDPthreadFunc (void *arg)
         ret = ioctl(sockfd, SIOCGMIIPHY, &ifr);//将Eth1加入MII总线后才能通过MIO接口进行管理
         if(ret < 0)
         {
+            g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
             printf("Add Phy address to mii_bus failed!\n");
             snprintf(loginfo, sizeof(loginfo)-1,"Add Phy address to mii_bus failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1136,18 +1152,18 @@ void *LEDPthreadFunc (void *arg)
         while (g_LifeFlag)
         {
             /******LED Blink*******/            
-            memcpy(&errtem,&g_EADSErrInfo_ST,1);
-            if((!s_errledflag) && (errtem))/* happen VechWarm*/
+            memcpy(&errtem,&g_ECUErrInfo_ST.ecu_app_err,2);
+            if((!s_errledflag) && (errtem))/* ECU APP HAPPENED ERROR*/
             {
-                write(errledfd, "0", 2); //on
+                write(errledfd, "0", 2); //always on
                 s_errledflag = 1;
             }
-            else if ((1 == s_errledflag) && (0 == errtem))
+            else if ((1 == s_errledflag) && (0 == errtem))/* ECU APP NOT HAPPENED ERROR*/
             {
-                write(errledfd, "1", 2); //off
+                write(errledfd, "1", 2); //always off
                 s_errledflag = 0;
             }
-
+            /*life led blink every 0.5s*/
             write(lifeledfd,"0",2); //on            
             usleep(led_period);
             write(lifeledfd,"1",2);//off            
@@ -1160,6 +1176,7 @@ void *LEDPthreadFunc (void *arg)
             ret = ioctl(sockfd, SIOCGMIIREG, &ifr);
             if(ret < 0)
             {
+                g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
                 printf("Phy Read Control Reg Failed!\n");
                 snprintf(loginfo, sizeof(loginfo)-1,"Phy Read Control Reg Failed!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1183,6 +1200,7 @@ void *LEDPthreadFunc (void *arg)
             {
                 if(0 == PhyErrFlag)
                 {
+                    g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
                     printf("Phy Control Reg Error,value:%x\n",phyvalue);
                     snprintf(loginfo, sizeof(loginfo)-1, "Phy Control Reg Error,value:%x",phyvalue);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1194,6 +1212,7 @@ void *LEDPthreadFunc (void *arg)
             ret = ioctl(sockfd, SIOCGMIIREG, &ifr);
             if(ret < 0)
             {
+                g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
                 printf("Phy Read Status Reg Failed!\n");
                 snprintf(loginfo, sizeof(loginfo)-1,"Phy Read Status Reg Failed!");
                 WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1218,6 +1237,7 @@ void *LEDPthreadFunc (void *arg)
             {
                 if(0 == PhyLinkErrFlag)
                 {
+                    g_ECUErrInfo_ST.ecu_app_err.phy_link_err =1;
                     printf( "Phy Link Down,value:%x\n",phyvalue);                    
                     snprintf(loginfo, sizeof(loginfo)-1, "Phy Link Failed,value:%x",phyvalue);
                     WRITELOGFILE(LOG_ERROR_1,loginfo);
@@ -1364,7 +1384,7 @@ void *CAN0ThreadFunc(void *arg)
             errnum_timeout=0;
             CAN_Read_Option(socket_can0,s_can0_frame_RD_st,CAN0_READ_FRAME_NUM,CAN0_TYPE);               
             CAN_ReadData_Pro(s_can0_frame_RD_st,s_tms570_bram_WR_data_ch9_11_st,CAN0_TYPE);           
-            TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM);
+            TMS570_Bram_Write_Func(CmdPact_WR_ST,s_tms570_bram_WR_data_ch9_11_st,3,CAN0_BRAM,&g_ECUErrInfo_ST);
 
         }        
         else if(ret == -1)
@@ -1373,7 +1393,7 @@ void *CAN0ThreadFunc(void *arg)
             continue;
         }
     
-        TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM);
+        TMS570_Bram_Read_Func(CmdPact_RD_ST,s_tms570_bram_RD_data_ch9_11_st,3,CAN0_BRAM,&g_ECUErrInfo_ST);
         CAN_WriteData_Pro(s_can0_frame_WR_st,s_tms570_bram_RD_data_ch9_11_st,CAN0_TYPE);        
         CAN_Write_Option(socket_can0,s_can0_frame_WR_st,CAN0_WRITE_FRAME_NUM,CAN0_TYPE);
         /*time test*/
@@ -1461,7 +1481,7 @@ void *CAN1ThreadFunc(void *arg)
             errnum_timeout=0;
             CAN_Read_Option(socket_can1,s_can1_frame_RD_st,CAN1_READ_FRAME_NUM,CAN1_TYPE);                       
             CAN_ReadData_Pro(s_can1_frame_RD_st,&s_tms570_bram_WR_data_ch12_st,CAN1_TYPE);  
-            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM);
+            TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch12_st,1,CAN1_BRAM,&g_ECUErrInfo_ST);
         }
         else if(ret == -1)
         {
@@ -1469,7 +1489,7 @@ void *CAN1ThreadFunc(void *arg)
             continue;
         }
 
-        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM);  
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch12_st,1,CAN1_BRAM,&g_ECUErrInfo_ST);  
         CAN_WriteData_Pro(s_can1_frame_WR_st,&s_tms570_bram_RD_data_ch12_st,CAN1_TYPE);
         CAN_Write_Option(socket_can1,s_can1_frame_WR_st,CAN1_WRITE_FRAME_NUM,CAN1_TYPE);
 
@@ -1518,13 +1538,13 @@ void *MVBThreadFunc(void *arg)
 
         MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);        
-        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM);
+        TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM,&g_ECUErrInfo_ST);
 
-        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM);
+        TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM,&g_ECUErrInfo_ST);
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
         MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
         /*处理从TMS570读取的MVB数据,以便于文件记录*/
-        ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_EADSErrInfo_ST);
+        ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_ECUErrInfo_ST);
 
         pthread_rwlock_unlock(&g_PthreadLock_ST.BramDatalock);        
         usleep(64000);       
@@ -1713,7 +1733,7 @@ void *BlvdsThreadFunc(void *arg)
     {              
         pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
 
-        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_EADSErrInfo_ST);         
+        BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_ECUErrInfo_ST);         
         MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);/*从Bram读取MAX10_EVENT数据,以便于记录*/
 
         #ifdef REDUNDANCY_FUNCTION

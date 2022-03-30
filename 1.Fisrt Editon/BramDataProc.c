@@ -74,7 +74,7 @@ static uint8_t *s_bram_WR_B_BLVDSBlckAddr = NULL;
  * @author: feng
  */
 
-int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
+int8_t BramOpenMap(ECU_ERROR_INFO *ECUErrInfop)
 {
     int8_t err = 0;
     uint8_t ErrNum = 0;
@@ -90,7 +90,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramOpen failed %m");
             WRITELOGFILE(LOG_ERROR_1,loginfo);        
             err = CODE_ERR;
@@ -141,7 +141,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -164,7 +164,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -187,7 +187,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_B_BLVDS_BLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -210,7 +210,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_B_BLVDS_BLOCK0  failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -233,7 +233,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_SPCBLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -257,7 +257,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_SPCBLOCK0 failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -281,7 +281,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_TMS_FLAG failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -305,7 +305,7 @@ int8_t BramOpenMap(EADS_ERROR_INFO *EADSErrInfop)
         }
         if(ErrNum >= MAPERR_NUM)
         {
-            EADSErrInfop -> EADSErr = 1;
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_TMS_FLAG failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err = CODE_ERR;
@@ -341,11 +341,11 @@ int8_t BramCloseMap(void)
  * @return {int8_t} ReadErr
  * @author: zlz
  */
-int8_t Bram_Mapping_Init(EADS_ERROR_INFO *EADSErrInfop)  
+int8_t Bram_Mapping_Init(ECU_ERROR_INFO *ECUErrInfop)  
 {  
     uint16_t i = 0;
     int8_t ReadErr = 0;
-    ReadErr = BramOpenMap(EADSErrInfop);
+    ReadErr = BramOpenMap(ECUErrInfop);
     if(CODE_ERR == ReadErr)
     {
         perror("BramOpenMap faled");
@@ -614,70 +614,63 @@ int8_t BramWriteAssigVal(BRAM_CMD_PACKET *CmdPact_p,uint32_t *Outbuf,uint32_t *I
  * @return ReadErr
  * @author: zlz
  */
-int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,EADS_ERROR_INFO *EADSErrInfop) 
+int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,ECU_ERROR_INFO *ECUErrInfop) 
 {
     int8_t ReadErr = 0,i;
-    char loginfo[LOG_INFO_LENG] = {0};
-    static uint8_t ErrFlag = 0;    
+    char loginfo[LOG_INFO_LENG] = {0};   
     static uint8_t ErrNum  = 0;
     uint8_t Read_LifeErr = 0;
-    static uint8_t DataErrNum=0;      
-    static uint8_t DataErrFlag=0;
+    static uint8_t lifeErrNum=0;      
+    static uint8_t lifeErrFlag=0;
     uint32_t temp_bram_rd_data[64]={0};
 
     s_Bram_A_RD_BLVDSBlckAddr_ST.DataU32Length = 20 ;
     s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
+
     if(0 == g_LinuxDebug)
     {
         ReadErr = BoardDataRead(&s_Bram_A_RD_BLVDSBlckAddr_ST,temp_bram_rd_data);
-        Read_LifeErr = ExtraBoardData(temp_bram_rd_data,bram_rd_data->buffer,s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8);            
-        if(CODE_ERR == Read_LifeErr)
-        {
-            DataErrNum++;  
-            if(DataErrNum > BRAMERR_NUM && 0 == DataErrFlag) 
-            {     
-                DataErrFlag = 1;
-                printf("The MAX10_BLVDS lifesignal is stop.\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS lifesignal is stop.");
-                WRITELOGFILE(LOG_ERROR_1,loginfo);
-                DataErrNum = 0;
-            }
-        }
-        else if(Read_LifeErr == CODE_OK)
-        {
-            DataErrNum = 0;
-            if(DataErrFlag == 1)
-            {
-                DataErrFlag = 0;
-                printf("The MAX10_BLVDS lifesignal recover.\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS lifesignal recover.");
-                WRITELOGFILE(LOG_ERROR_1,loginfo);
-            }            
-        }
 
         if(CODE_ERR == ReadErr) 
         {
-            ErrNum++;  
-            if(ErrNum > BRAMERR_NUM && 0 == ErrFlag) 
-            {
-                EADSErrInfop -> BLVDSErr = 1; 
-                ErrFlag = 1;
-                printf("Bram Blvds data from Max10 crc_check err!\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data from Max10 crc_check err!");
-                WRITELOGFILE(LOG_ERROR_1,loginfo);                
-                ErrNum = 0;
-            }
+            ErrNum++;
+            ECUErrInfop->ecu_app_err.bram_blvds_rd_err = 1;
+            printf("The MAX10_BLVDS frame crc_check err %d times!\n",ErrNum);
+            snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS frame crc_check err %d times!",ErrNum);
+            WRITELOGFILE(LOG_ERROR_1,loginfo);            
         }
         else if(CODE_OK == ReadErr) 
         {
-            ErrNum = 0;
-            if(1 == ErrFlag)
+            ECUErrInfop->ecu_app_err.bram_blvds_rd_err = 0;
+            printf("The MAX10_BLVDS frame crc_check return to normal!\n");
+            snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS frame crc_check return to normal!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);            
+
+            Read_LifeErr = ExtraBoardData(temp_bram_rd_data,bram_rd_data->buffer,s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8);            
+            if(CODE_ERR == Read_LifeErr)
             {
-                EADSErrInfop -> BLVDSErr = 0;
-                ErrFlag = 0;
-                printf("Bram Blvds data from Max10 crc_check return to normal!\n");
-                snprintf(loginfo, sizeof(loginfo)-1, "Bram Blvds data from Max10 crc_check return to normal!");
-                WRITELOGFILE(LOG_ERROR_1,loginfo);   
+                lifeErrNum++;  
+                if(lifeErrNum > BRAMERR_NUM && 0 == lifeErrFlag) 
+                {     
+                    lifeErrFlag = 1;
+                    ECUErrInfop->ecu_app_err.max10_life_err = 1; 
+                    printf("The MAX10_BLVDS frame lifesignal is stop.\n");
+                    snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS frame lifesignal is stop.");
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                    lifeErrNum = 0;
+                }
+            }
+            else if(Read_LifeErr == CODE_OK)
+            {
+                lifeErrNum = 0;
+                if(lifeErrFlag == 1)
+                {
+                    lifeErrFlag = 0;
+                    ECUErrInfop->ecu_app_err.max10_life_err = 0;
+                    printf("The MAX10_BLVDS frame lifesignal recover!\n");
+                    snprintf(loginfo, sizeof(loginfo)-1, "The MAX10_BLVDS frame lifesignal recover!");
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                }            
             }
         }
         
@@ -1563,21 +1556,19 @@ void TMS570_Bram_TopPack_Set(BRAM_CMD_PACKET *cmd_packet_wr,BRAM_CMD_PACKET *cmd
  * @return:     ReadErr
  * @author:     zlz
  */ 
-int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA bram_data[],uint8_t frame_num,TRANS_TYPE_ENUM tans_type)
+int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA bram_data[],uint8_t frame_num,TRANS_TYPE_ENUM tans_type,
+                            ECU_ERROR_INFO *ECUErrInfo)
 {
-
     int8_t i,j;
     uint8_t offset=0;
     uint32_t tempbuffer[64]={0};
     /*5个TMS570与A9的读取通道*/
-    static uint8_t DataErrNum[5] =  {0};
-    static uint8_t DataOKNum[5]  =  {0};
+    static uint32_t DataErrNum[5] =  {0};
     static uint8_t LifeErrNum[5] =  {0};
-    static uint8_t LifeOKNum[5]  =  {0};
     static int8_t DataReadRet[5] =  {0};
-    static int8_t LifeJudgeRet[5] = {0};                                
-    static int8_t DataErrFlag[5] =  {0};
+    static int8_t LifeJudgeRet[5] = {0};
     static int8_t LifeErrFlag[5] =  {0};
+    static int8_t DataErrFlag[5] =  {0};
     static int8_t ErrFlag[5] =      {0};
     char loginfo[LOG_INFO_LENG] =   {0};
 
@@ -1609,68 +1600,54 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
         /*数据读取阶段*/
         DataReadRet[offset+i] = BoardDataRead(&s_bram_RD_TMS_SPC_Blck_ST[offset+i],tempbuffer);        
         if(CODE_ERR == DataReadRet[offset+i]) 
-        {
-            DataErrNum[offset+i]++;  
-            if(DataErrNum[offset+i] > BRAMERR_NUM) 
-            {
-                if(0 == DataErrFlag[offset+i])
-                {                    
-                    DataErrFlag[offset+i] = 1;
-                    printf("The [%d] frame Bramdata read from TMS570 is Err.\n",offset+i);
-                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 is Err.",offset+i);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
-                }
-                DataErrNum[offset+i] = 0;
+        {            
+            if(DataErrFlag[offset+i] == 0)
+            {                            
+                DataErrNum[offset+i]++;
+                printf("The [%d] EMIF frame Bramdata read from TMS570 crccheck already err %d times.\n",offset+i,DataErrNum[offset+i]);
+                snprintf(loginfo, sizeof(loginfo)-1, "The [%d] EMIF frame Bramdata read from TMS570 crccheck already err %d times.",offset+i,DataErrNum[offset+i]);
+                WRITELOGFILE(LOG_ERROR_1,loginfo);
+                DataErrFlag[offset+i] = 1;
             }
         }
         else if(CODE_OK == DataReadRet[offset+i])
         {
-            if(1 == DataErrFlag[offset+i])
+            if (DataErrFlag[offset+i] == 1)
             {
-                DataOKNum[offset+i]++;
-                if(DataOKNum[offset+i] > BRAMERR_NUM)
+                DataErrFlag[offset+i] = 0;
+                printf("The [%d] frame Bramdata read from TMS570 recover.\n",offset+i);
+                snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 recover.",offset+i);
+                WRITELOGFILE(LOG_INFO_1,loginfo);
+            }
+            /*数据展开与生命信号判断阶段*/
+            LifeJudgeRet[offset+i] = ExtraBoardData(tempbuffer,bram_data[i].buffer,s_bram_RD_TMS_SPC_Blck_ST[offset+i].ChanNum_U8);    
+            if(CODE_ERR == LifeJudgeRet[offset+i]) 
+            {
+                LifeErrNum[offset+i]++;  
+                if(LifeErrNum[offset+i] > BRAMERR_NUM) 
                 {
-                    DataErrFlag[offset+i] = 0;
-                    DataOKNum[offset+i] = 0;
-                    printf("The [%d] frame Bramdata read from TMS570 recover.\n",offset+i);
-                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata read from TMS570 recover.",offset+i);
-                    WRITELOGFILE(LOG_INFO_1,loginfo);
+                    if(0 == LifeErrFlag[offset+i])
+                    {                    
+                        LifeErrFlag[offset+i] = 1;
+                        printf("The [%d] TMS570 Bramdata Channel LifeSignal lost.\n",offset+i);
+                        snprintf(loginfo, sizeof(loginfo)-1, "The [%d] TMS570 Bramdata Channel LifeSignal lost.",offset+i);
+                        WRITELOGFILE(LOG_ERROR_1,loginfo);                        
+                    }
+                    LifeErrNum[offset+i] = 0;
                 }
             }
-        }
-        /*数据展开与生命信号判断阶段*/
-        LifeJudgeRet[offset+i] = ExtraBoardData(tempbuffer,bram_data[i].buffer,s_bram_RD_TMS_SPC_Blck_ST[offset+i].ChanNum_U8);    
-        if(CODE_ERR == LifeJudgeRet[offset+i]) 
-        {
-            LifeErrNum[offset+i]++;  
-            if(LifeErrNum[offset+i] > BRAMERR_NUM) 
+            else if(CODE_OK == LifeJudgeRet[offset+i])
             {
-                if(0 == LifeErrFlag[offset+i])
+                LifeErrFlag[offset+i] = 0;
+                if(1 == LifeErrFlag[offset+i])
                 {                    
-                    LifeErrFlag[offset+i] = 1;
-                    printf("The [%d] TMS570 Bramdata Channel LifeSignal lost.\n",offset+i);
-                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] TMS570 Bramdata Channel LifeSignal lost.",offset+i);
-                    WRITELOGFILE(LOG_ERROR_1,loginfo);                        
-                }
-                LifeErrNum[offset+i] = 0;
-            }
-        }
-        else if(CODE_OK == LifeJudgeRet[offset+i])
-        {
-            if(1 == LifeErrFlag[offset+i])
-            {
-                LifeOKNum[offset+i]++;
-                if(LifeOKNum[offset+i] > BRAMERR_NUM)
-                {
-                    LifeErrFlag[offset+i] = 0;
-                    LifeOKNum[offset+i] = 0;
                     printf("The [%d] TMS570 Bramdata Channel LifeSignal recover.\n",offset+i);
                     snprintf(loginfo, sizeof(loginfo)-1, "The [%d] TMS570 Bramdata Channel LifeSignal recover.",offset+i);
-                    WRITELOGFILE(LOG_INFO_1,loginfo);
+                    WRITELOGFILE(LOG_INFO_1,loginfo);                
                 }
-            }
+            }           
         }
-        //数据和生命信号任意一个出错，都判定为TMS570 Bram通道失效
+
         ErrFlag[offset+i] =  LifeErrFlag[offset+i] || DataErrFlag[offset+i];
 
         if(TMS570_BRAM_RD_DEBUG == g_DebugType_EU)
@@ -1680,6 +1657,9 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
         }
     }
     
+    ECUErrInfo->ecu_app_err.bram_emif_rd_err = DataErrFlag[5] == 0 ? 0 : 1;
+    ECUErrInfo->ecu_app_err.tms570_life_err = LifeErrFlag[5] == 0 ? 0 : 1;
+
     return &ErrFlag[offset]; //返回地址,可以用索引进行读取相应数据
 }
 
@@ -1689,13 +1669,13 @@ int8_t *TMS570_Bram_Read_Func(BRAM_CMD_PACKET *cmd_packet_rd,TMS570_BRAM_DATA br
  * @return       {uint8_t} WriteErr   写数据返回值
  * @author:      zlz
  */
-int8_t TMS570_Bram_Write_Func(BRAM_CMD_PACKET *cmd_packet_wr,TMS570_BRAM_DATA *bram_data,uint8_t frame_num,TRANS_TYPE_ENUM tans_type) 
+int8_t TMS570_Bram_Write_Func(BRAM_CMD_PACKET *cmd_packet_wr,TMS570_BRAM_DATA *bram_data,uint8_t frame_num,TRANS_TYPE_ENUM tans_type,\
+                              ECU_ERROR_INFO *ECUErrInfo) 
 {
     int8_t i,j;
-    uint8_t DataErrFlag = 0;
-    uint8_t DataErrNum  = 0;
     uint8_t offset = 0 ;
-    static int8_t WriteErr = 0;     
+    static int8_t WriteErr[5] = 0;
+    static int8_t WriteErrFlag[5] = 0;     
     static uint16_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST[5] = {0};
     char loginfo[LOG_INFO_LENG] = {0};
@@ -1737,15 +1717,35 @@ int8_t TMS570_Bram_Write_Func(BRAM_CMD_PACKET *cmd_packet_wr,TMS570_BRAM_DATA *b
         }    
         if(0 == g_LinuxDebug)
         {
-            WriteErr = BramWriteWithChek(&s_bram_WR_TMS_SPC_Blck_ST[i+offset],bram_data[i].buffer,TopPackST[i]);
-            if(WriteErr == CODE_ERR)
+            WriteErr[offset+i] = BramWriteWithChek(&s_bram_WR_TMS_SPC_Blck_ST[i+offset],bram_data[i].buffer,TopPackST[i]);
+            if(WriteErr[offset+i] == CODE_ERR)
             {
-                printf("The [%d] frame Bramdata write to TMS570 error!\n",i);					 
+                if(WriteErrFlag[offset+i] == 0)
+                {
+                    WriteErrFlag[offset+i] =1;
+                    printf("The [%d] frame Bramdata write to TMS570 error!\n",i+offset);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata write to TMS570 error!",i+offset);
+                    WRITELOGFILE(LOG_ERROR_1,loginfo);
+                }                					 
             }
+            else if (WriteErr[offset+i] == CODE_OK)
+            {
+                if(WriteErrFlag[offset+i] == 1)
+                {
+                    WriteErrFlag[offset+i] = 0;
+                    printf("The [%d] frame Bramdata write to TMS570 recover!\n",i+offset);
+                    snprintf(loginfo, sizeof(loginfo)-1, "The [%d] frame Bramdata write to TMS570 recover!",i+offset);
+                    WRITELOGFILE(LOG_INFO_1,loginfo);
+                }
+            }            
         }        
     }
+
+    ECUErrInfo->ecu_app_err.bram_emif_wr_err = WriteErrFlag[5] == 0 ? 0 : 1;
+
     Life_signal++;
-    return WriteErr;
+
+    return ECUErrInfo->ecu_app_err.bram_emif_wr_err;
 }
 
 /**

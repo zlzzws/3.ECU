@@ -37,6 +37,7 @@ extern PTHREAD_LOCK         g_PthreadLock_ST;
 extern SPACE_JUDGE_VALUE    g_SpaceJudge_ST;
 
 extern EADS_ERROR_INFO      g_EADSErrInfo_ST;
+extern ECU_ERROR_INFO       g_ECUErrInfo_ST;
 extern uint32_t             g_LinuxDebug;
 
 /**********************************************************************
@@ -373,7 +374,7 @@ int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
 *History:
 *REV1.0.0     feng    2020/6/29  Create
 *********************************************************************/
-int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,EADS_ERROR_INFO  *EADSErrInfo_ST)
+int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *TranInfo_p,ECU_ERROR_INFO  *ECUErrInfo_ST)
 {   
     uint8_t TryNum = 0;
     int8_t  err,err_1,err_2,err_3,err_4;
@@ -471,6 +472,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
 
     file_p->EventFile_fd = fopen(File_EventName_U8,"a+");
     file_p->EventBLVDS_fd = fopen(File_BLVDS_EventName_U8,"a+");
+    /*EVENT*/
     if(NULL == file_p->EventFile_fd)
     {
         TryNum ++;
@@ -487,7 +489,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             {
                 /*quit the cycle*/
                 TryNum = 0;
-                EADSErrInfo_ST -> EADSErr = 0;
+                ECUErrInfo_ST->ecu_app_err.filesave_EVENT_err = 0;
                 printf("creat Eventfile %s success\n",File_EventName_U8);
                 snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile %s success!",File_EventName_U8);
                 WRITELOGFILE(LOG_INFO_1,loginfo);
@@ -497,7 +499,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
         }
         if(TryNum >= FILETRY_NUM)
         {        
-            EADSErrInfo_ST -> EADSErr = 1;
+            ECUErrInfo_ST->ecu_app_err.filesave_EVENT_err = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err_1 = CODE_ERR;            
@@ -505,13 +507,13 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     }
     else
     {
-        EADSErrInfo_ST->EADSErr = 0;
+        ECUErrInfo_ST->ecu_app_err.filesave_EVENT_err = 0;
         printf("creat Eventfile %s success!\n",File_EventName_U8);
         snprintf(loginfo, sizeof(loginfo)-1, "creat Eventfile %s success!",File_EventName_U8);
         WRITELOGFILE(LOG_INFO_1,loginfo); 
         err_1 = CODE_OK;       
     }
-
+    /*BLVDS_EVENT*/
     if(NULL == file_p->EventBLVDS_fd)
     {
         TryNum ++;
@@ -528,7 +530,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
             {
                 /*quit the cycle*/
                 TryNum = 0;
-                EADSErrInfo_ST -> EADSErr = 0;
+                ECUErrInfo_ST->ecu_app_err.filesave_BLVDS_err = 0;
                 printf("creat BLVDS_Eventfile %s success\n",File_BLVDS_EventName_U8);
                 snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile %s success!",File_BLVDS_EventName_U8);
                 WRITELOGFILE(LOG_INFO_1,loginfo);
@@ -538,7 +540,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
         }
         if(TryNum >= FILETRY_NUM)
         {        
-            EADSErrInfo_ST->EADSErr = 1;
+            ECUErrInfo_ST->ecu_app_err.filesave_BLVDS_err  = 1;
             snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile failed!");
             WRITELOGFILE(LOG_ERROR_1,loginfo);
             err_2 = CODE_ERR;            
@@ -546,7 +548,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
     }
     else
     {
-        EADSErrInfo_ST->EADSErr = 0;
+        ECUErrInfo_ST->ecu_app_err.filesave_BLVDS_err = 0;
         printf("creat BLVDS_Eventfile %s success!\n",File_BLVDS_EventName_U8);
         snprintf(loginfo, sizeof(loginfo)-1, "creat BLVDS_Eventfile %s success!",File_BLVDS_EventName_U8);
         WRITELOGFILE(LOG_INFO_1,loginfo);
@@ -577,7 +579,7 @@ int8_t EventFileCreateByNum(FILE_FD *file_p,RECORD_XML *RrdXml_p,TRAIN_INFO *Tra
 *History:
 *REV1.0.0     zlz    2021/12/29  Create                                                              
 *********************************************************************/
-int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,EADS_ERROR_INFO EADSErrInfoST)
+int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bram_data_rd,TMS570_BRAM_DATA *bram_data_wr,ECU_ERROR_INFO ECUErrInfoST)
 {    
     uint8_t j= 0;
     uint8_t i = 0;
@@ -591,6 +593,11 @@ int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bra
     Drive_ST_p -> DriveDigital_U8[2] = temp_rd_buffer[3];
     memcpy(&Drive_ST_p -> DriveDigital_U8[3],&temp_rd_buffer[50],11);
     memcpy(&Drive_ST_p -> DriveDigital_U8[14],&temp_rd_buffer[62],18);
+    Drive_ST_p -> DriveDigital_U8[29] = Drive_ST_p -> DriveDigital_U8[29] | ECUErrInfoST.ecu_app_err.bram_blvds_err <<3 | ECUErrInfoST.ecu_app_err.bram_init_err << 4 \
+                                        | ECUErrInfoST.ecu_app_err.filesave_BLVDS_err << 5 | ECUErrInfoST.ecu_app_err.filesave_EVENT_err << 6 | ECUErrInfoST.ecu_app_err.bram_emif_err << 7 ;
+    Drive_ST_p -> DriveDigital_U8[31] = Drive_ST_p -> DriveDigital_U8[31] | ECUErrInfoST.ecu_app_err.modbus_err << 1 | ECUErrInfoST.ecu_app_err.phy_link_err << 2 \
+                                        | ECUErrInfoST.ecu_app_err.power_err << 3 | ECUErrInfoST.ecu_app_err.tcp_err << 4 | ECUErrInfoST.ecu_app_err.udp_err << 5 | ECUErrInfoST.ecu_app_err.max10_life_err << 6\
+                                        | ECUErrInfoST.ecu_app_err.tms570_life_err << 7;
     /*模拟量处理*/
     memcpy(&Drive_ST_p -> DriveAnalog_U16[0],&temp_wr_buffer[36],6);
     Drive_ST_p -> DriveAnalog_U16[3] = temp_wr_buffer[42] << 8;
