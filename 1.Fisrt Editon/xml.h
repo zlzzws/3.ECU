@@ -83,9 +83,7 @@ typedef struct
 	RECORD_TYPE_CFG  Rec_Event_ST;
 	RECORD_TYPE_CFG  Rec_Fault_ST;
 	RECORD_TYPE_CFG  Rec_Fast_ST;
-	RECORD_TYPE_CFG  Rec_Real_ST;
-	RECORD_TYPE_CFG  Rec_CAN_ST;
-	RECORD_TYPE_CFG  Rec_Uart_ST;	
+	RECORD_TYPE_CFG  Rec_Real_ST;	
 }RECORD_XML;
 
 /***********************************************************************

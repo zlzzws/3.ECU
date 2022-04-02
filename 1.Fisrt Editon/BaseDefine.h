@@ -67,11 +67,12 @@
 *********************************************************************/
 /*Function Select*/
 //#define REDUNDANCY_FUNCION //软件冗余功能
-#define UDP_FUNCTION
+//#define UDP_FUNCTION
 //#define ETH_FRAME_COUNT	//PHY-读取以太网收发包帧数
 #define CAN0_FUNCTION
 #define CAN1_FUNCTION
 #define MVB_FUNCTION
+#define BLVDS_READ_FUNCITON
 /*EADS Versionasd History*/
 #define EADS_VERSION 				100 
 #define EADS_VERSION_PTU 			100
@@ -101,11 +102,8 @@
 #define CURR_STATUE_NUM  			2
 #define FPGA_TIME_BYTE  			20
 
-#define POWDOW_FILT 				10 		/*filte the powdown io sign*/
-
-#define FILE_CREAT_FLAG 			2 		/*mean fltreal file oprtreal file have creat*/
-#define FILE_FLT_FLAG 				1 		/*mean fltreal file oprtreal file have creat*/
-#define FILETRY_NUM 				3 
+#define POWDOW_FILT 				10 		/*掉电信号滤波次数*/
+#define FILETRY_NUM 				3 		/*文件创建失败尝试次数*/
 
 #define LOG_FILE_TYPE 				1 		/*for log file delete*/
 #define RECORD_FILE_TYPE 			2 		/*for drive record file */
@@ -119,228 +117,20 @@
 /***********************************************************************
 *Global Struct Define Section*
 *********************************************************************/
-typedef struct
-{
-    uint8_t BusErr:1;
-    uint8_t VolChErr:1;
-    uint8_t CurrChErr:1;
-    uint8_t TemptureErr:1;
-    uint8_t PowerErr:1;
-    uint8_t Bit6:1;
-    uint8_t Bit7:1;
-    uint8_t DeviceErr:1;
-}FAULT_INFO;
-
 
 typedef struct
 {
-    uint8_t BatOFF:1; //3s pulse
-    uint8_t WarnRSet:1;
-    uint8_t ATOMmode:1;
-    uint8_t Bit4:1;
-    uint8_t Bit5:1;
-    uint8_t Bit6:1;
-    uint8_t Bit7:1;
-    uint8_t Bit8:1;
-
-}CCU_ST;
-
-typedef struct
-{
-    uint8_t TimeValid:1; //1 mean time valid
-    uint8_t BianzuValid:1;
-    uint8_t Bit3:1;
-    uint8_t Bit4:1;
-    uint8_t Bit5:1;
-    uint8_t Bit6:1;
-    uint8_t Bit7:1;
-    uint8_t Bit8:1;
-}VECH_ST;
-
-typedef struct
-{
-    uint8_t ReConect:2; //
-    uint8_t MainContrl:2;
-    uint8_t OverPhase:1;
-    uint8_t DriveEnable1_T903A:1;
-    uint8_t DriveEnable2_T903B:1;
-    uint8_t VCBClose:1;
-}DRIVE_INFO;
-typedef struct
-{
-    uint8_t CarContrl_K1:1;
-    uint8_t CarContrl_K2:1;
-    uint8_t CarContrl_C:1;
-    uint8_t CarContrl_K3:1;
-    uint8_t CarContrl_K4:1;
-    uint8_t CarContrl_N:1;
-    uint8_t CarContrl_B1:1;
-    uint8_t CarContrl_B2:1;
-}HANDLE_INFO1;
-
-typedef struct
-{
-    uint8_t CarContrl_B3:1;
-    uint8_t CarContrl_B4:1;
-    uint8_t CarContrl_B5:1;
-    uint8_t CarContrl_B6:1;
-    uint8_t CarContrl_B7:1;
-    uint8_t CarContrl_EB:1;
-    uint8_t QianPan:1;
-    uint8_t HouPan:1;
-}HANDLE_INFO2;
-
-typedef struct
-{
-    uint8_t OpenRightDoor_T233:1;
-    uint8_t OpenLefttDoor_T234:1;
-    uint8_t CloseRightDoor_T235:1;
-    uint8_t CloseLeftDoor_T236:1;
-    uint8_t TranformFan1_HighSped:1;  /*just for 3/6che */
-    uint8_t TranformFan1_LowSped:1;  /*just for 3/6che */
-    uint8_t TranformFan2_HighSped:1; /*just for 3/6che */
-    uint8_t TranformFan2_LowSped:1;  /*just for 3/6che */
-}DOOR_FAN;
-
-typedef struct
-{
-    uint8_t MotorColFan1_HighSped:1;  /*2/7che ,or 4/5che*/
-    uint8_t MotorColFan1_LowSped:1;   /*2/7che ,or 4/5che*/
-    uint8_t MotorColFan2_HighSped:1; /*2/7che ,or 4/5che*/
-    uint8_t MotorColFan2_LowSped:1; /*2/7che ,or 4/5che*/
-    uint8_t ConverColFan3_HighSped:1;  /*2/7che ,or 4/5che*/
-    uint8_t ConverColFan3_LowSped:1; /*2/7che ,or 4/5che*/
-    uint8_t res:2;
-
-}CONVERT_FAN;
-
-typedef struct
-{
-    uint8_t PanUpKnob_T221A:1;
-    uint8_t ParkBrakPresButtn_T229A:1;
-    uint8_t CleanBrakeButtn_T226A:1;
-    uint8_t KeepBrakeButtn_T228A:1;
-    uint8_t ParkBrakeFreedButtn_T230A:1;
-    uint8_t FreedRightDoorButtn_T231:1;
-    uint8_t FreedLeftDoorButtn_T232:1;
-    uint8_t ManuVCBButtn_T260A:1;
-}PARK_BUTTON;
-
-typedef struct
-{
-    uint8_t ProtGndContrlValid_T272:1;
-    uint8_t EmergDriveMode_T321A:1;
-    uint8_t ATPPow_T291:1;
-    uint8_t RestButtn_T240A:1;
-    uint8_t EmergRestButtn_T247A:1;
-    uint8_t Res1:1;
-    uint8_t ScaleParkButtn_T255A:1;
-    uint8_t PanDownKnob_T222A:1;
-}RESET_BUTTON;
-
-typedef struct
-{
-    uint8_t NoneAlert_T258A:1;
-    uint8_t BPRSUnRescue_T276:1;
-    uint8_t BPRSRescue_T275:1;
-    uint8_t ForcZeroSpeed_T280:1;
-    uint8_t VechWireContrl_T293:1;
-    uint8_t BatterButtn_T256:1;
-    uint8_t EmergPowOffButtn_T223:1;
-    uint8_t EmergBrakButtn_T252A:1;
-}BATTER_BUTTON;
-
-typedef struct
-{
-    DRIVE_INFO Drive_Info;
-    HANDLE_INFO1 Handle_info1;
-    HANDLE_INFO2 Handle_info2;
-    DOOR_FAN Door_TransformFan;
-    CONVERT_FAN  ConvertFan2Che;
-    CONVERT_FAN  ConvertFan4Che;
-    PARK_BUTTON  ParkButtn;
-    RESET_BUTTON  ResetButtn;
-    BATTER_BUTTON  BatterButtn;
-}VECH_EADS_INFO;
-typedef struct
-{
-	uint32_t BLVDSTOP_U32;/*0xC21104*/
-	uint32_t BLVDSReser_U32[2];/*0x00*/
+	uint32_t BLVDSTOP_U32;					/*0xC21104*/
+	uint32_t BLVDSReser_U32[2];				/*0x00*/
     uint32_t BLVDSData_U32[61];
 
-}BRAM_PACKET_DATA;/*256Byte*/
+}BRAM_PACKET_DATA;							/*256Byte*/
 
 typedef struct
 {
-	uint32_t BLVDSTOP_U32;/*570:0x11C2,MAX10,0x1144*/
-	uint32_t BLVDSReser_U32[2];/*0x00*/
-}BRAM_PACKET_TOP;/*16Byte*/
-
-typedef struct 
-{
-
-	uint32_t EventNum_U32;
-	uint16_t FrameLength_U16;
-
-}CHAN_TOP; 
-
-typedef struct 
-{
-	int16_t CH_Voltage_I16;
-}VOL_CHAN_VALUE;
-
-typedef struct 
-{
-	int16_t CH_Current_I16;
-}CURR_CHAN_VALUE;
-
-typedef struct
-{
-	VOL_CHAN_VALUE VolChan_ST[VOL_CHAN_NUM];  
-	CURR_CHAN_VALUE CurrChan_ST[CURR_CHAN_NUM]; 
-}CHAN_DATA;
-
-
-typedef struct
-{	
-	int16_t VolChanCalib_I16[VOL_CHAN_NUM];
-}CHAN_CALIB_DATA;
-
-typedef struct 
-{
-	
-	uint16_t HighCurr;
-
-}CURR_CHAN_THREHOLD_VALUE;
-
-typedef struct 
-{
-	uint16_t LowVol_H; //Vol uint is 100mv
-	uint16_t HighVol_L;
-	uint16_t HighVol_H;
-	uint16_t SlugVol;// the huicha judge
-	CURR_CHAN_THREHOLD_VALUE CurrChan_ThreValue_ST[CURR_CHAN_NUM];
-	uint16_t SlugCurr;
-}CHAN_THREHOLD_VALUE;
-
-typedef struct 
-{
-    uint8_t ChanFltNum_U8; /*have happen fault channel num for falut real file save*/
-    uint8_t ChanOprtNum_U8;/*have happen operate channel num for oprate real file save*/
-    uint8_t FltRealRecFlag_U8;/*the flag for falt file save*/
-	uint8_t OprtRealRecFlag_U8;/*the flag for opreat file save*/
-	uint8_t CurrFltFlag_U8; /*for enter the CurrWarnFlag judge*/
-    uint8_t CurrWarnFlag_U8[CURR_CHAN_NUM]; /*the flag for trdp */
-    uint8_t VolWarnFlag_U8[VOL_CHAN_NUM]; /*the flag for trdp */
-    uint8_t VolChanStat_U8[VOL_CHAN_NUM];
-    uint8_t OprtDirction_U8[VOL_CHAN_NUM];/*for trdp send*/	
-	uint16_t RelayLastLife_U16[VOL_CHAN_NUM];/*the opreate time for number*/
-    uint16_t OprtUpTime_U16[VOL_CHAN_NUM];/*the opreate time for number*/
-    uint16_t OprtDownTime_U16[VOL_CHAN_NUM];/*the opreate time for number*/
-	uint16_t JumpTime_U16[VOL_CHAN_NUM];/*the jump time for number*/
-	uint32_t Channel_OperaNum_U32[VOL_CHAN_NUM];	 /*the operature num of channel */
-    
-}CHAN_STATUS_INFO;
+	uint32_t BLVDSTOP_U32;					/*570:0x11C2,MAX10,0x1144*/
+	uint32_t BLVDSReser_U32[2];				/*0x00*/
+}BRAM_PACKET_TOP;							/*12Byte*/
 
 typedef enum _DEBUG_TYPE
 { 
@@ -375,33 +165,10 @@ typedef enum _DEBUG_TYPE
 
 typedef enum _COMMU_MCU
 {
-
 	TMS570_MCU = 1,
 	MAX10_MCU= 2,
 
 }COMMU_MCU_ENUM;
-
-typedef enum _BRAM_RETN_STATUS
-{
-
-	RETURN_ELSE_ERROR = -3,
-	RETURN_CRC_ERROR = -2,
-	RETURN_ERROR = -1,
-	RETURN_OK= 0,
- 	RETURN_BUSY= 1,
-
-}BRAM_RETN_ENUM;
-
-typedef enum _CMD_STATUS
-{
-
-	CMD_ERROR = 1,
-	CMD_OK = 2,
-	CMD_BUSY = 3,
-	CMD_CRC_ERROR = 4,
-	CMD_SUCCESS = 5,
-
-}CMD_STATUS_ENUM;
 
 typedef struct 
 {
@@ -427,19 +194,11 @@ typedef struct
    uint8_t  CoachNum_U8;
 }TRAIN_INFO;
 
-
 typedef struct
 {
 	FILE *EventFile_fd;
 	FILE *EventBLVDS_fd;
 }FILE_FD;
-
-typedef struct
-{
-	uint32_t EventSaveNum_U32;  /*the save number of event data */
-	uint32_t OprtRealSaveNum_U32;/*the save number of event LR data */
-	uint32_t FltRealSaveNum_U32; //the save number of 75 Chans
-}FILE_SAVE_INFO;
 
 
 typedef struct
@@ -479,20 +238,6 @@ typedef struct
 	uint8_t Bit7:1; 
       
 }BYTE_BIT;
-
-typedef struct
-{
-    uint8_t BLVDSErr:1; 
-    uint8_t VolWarmErr:1;
-	uint8_t CurrWarmErr:1;
-	uint8_t TemptureErr:1;
-	uint8_t PowErr:1; 
-    uint8_t VechFuctErr:1;
-    uint8_t TRDPErr:1; 
-	uint8_t EADSErr:1;  /*file creat err*/
-}EADS_ERROR_INFO;
-
-
 
 typedef struct _ecu_app_error_
 {
@@ -544,26 +289,6 @@ typedef struct _ecu_error_info_
 	err_level h2_store_err_level;
 	err_level heat_dissipation_err_level;
 }ECU_ERROR_INFO;
-
-typedef struct 
-{
-	BYTE_BIT LG_ZongPeiDrive; /*zong pei  Drive circuit*/
-	BYTE_BIT LG_DoorContrl;/*1/2/4/7/8 che,Door control*/
-	BYTE_BIT LG_MotorFan; /*2/4/5/7 che Motor Fan and ConverColFan*/
-	BYTE_BIT LG_TranformFan;/*3/6che LG_Tranform Cool Fan*/
-	BYTE_BIT LG_Pan;/*3/6che*/
-	BYTE_BIT LG_VCB;/*3/6che*/
-	BYTE_BIT LG_Reser[2];
-}CHAN_LG_INFO;
-
-
-typedef struct 
-{
-	BYTE_BIT VolWarnFlag_8CH[VOL_STATUE_NUM]; /*the flag for trdp */
-	BYTE_BIT VolChanStat_8CH[VOL_STATUE_NUM]; /*2/4/5/7 che Motor Fan and ConverColFan*/
-	BYTE_BIT CurrWarnFlag_8CH[CURR_STATUE_NUM]; /*the flag for trdp */
-}CHAN_DIGITAL_INFO;
-
 
 typedef struct 
 {

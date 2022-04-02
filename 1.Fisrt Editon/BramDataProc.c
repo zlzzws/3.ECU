@@ -402,7 +402,7 @@ int8_t Bram_Mapping_Init(ECU_ERROR_INFO *ECUErrInfop)
 }
 
 /**********************************************************************
-*Name           :   BRAM_RETN_ENUM BramReadDataExtraWiOutLife(uint32_t *Inbuff,uint32_t *Outbuff)
+*Name           :   ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum)
 *Function       :   Extract the data of ReadData,without the CurrePackNum judge 提取数据
 *Para           :   uint32_t *Inbuff 
 *                   uint32_t *Outbuff
@@ -475,70 +475,6 @@ int8_t BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData)
     return Error;
 }
 
-/**********************************************************************
-*Name           :   BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
-*Function       :   Extract the CMD data of ReadData,If the CurrPackNum is equal to the CurrPackNumTemp
-*                   meaning 570 has receiver success,otherwise is failure.
-*Para           :   uint32_t *Inbuff 
-*                   uint16_t TotalPackNum   The  total write packet number
-*                   uint16_t CurrPackNum    The current write packet number
-*Return         :   int8_t 0,success;-1 false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
-*History:
-*REV1.0.0     feng    2018/3/29  Create
-*********************************************************************/
-BRAM_RETN_ENUM BramReadDataExtraCMD(uint32_t *Inbuff,uint16_t CurrPackNum)
-{
-    
-    uint16_t TotalPackNumTemp = 0,CurrPackNumTemp = 0;
-    uint8_t UpDateTypeTemp = 0,UpDateStatTemp = 0,UpDateStat = 0;
-    BRAM_RETN_ENUM ErrorCode  = 0;
-    BRAM_PACKET_DATA *BramPacketData_ST_p;
-    BramPacketData_ST_p = (BRAM_PACKET_DATA *)Inbuff;
-
-    CurrPackNumTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] & 0xFFFF);
-    UpDateStatTemp =  (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 16) & 0xFF;
-    //UpDateTypeTemp = (BramPacketData_ST_p -> BLVDSReser_U32[1] >> 24) & 0xFF;
-
-    UpDateStat =  (CMD_STATUS_ENUM)UpDateStatTemp;
-
-    /*check program update whether right*/
-    if(CurrPackNumTemp == CurrPackNum)
-    {
-        if(CMD_OK == UpDateStat)
-        {              
-            ErrorCode = RETURN_OK;
-            s_bram_WRRDErrNum_U32 = 0;
-        }
-        /*CRC error ,repeat write*/
-        else if(CMD_CRC_ERROR == UpDateStat)
-        {
-            ErrorCode = RETURN_CRC_ERROR;
-            s_bram_WRRDErrNum_U32 ++;
-        }
-        /*another error ,repeat write*/
-        else if(CMD_ERROR == UpDateStat) 
-        {
-            ErrorCode = RETURN_ERROR;
-            s_bram_WRRDErrNum_U32 ++;
-        }
-        else if (CMD_BUSY == UpDateStat)/*for max 10*/
-        {
-            ErrorCode = RETURN_BUSY;
-            s_bram_WRRDErrNum_U32 = 0; 
-        }
-        /*for reset the max10 program*/
-
-    }
-    else
-    {
-        ErrorCode = RETURN_ELSE_ERROR;
-        s_bram_WRRDErrNum_U32 ++;
-    }
-
-    return ErrorCode;
-}
 /**********************************************************************
 *Name           :   int8_t BramWriteAssigVal(uint16_t Length,uint32_t *Inbuf,
 *                   uint8_t ChanNum,uint16_t CurrPackNum,uint8_t CurrCMD,COMMU_MCU_ENUM TargeMCU)
@@ -681,6 +617,7 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,ECU_ERROR_INFO *ECUErrIn
     ECUErrInfop->ecu_app_err.bram_blvds_rd_err = errflag || lifeErrFlag;
     return CODE_OK;
 }
+
 #ifdef REDUNDANCY_FUNCTION
 /**
  * @description: BLVDS数据写入功能
@@ -717,6 +654,7 @@ int8_t BLVDSDataWriteFunc(TMS570_BRAM_DATA *bram_wr_data)
     return WriteErr;
 }
 #endif
+
 /**
  * @description: just for this page can program use!(pay attention "static")
  * @param:       void life_data,void *life_lasttime,uint8_t *errnum

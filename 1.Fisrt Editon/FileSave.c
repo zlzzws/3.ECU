@@ -265,13 +265,12 @@ int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML *RecXm_p,TRAIN_INFO *TranInfo_ST_
     return fwerr;
 }
 /**********************************************************************
-*Name     :   int8_t OprtRealFileCreat(uint8_t ChanName)
-*Function       :   Creat a new .oprt real file 
-*Para         :   void 
-*
-*Return       :   int8_t 0,success;else false.
-*Version        :   REV1.0.0       
-*Author:        :   feng
+*Name       :   FileSpaceProc(RECORD_XML * RrdXml_p)
+*Function   :   judge File/Dir IDLE space,if there are not enough space,delete the earliest 10 file/dir.
+*Para       :   void 
+*Return     :   int8_t 0,success;else false.
+*Version    :   REV1.0.0       
+*Author:    :   feng
 *
 *History:
 *REV1.0.0     feng    2020/1/29  Create
@@ -279,84 +278,54 @@ int8_t EventFileTopSave(FILE *Fd_p, RECORD_XML *RecXm_p,TRAIN_INFO *TranInfo_ST_
 
 *********************************************************************/
 int8_t FileSpaceProc(RECORD_XML * RrdXml_p)
-{
-
-    //FILE *fd;
-    uint32_t TotalSizeMB_U32 = 0,FreeSizeMB_U32 = 0;
+{    
     int8_t err = 0;
-    uint8_t i = 0;
+    uint32_t TotalSizeMB_U32 = 0,FreeSizeMB_U32 = 0;
     char loginfo[LOG_INFO_LENG] = {0};
-  
-   GetMemSize(OPRTFILE_DIR,&TotalSizeMB_U32,&FreeSizeMB_U32);
-   while((FreeSizeMB_U32 < g_SpaceJudge_ST.MIN_RESER_SPACE) && (i < 10)) //10G
-   {
+
+    uint8_t i = 0;
+    GetMemSize(BLVDS_EVENT_PATH,&TotalSizeMB_U32,&FreeSizeMB_U32);
+    while((FreeSizeMB_U32 < g_SpaceJudge_ST.MIN_RESER_SPACE) && (i < 10))
+    {
        i++;     
-       printf("%s free %uMB,Rrq %uMB\n",OPRTFILE_DIR,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
-       snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",OPRTFILE_DIR,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
+       printf("%s free %uMB,Rrq %uMB\n",BLVDS_EVENT_PATH,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
+       snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",BLVDS_EVENT_PATH,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
        WRITELOGFILE(LOG_WARN_1,loginfo); 
-       err = FileDirJudge(OPRTFILE_DIR);
+       err = FileDirJudge(BLVDS_EVENT_PATH);
        if(REC_FILE_TYPE == err)
        {
-           DeleteEarliestFile(OPRTFILE_DIR,RECORD_FILE_TYPE);
-
+           DeleteEarliestFile(BLVDS_EVENT_PATH,RECORD_FILE_TYPE);
        }
        else if(REC_DIR_TYPE == err)
        {
-           DeleteEarliestDir(OPRTFILE_DIR);
-
+           DeleteEarliestDir(BLVDS_EVENT_PATH);
        }
        sleep(2); //the filesystem to update the space size need time
-       GetMemSize(OPRTFILE_DIR,&TotalSizeMB_U32,&FreeSizeMB_U32);
+       GetMemSize(BLVDS_EVENT_PATH,&TotalSizeMB_U32,&FreeSizeMB_U32);
     }
 
     i = 0;
-    GetMemSize(RrdXml_p -> Rec_Real_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-    while((FreeSizeMB_U32 < g_SpaceJudge_ST.MIN_RESER_SPACE) && (i < 5)) //10G
+    GetMemSize(RrdXml_p->Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
+    while((FreeSizeMB_U32 < g_SpaceJudge_ST.MIN_RESER_SPACE) && (i < 10))
     {
        i++;
-       printf("%s free %uMB,Rrq %uMB\n",RrdXml_p -> Rec_Real_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
-       snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Real_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
+       printf("%s free %uMB,Rrq %uMB\n",RrdXml_p->Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
+       snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p->Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.MIN_RESER_SPACE);
        WRITELOGFILE(LOG_WARN_1,loginfo); 
        
-       err = FileDirJudge(RrdXml_p -> Rec_Real_ST.RecPath);
+       err = FileDirJudge(RrdXml_p->Rec_Event_ST.RecPath);
        if(REC_FILE_TYPE == err)
        {
-           DeleteEarliestFile(RrdXml_p -> Rec_Real_ST.RecPath,RECORD_FILE_TYPE);
-
+           DeleteEarliestFile(RrdXml_p->Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
        }
        else if(REC_DIR_TYPE == err)
        {
-           DeleteEarliestDir(RrdXml_p -> Rec_Real_ST.RecPath);
-
+           DeleteEarliestDir(RrdXml_p->Rec_Event_ST.RecPath);
        }
        sleep(2); //the filesystem to update the space size need time
-       GetMemSize(RrdXml_p -> Rec_Real_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-   }   
-
-
-//    i = 0;
-//    GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-//    while((FreeSizeMB_U32 < g_SpaceJudge_ST.EVENT_RESER_SPACE) && (i < 5)) //10G
-//    {
-//       i++;
-//       printf("%s free %uMB,Rrq %uMB\n",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-//       snprintf(loginfo, sizeof(loginfo)-1, "%s free %uMB,Rrq %uMB",RrdXml_p -> Rec_Event_ST.RecPath,FreeSizeMB_U32,g_SpaceJudge_ST.EVENT_RESER_SPACE);
-//       WRITELOGFILE(LOG_WARN_1,loginfo); 
-//       
-//       err = FileDirJudge(RrdXml_p -> Rec_Event_ST.RecPath);
-//       if(REC_FILE_TYPE == err)
-//       {
-//           DeleteEarliestFile(RrdXml_p -> Rec_Event_ST.RecPath,RECORD_FILE_TYPE);
-//
-//       }
-//       else if(REC_DIR_TYPE == err)
-//       {
-//           DeleteEarliestDir(RrdXml_p -> Rec_Event_ST.RecPath);
-//
-//       }
-//       sleep(2); //the filesystem to update the space size need time
-//       GetMemSize(RrdXml_p -> Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
-//   }   	
+       GetMemSize(RrdXml_p->Rec_Event_ST.RecPath,&TotalSizeMB_U32,&FreeSizeMB_U32);
+   }  
+  	
    return err;
 }
 /**********************************************************************
@@ -719,12 +688,7 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
     memcpy(Drive_ST_p->DriveDigital_U8,bram_data->buffer,10);
     /*MAX10-DO info*/ 
     memcpy(digital_tempdata,&bram_data->buffer[2],8);
-    /*
-    for(i=2;i<7;i++)
-    {   
-        printf("digital_tempdata[%d]:%02x\n",i,digital_tempdata[i]);
-    } */    
-    
+
     for(i=0;i<5;i++)
     {
         switch(digital_tempdata[2+i] & 0xF)
@@ -763,18 +727,12 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
         }
     } 
 
-    /*for(i=0;i<5;i++)
-    {
-        printf("digtal_byte_bit[%d]:0x%02x\n",i,digtal_byte_bit[i]);
-    } */  
-
     memcpy(&Drive_ST_p->DriveDigital_U8[10],digtal_byte_bit,5);
     /*MAX10_Anolog current calculate*/
     memcpy(temparray_u8,&bram_data->buffer[3],24);    
     for(i=0;i<10;i++)
     {        
-        temparray_u16[i] =  temparray_u8[3+j] | temparray_u8[4+j] << 8 ;
-        //printf("temparray_u16[%d]:0x%04d\n",i,temparray_u16[i]);             
+        temparray_u16[i] =  temparray_u8[3+j] | temparray_u8[4+j] << 8 ;                    
         temparray_f[i] =  temparray_u16[i]*1.5;          
         temparray_u16[i] = (uint16_t)(temparray_f[i] - 3103.03);
         j=j+2;       

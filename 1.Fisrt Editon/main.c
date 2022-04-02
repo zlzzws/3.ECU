@@ -40,7 +40,6 @@ uint8_t             g_ChanRealWave[48] = {0};                   /*for the channe
 uint8_t             g_ChanRealNum = 0;                          /*for the channel real wave */
 uint8_t             g_socket_SendFlag = 0;                      /*for tcp modbus comunicate*/
 FILE_FD             g_FileFd_ST = {0};                          /*the save file FP*/
-CHAN_STATUS_INFO    g_ChanStatuInfo_ST = {0};                   /*include the real file save,Chan operate num*/
 int                 g_tms570_errflag = 0;                       /*used in Hot standby redundancy*/
 /***********************************************************************
 *Local Macro Define Section*
@@ -54,7 +53,6 @@ int8_t *s_bram_ret_0    = NULL;
 int8_t *s_bram_ret_1    = NULL;
 int8_t *s_bram_ret_2    = NULL;
 #endif
-
 static DRIVE_FILE_DATA s_save_to_csr_driver={0};        //存储值EMMC,上位机CSR_DRIVER可解析
 static DRIVE_FILE_DATA s_save_to_intool={0};            //存储值EMMC,上位机CSR_DRIVER可解析 根据需要可以发送给INTOOL实时显示数字量
 TMS570_BRAM_DATA s_tms570_bram_RD_data_ch8_st = {0};
@@ -1725,6 +1723,7 @@ void *RedundancyThreadFunc(void *arg)
 *********************************************************************/
 void *BlvdsThreadFunc(void *arg)
 {    
+    #ifdef BLVDS_READ_FUNCITON
     char loginfo[LOG_INFO_LENG]={0};
 
     while (g_LifeFlag)
@@ -1746,4 +1745,5 @@ void *BlvdsThreadFunc(void *arg)
     snprintf(loginfo, sizeof(loginfo)-1, "Exit BlvdsThreadFunc!");
     WRITELOGFILE(LOG_ERROR_1,loginfo);
     pthread_exit(NULL);
+    #endif
 }
