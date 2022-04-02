@@ -35,8 +35,6 @@ extern RECORD_XML           g_Rec_XML_ST;
 extern TRAIN_INFO           g_TrainInfo_ST;
 extern PTHREAD_LOCK         g_PthreadLock_ST;
 extern SPACE_JUDGE_VALUE    g_SpaceJudge_ST;
-
-extern EADS_ERROR_INFO      g_EADSErrInfo_ST;
 extern ECU_ERROR_INFO       g_ECUErrInfo_ST;
 extern uint32_t             g_LinuxDebug;
 
@@ -593,10 +591,11 @@ int8_t ECU_Record_Data_Pro_Fun(DRIVE_FILE_DATA *Drive_ST_p,TMS570_BRAM_DATA *bra
     Drive_ST_p -> DriveDigital_U8[2] = temp_rd_buffer[3];
     memcpy(&Drive_ST_p -> DriveDigital_U8[3],&temp_rd_buffer[50],11);
     memcpy(&Drive_ST_p -> DriveDigital_U8[14],&temp_rd_buffer[62],18);
-    Drive_ST_p -> DriveDigital_U8[29] = Drive_ST_p -> DriveDigital_U8[29] | ECUErrInfoST.ecu_app_err.bram_blvds_err <<3 | ECUErrInfoST.ecu_app_err.bram_init_err << 4 \
-                                        | ECUErrInfoST.ecu_app_err.filesave_BLVDS_err << 5 | ECUErrInfoST.ecu_app_err.filesave_EVENT_err << 6 | ECUErrInfoST.ecu_app_err.bram_emif_err << 7 ;
-    Drive_ST_p -> DriveDigital_U8[31] = Drive_ST_p -> DriveDigital_U8[31] | ECUErrInfoST.ecu_app_err.modbus_err << 1 | ECUErrInfoST.ecu_app_err.phy_link_err << 2 \
-                                        | ECUErrInfoST.ecu_app_err.power_err << 3 | ECUErrInfoST.ecu_app_err.tcp_err << 4 | ECUErrInfoST.ecu_app_err.udp_err << 5 | ECUErrInfoST.ecu_app_err.max10_life_err << 6\
+    Drive_ST_p -> DriveDigital_U8[28] = Drive_ST_p -> DriveDigital_U8[28] | ECUErrInfoST.ecu_app_err.bram_blvds_rd_err << 6 | ECUErrInfoST.ecu_app_err.bram_blvds_wr_err <<7;
+    Drive_ST_p -> DriveDigital_U8[29] = Drive_ST_p -> DriveDigital_U8[29] | ECUErrInfoST.ecu_app_err.bram_mvb_rd_err <<3 | ECUErrInfoST.ecu_app_err.bram_mvb_wr_err << 4 \
+                                        | ECUErrInfoST.ecu_app_err.filesave_EVENT_err << 5 | ECUErrInfoST.ecu_app_err.filesave_BLVDS_err << 6 | ECUErrInfoST.ecu_app_err.bram_init_err << 7 ;
+    Drive_ST_p -> DriveDigital_U8[31] = Drive_ST_p -> DriveDigital_U8[31] | ECUErrInfoST.ecu_app_err.tcp_err << 1 | ECUErrInfoST.ecu_app_err.modbus_err << 2 | ECUErrInfoST.ecu_app_err.udp_err << 3 \
+                                        | ECUErrInfoST.ecu_app_err.phy_link_err << 4 | ECUErrInfoST.ecu_app_err.power_err << 5 | ECUErrInfoST.ecu_app_err.max10_life_err << 6\
                                         | ECUErrInfoST.ecu_app_err.tms570_life_err << 7;
     /*模拟量处理*/
     memcpy(&Drive_ST_p -> DriveAnalog_U16[0],&temp_wr_buffer[36],6);

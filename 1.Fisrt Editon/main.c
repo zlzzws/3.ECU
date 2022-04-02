@@ -25,8 +25,7 @@
 *Global Variable Declare Section*
 *********************************************************************/
 sem_t               g_RealSend_sem;
-DEBUG_TYPE_ENUM     g_DebugType_EU;
-EADS_ERROR_INFO     g_EADSErrInfo_ST = {0};                     
+DEBUG_TYPE_ENUM     g_DebugType_EU;                    
 ECU_ERROR_INFO      g_ECUErrInfo_ST = {0};
 TRAIN_INFO          g_TrainInfo_ST = {0,0};
 VERSION             g_Version_ST = {0};
@@ -47,7 +46,6 @@ int                 g_tms570_errflag = 0;                       /*used in Hot st
 *Local Macro Define Section*
 *********************************************************************/
 #define WDIOC_SETTIMEOUT _IOWR(WATCHDOG_IOCTL_BASE, 6, int)
-
 /***********************************************************************
 *Local Struct AND Variable Define Section*
 *********************************************************************/
@@ -1536,13 +1534,13 @@ void *MVBThreadFunc(void *arg)
     {       
         pthread_rwlock_wrlock(&g_PthreadLock_ST.BramDatalock);
 
-        MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st);
+        MVB_Bram_Read_Func(MVB_CmdPact_RD_ST,s_mvb_bram_RD_data_st,&g_ECUErrInfo_ST);
         MVB_RD_Data_Proc(s_mvb_bram_RD_data_st,&s_tms570_bram_WR_data_ch8_st);        
         TMS570_Bram_Write_Func(&CmdPact_WR_ST,&s_tms570_bram_WR_data_ch8_st,1,MVB_BRAM,&g_ECUErrInfo_ST);
 
         TMS570_Bram_Read_Func(&CmdPact_RD_ST,&s_tms570_bram_RD_data_ch8_st,1,MVB_BRAM,&g_ECUErrInfo_ST);
         MVB_WR_Data_Proc(s_mvb_bram_WR_data_st,&s_tms570_bram_RD_data_ch8_st);
-        MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st);
+        MVB_Bram_Write_Func(MVB_CmdPact_WR_ST,s_mvb_bram_WR_data_st,&g_ECUErrInfo_ST);
         /*处理从TMS570读取的MVB数据,以便于文件记录*/
         ECU_Record_Data_Pro_Fun(&s_save_to_csr_driver,&s_tms570_bram_RD_data_ch8_st,&s_tms570_bram_WR_data_ch8_st,g_ECUErrInfo_ST);
 

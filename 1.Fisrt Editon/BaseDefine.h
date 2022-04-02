@@ -66,13 +66,12 @@
 *
 *********************************************************************/
 /*Function Select*/
-//#define REDUNDANCY_FUNCION
+//#define REDUNDANCY_FUNCION //软件冗余功能
 #define UDP_FUNCTION
-//#define ETH_FRAME_COUNT
+//#define ETH_FRAME_COUNT	//PHY-读取以太网收发包帧数
 #define CAN0_FUNCTION
 #define CAN1_FUNCTION
 #define MVB_FUNCTION
-
 /*EADS Versionasd History*/
 #define EADS_VERSION 				100 
 #define EADS_VERSION_PTU 			100

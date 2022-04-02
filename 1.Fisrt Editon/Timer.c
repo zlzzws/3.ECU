@@ -187,7 +187,8 @@ int8_t RTCTesT(void)
     int8_t err;
     int8_t rtcfd;
     struct tm Time_ST;  
-    char loginfo[LOG_INFO_LENG] = {0};  
+    char loginfo[LOG_INFO_LENG] = {0}; 
+    char TimeString[256] = {0};
     Time_ST.tm_year = Year_U16 - 1900; 
 
     if ((rtcfd = open ("/dev/rtc0", O_RDONLY )) < 0 )
@@ -209,7 +210,11 @@ int8_t RTCTesT(void)
     Year_U16 = Time_ST.tm_year + 1900;
     if(Year_U16 > 2010)
     {
-        err = CODE_OK;  
+        err = CODE_OK;
+        sprintf(TimeString, "[%04d.%02d.%02d %02d:%02d:%02d]",\
+            Time_ST.tm_year+1900, Time_ST.tm_mon+1, Time_ST.tm_mday,\
+            Time_ST.tm_hour, Time_ST.tm_min, Time_ST.tm_sec);
+        printf("System Time is %s\n",TimeString);  
     }
     else
     {
