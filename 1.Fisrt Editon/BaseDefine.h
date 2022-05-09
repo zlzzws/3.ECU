@@ -69,9 +69,9 @@
 //#define REDUNDANCY_FUNCION //软件冗余功能
 //#define UDP_FUNCTION
 //#define ETH_FRAME_COUNT	//PHY-读取以太网收发包帧数
-#define CAN0_FUNCTION
-#define CAN1_FUNCTION
-#define MVB_FUNCTION
+// #define CAN0_FUNCTION
+// #define CAN1_FUNCTION
+// #define MVB_FUNCTION
 #define BLVDS_READ_FUNCITON
 /*EADS Versionasd History*/
 #define EADS_VERSION 				100 

@@ -554,6 +554,7 @@ int8_t BramReadWithChek(BRAM_ADDRS *BramAddrs_p,uint32_t *Outbuf)
     }
     return ErrorCode;
 }
+
 /**********************************************************************
 *Name           : BramWrDataSet
 *                  uint16_t ChanNum,uint32_t *Outbuf ,uint16_t Length)
@@ -572,6 +573,83 @@ int8_t BramReadWithChek(BRAM_ADDRS *BramAddrs_p,uint32_t *Outbuf)
 *
 *********************************************************************/
 int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP TopPackST,uint32_t Outbuf[])
+{
+    BRAM_PACKET_DATA *BramPacketData_ST_p = {0};
+	BramPacketData_ST_p = (BRAM_PACKET_DATA *)Outbuf;
+	
+	uint8_t Framelen = 0;
+	uint8_t DataLen = 0;
+	uint32_t Temp32Value = 0;
+	uint8_t ChanNum = 0;
+	uint32_t Calculate_CrcValue_U32;
+	uint8_t i = 0;
+
+	
+	ChanNum = BramAddrs_p -> ChanNum_U8;            
+	Temp32Value = TopPackST.BLVDSTOP_U32;           
+	Temp32Value += (ChanNum << 18);                 
+	Framelen = BramAddrs_p -> DataU32Length << 2;   
+	Temp32Value += (Framelen << 24);                
+	BramPacketData_ST_p -> BLVDSTOP_U32 = Temp32Value;
+	BramPacketData_ST_p -> BLVDSReser_U32[0] = TopPackST.BLVDSReser_U32[0];
+    BramPacketData_ST_p -> BLVDSReser_U32[1] = TopPackST.BLVDSReser_U32[1];
+	
+	DataLen = Framelen - BRAM_PACKET_TOP_LENGTH_U8; 
+    if(DataLen > 0 && Inbuf != NULL)
+    {
+        memcpy(&BramPacketData_ST_p -> BLVDSData_U32,Inbuf,DataLen); 
+    }
+    else if(DataLen == 0 && Inbuf == NULL)
+    {
+        if(g_DebugType_EU == BRAM_WR_DEBUG)
+        {
+            printf("This Write Bram Data contains no userdata.\n");
+        }
+    }
+    else
+    {
+        if(g_DebugType_EU == BRAM_WR_DEBUG)
+        {
+            printf("Invalid DataLeng(<12):DataLength contain  12Bytes TopPacket at least,Please Set correct DataLength.\n");
+        }
+        return -1;
+    }
+	
+	Framelen = BramAddrs_p -> DataU32Length; 
+	Calculate_CrcValue_U32 = Crc32CalU32Bit(Outbuf,Framelen);
+	
+	DataLen = BramAddrs_p -> DataU32Length - BRAM_PCKT_TOP_LNGTH_U32;
+	BramPacketData_ST_p -> BLVDSData_U32[DataLen]= Calculate_CrcValue_U32;
+ 
+	if(BRAM_WR_DEBUG == g_DebugType_EU)
+	{		
+        for( i = 0; i < Framelen; i++)
+		{
+			printf("ChanNum:[%d]-Write BramData Set-[%02u]:0x%08x\n",BramAddrs_p -> ChanNum_U8,i,Outbuf[i]);   
+		}
+	}
+	return 0;
+}
+
+
+/**********************************************************************
+*Name           : BramWrDataSet
+*                  uint16_t ChanNum,uint32_t *Outbuf ,uint16_t Length)
+*Function       :   Write a packet data to Bram,if The FPGA feed back the crc is error,it will repeat write 3 times
+*Para           :   uint32_t BlockAddre     The Block Addres,
+*               :   uint32_t BlockFlagAddre The Block Flag Addres,
+*               :   uint16_t ChanNum        THe Channel number of Bram Block
+*               :   uint32_t *Outbuf       Point to data save array 
+*               :   uint16_t Length         lenth of the read data,
+*Return         :   int8_t 0,success;-1 false.
+*Version        :   REV1.0.0       
+*Author:        :   feng
+*
+*History:
+*REV1.0.0     feng    2018/3/29  Create
+*
+*********************************************************************/
+int8_t BLVDS_BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP TopPackST,uint32_t Outbuf[])
 {
     BRAM_PACKET_DATA *BramPacketData_ST_p = {0};
 	BramPacketData_ST_p = (BRAM_PACKET_DATA *)Outbuf;
@@ -629,8 +707,7 @@ int8_t BramWrDataSet(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP To
 *
 *********************************************************************/
 int8_t BramWriteWithChek(BRAM_ADDRS *BramAddrs_p,uint32_t Inbuf[],BRAM_PACKET_TOP TopPackST)
-{
-
+{    
 	uint32_t WriteDataBuf[64] = {0};	
 
 	BramWrDataSet(BramAddrs_p,Inbuf,TopPackST,WriteDataBuf);    

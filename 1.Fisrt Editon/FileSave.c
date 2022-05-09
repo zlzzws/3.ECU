@@ -682,7 +682,7 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
     uint8_t temparray_u8[24]={0};
     uint8_t digital_tempdata[8] = {0};
     BYTE_BIT digtal_byte_bit[5] = {0};
-    uint16_t temparray_u16[10]={0};
+    int16_t temparray_u16[10]={0};
     float temparray_f[10]={0};
     /*MAX10-DI info*/    
     memcpy(Drive_ST_p->DriveDigital_U8,bram_data->buffer,10);
@@ -728,18 +728,25 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
     } 
 
     memcpy(&Drive_ST_p->DriveDigital_U8[10],digtal_byte_bit,5);
-    /*MAX10_Anolog current calculate*/
+    /*MAX10_Anolog current calculate ! attention:please use int16_t but not uint16_t*/
     memcpy(temparray_u8,&bram_data->buffer[3],24);    
     for(i=0;i<10;i++)
     {        
         temparray_u16[i] =  temparray_u8[3+j] | temparray_u8[4+j] << 8 ;                    
         temparray_f[i] =  temparray_u16[i]*1.5;          
-        temparray_u16[i] = (uint16_t)(temparray_f[i] - 3103.03);
+        temparray_u16[i] = (int16_t)(temparray_f[i] - 3103.03);
         j=j+2;       
     }
-    memcpy(Drive_ST_p->DriveAnalog_U16,temparray_u16,20);
+    memcpy(Drive_ST_p->DriveAnalog_U16,temparray_u16,20);/*模拟量*/
+    if(g_DebugType_EU == 29)
+    {
+        for(i=0;i<10;i++)
+        {            
+            printf("Read:MAX10- CH[%d] Current:%d\n",i,temparray_u16[i]);
+        }
+    }
     /*MAX10 main mos info*/
-    memcpy(&Drive_ST_p->DriveDigital_U8[15],&temparray_u8[23],1);
+    memcpy(&Drive_ST_p->DriveDigital_U8[15],&temparray_u8[23],1);/*数字量第16字节*/
     return CODE_OK;
 }
 
@@ -751,7 +758,9 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
  */
 int8_t MAX10_WR_DataProc(TMS570_BRAM_DATA *bram_data)
 {
-
+    bram_data->buffer[0]=0x99999999;
+    bram_data->buffer[1]=0x99;
+    
 }
 /**********************************************************************
 *Name       :   int8_t MAX10_EventDataSave

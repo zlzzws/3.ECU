@@ -48,6 +48,8 @@ extern ECU_ERROR_INFO g_ECUErrInfo_ST;
 *********************************************************************/
 static uint8_t s_bram_WRRDErrNum_U32 = 0;
 static BRAM_ADDRS s_Bram_A_TMS570Addr_ST = {0};
+static BRAM_ADDRS s_Bram_Updt_RD_BLVDSBlckAddr_ST = {0};
+static BRAM_ADDRS s_Bram_Updt_WR_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_Bram_A_RD_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_Bram_A_WR_BLVDSBlckAddr_ST = {0};
 static BRAM_ADDRS s_bram_RD_B_BLVDSBlckAddr_ST = {0};
@@ -57,6 +59,8 @@ static BRAM_ADDRS s_bram_WR_TMS_SPC_Blck_ST[5] = {0};
 static int8_t   s_bram_MemFd_I8 = 0;
 static uint8_t *s_bram_RDFlagAddr = NULL;
 static uint8_t *s_bram_WRFlagAddr = NULL;
+static uint8_t *s_bram_RD_Updt_BLVDSBlckAddr = NULL;
+static uint8_t *s_bram_WR_Updt_BLVDSBlckAddr = NULL;
 static uint8_t *s_Bram_WR_A_TMS570Addr_ST = NULL; 
 static uint8_t *s_bram_RD_A_BLVDSBlckAddr = NULL;
 static uint8_t *s_bram_WR_A_BLVDSBlckAddr = NULL;
@@ -101,6 +105,7 @@ int8_t BramOpenMap(ECU_ERROR_INFO *ECUErrInfop)
         }
 
     }
+
     #if 0
     //内存映射：本系TMS570通道（4K大小）
     s_Bram_WR_A_TMS570Addr_ST = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_TMS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
@@ -125,7 +130,6 @@ int8_t BramOpenMap(ECU_ERROR_INFO *ECUErrInfop)
             err = CODE_OK;
         }
     }
-    #endif
         
     //内存映射：本系BLVDS通道 A9读 FPGA写（4K大小）
     s_bram_RD_A_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
@@ -173,6 +177,56 @@ int8_t BramOpenMap(ECU_ERROR_INFO *ECUErrInfop)
             err = CODE_OK;
         }
     }
+    #endif
+
+    //内存映射：BLVDS更新程序通道 A9读 FPGA写（4K大小）
+    s_bram_RD_Updt_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_SPCBLOCK0,BRAM_4BLCK_LNGTH_U8);
+    ErrNum = 0;
+    if(MAP_FAILED == s_bram_RD_Updt_BLVDSBlckAddr)
+    {
+        ErrNum++;
+        while((ErrNum < MAPERR_NUM) && (MAP_FAILED == s_bram_RD_Updt_BLVDSBlckAddr)) /*try 3 times*/
+        {
+            s_bram_RD_Updt_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_A_BLVDS_SPCBLOCK0,BRAM_4BLCK_LNGTH_U8);
+            ErrNum++;
+        }
+        if(ErrNum >= MAPERR_NUM)
+        {
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_RD_A_BLVDS_SPCBLOCK0 failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;
+        }
+        else
+        {
+            err = CODE_OK;
+        }
+    }
+
+    //内存映射：BLVDS更新程序通道 A9写 FPGA读（4K大小）
+    s_bram_WR_Updt_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_WR_A_BLVDS_SPCBLOCK0 ,BRAM_4BLCK_LNGTH_U8);
+    ErrNum = 0;
+    if(MAP_FAILED == s_bram_WR_Updt_BLVDSBlckAddr)
+    {
+        ErrNum++;
+        while((ErrNum < MAPERR_NUM) && (MAP_FAILED == s_bram_WR_Updt_BLVDSBlckAddr)) /*try 3 times*/
+        {
+            s_bram_WR_Updt_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_WR_A_BLVDS_SPCBLOCK0 ,BRAM_4BLCK_LNGTH_U8);
+            ErrNum++;
+        }
+        if(ErrNum >= MAPERR_NUM)
+        {
+            ECUErrInfop->ecu_app_err.bram_init_err = 1;
+            snprintf(loginfo, sizeof(loginfo)-1, "BramMap BRAM_A9_WR_A_BLVDS_SPCBLOCK0 failed!");
+            WRITELOGFILE(LOG_ERROR_1,loginfo);
+            err = CODE_ERR;
+        }
+        else
+        {
+            err = CODE_OK;
+        }
+    }
+
     //内存映射：他系BLVDS专用通道 A9读 FPGA写（4K大小）
     s_bram_RD_B_BLVDSBlckAddr = BramMap(s_bram_MemFd_I8,BRAM_A9_RD_B_BLVDS_BLOCK0,BRAM_4BLCK_LNGTH_U8);
     ErrNum = 0;
@@ -355,18 +409,30 @@ int8_t Bram_Mapping_Init(ECU_ERROR_INFO *ECUErrInfop)
     s_Bram_A_TMS570Addr_ST .MapBlckFlgAddr_p = s_bram_RDFlagAddr;
     s_Bram_A_TMS570Addr_ST .BramBlckAddr = BRAM_A9_RD_A_TMS_BLOCK0;
     s_Bram_A_TMS570Addr_ST .BramBlckFlgAddr = BRAM_A9_RD_A_TMS_FLAG;
-    #endif
-    /*本系BLVDS ADDR 地址映射 A9读FPGA写*/
+    
+    /*本系BLVDS ADDR 地址映射 A9读FPGA写-偏移2000*/
     s_Bram_A_RD_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_A_BLVDSBlckAddr;
     s_Bram_A_RD_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_RDFlagAddr;
     s_Bram_A_RD_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_RD_A_BLVDS_BLOCK0;
     s_Bram_A_RD_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_BLVDS_FLAG;
 
-    /*本系BLVDS ADDR 地址映射 A9写FPGA读*/
+    /*本系BLVDS ADDR 地址映射 A9写FPGA读-偏移2000*/
     s_Bram_A_WR_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_WR_A_BLVDSBlckAddr;
     s_Bram_A_WR_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_WRFlagAddr;
     s_Bram_A_WR_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_WR_A_BLVDS_BLOCK0;
     s_Bram_A_WR_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_WR_A_BLVDS_FLAG;
+    #endif
+    /*BLVDS-更新程序 ADDR 地址映射 A9读FPGA写-偏移A000-选取*/
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_Updt_BLVDSBlckAddr;
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_RDFlagAddr;
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_RD_A_BLVDS_SPCBLOCK0;
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_RD_A_BLVDS_SPCBLOCK0_FLAG;
+
+    /*BLVDS-更新程序 ADDR 地址映射 A9写FPGA读-偏移A000*/
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_WR_Updt_BLVDSBlckAddr;
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.MapBlckFlgAddr_p = s_bram_WRFlagAddr;
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.BramBlckAddr = BRAM_A9_WR_A_BLVDS_SPCBLOCK0;
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.BramBlckFlgAddr = BRAM_A9_WR_A_BLVDS_SPCBLOCK0_FLAG;
     
     /*他系BLVDS通道 ADDR 地址映射 A9读FPGA写*/
     s_bram_RD_B_BLVDSBlckAddr_ST.MapBlckAddr_p = s_bram_RD_B_BLVDSBlckAddr;
@@ -554,12 +620,12 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,ECU_ERROR_INFO *ECUErrIn
     uint32_t temp_bram_rd_data[64]={0};
     char loginfo[LOG_INFO_LENG] = {0}; 
 
-    s_Bram_A_RD_BLVDSBlckAddr_ST.DataU32Length = 20 ;
-    s_Bram_A_RD_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.DataU32Length = 20 ;
+    s_Bram_Updt_RD_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;
 
     if(0 == g_LinuxDebug)
     {
-        Read_CRCRet = BoardDataRead(&s_Bram_A_RD_BLVDSBlckAddr_ST,temp_bram_rd_data);
+        Read_CRCRet = BoardDataRead(&s_Bram_Updt_RD_BLVDSBlckAddr_ST,temp_bram_rd_data);
 
         if(CODE_ERR == Read_CRCRet) 
         {
@@ -618,7 +684,42 @@ int8_t BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,ECU_ERROR_INFO *ECUErrIn
     return CODE_OK;
 }
 
-#ifdef REDUNDANCY_FUNCTION
+
+/**
+ * @description: BLVDS初始化功能
+ * @param void
+ * @return init_err
+ * @author: zlz
+ */
+int8_t BLVDS_Init_Func(void) 
+{
+    int8_t i,j;
+    static int8_t InitErr = 0;
+    char loginfo[LOG_INFO_LENG] = {0};  
+    static uint8_t Life_signal = 0;  
+    BRAM_PACKET_TOP TopPackST = {0};   
+        
+    TopPackST.BLVDSTOP_U32 = 0x1002;
+    TopPackST.BLVDSReser_U32[0] = Life_signal;        
+    /*DataLength 包括帧头不包括CRC*/
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.DataU32Length = 3;
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;        
+
+    if(0 == g_LinuxDebug)
+    {            
+        InitErr = BramWriteWithChek(&s_Bram_Updt_WR_BLVDSBlckAddr_ST,NULL,TopPackST);
+        if(InitErr == CODE_ERR)
+        {
+            printf("BLVDS-frame write to Bramdata error!\n");
+            snprintf(loginfo, sizeof(loginfo)-1, "BLVDS-frame write to Bramdata error!",i);
+            WRITELOGFILE(LOG_ERROR_1,loginfo); 				 
+        }
+    }        
+
+    Life_signal++;
+    return InitErr;
+}
+
 /**
  * @description: BLVDS数据写入功能
  * @param TMS570_BRAM_DATA *bram_wr_data
@@ -630,18 +731,18 @@ int8_t BLVDSDataWriteFunc(TMS570_BRAM_DATA *bram_wr_data)
     int8_t i,j;
     static int8_t WriteErr = 0;
     char loginfo[LOG_INFO_LENG] = {0};  
-    static uint16_t Life_signal = 0;  
+    static uint8_t Life_signal = 0;  
     BRAM_PACKET_TOP TopPackST = {0};   
         
-    TopPackST.BLVDSTOP_U32 = 0x41c2;
-    TopPackST.BLVDSReser_U32[0] = Life_signal | ((16+i)<<16);        
+    TopPackST.BLVDSTOP_U32 = 0x1042;
+    TopPackST.BLVDSReser_U32[0] = Life_signal;        
 
-    s_Bram_A_WR_BLVDSBlckAddr_ST.DataU32Length = 0x11;
-    s_Bram_A_WR_BLVDSBlckAddr_ST.ChanNum_U8 = 1;        
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.DataU32Length = 5;
+    s_Bram_Updt_WR_BLVDSBlckAddr_ST.ChanNum_U8 = BLVDS_MAX10_CHAN;        
 
     if(0 == g_LinuxDebug)
     {            
-        WriteErr = BramWriteWithChek(&s_Bram_A_WR_BLVDSBlckAddr_ST,bram_wr_data->buffer,TopPackST);
+        WriteErr = BramWriteWithChek(&s_Bram_Updt_WR_BLVDSBlckAddr_ST,bram_wr_data->buffer,TopPackST);
         if(WriteErr == CODE_ERR)
         {
             printf("BLVDS-frame write to Bramdata error!\n");
@@ -653,7 +754,7 @@ int8_t BLVDSDataWriteFunc(TMS570_BRAM_DATA *bram_wr_data)
     Life_signal++;
     return WriteErr;
 }
-#endif
+
 
 /**
  * @description: just for this page can program use!(pay attention "static")

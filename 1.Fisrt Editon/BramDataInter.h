@@ -40,7 +40,8 @@
 
 #define RD_CRCERR_NUM 5  /*repeate 4 read,total number 5 rd */
 #define WR_CRCERR_NUM 5  /*repeate 4 write,total number 5 write */
-
+#define BLVDS_Write 1
+#define BLVDS_Init 0
 /**********************************************************************
 *
 *Global Struct Define Section

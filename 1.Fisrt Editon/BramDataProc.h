@@ -43,6 +43,7 @@
 #define CAN1_WRITE_FRAME_NUM 5
 #define MVB_READ_FRAME_NUM  2
 #define MVB_WRITE_FRAME_NUM 6
+
 /**********************************************************************
 *
 *Global Struct Define Section
@@ -70,6 +71,7 @@ int8_t 	Bram_Mapping_Init(ECU_ERROR_INFO * ECUErrInfop);
 int8_t 	BramCloseMap(void);
 int8_t 	BoardDataRead(BRAM_ADDRS *BramAddrs_p,uint32_t *ReadData);
 int8_t  BLVDSDataReadFunc(TMS570_BRAM_DATA *bram_rd_data,ECU_ERROR_INFO *ECUErrInfop);
+int8_t 	BLVDS_Init_Func(void);
 int8_t 	BLVDSDataWriteFunc(TMS570_BRAM_DATA *bram_wr_data);
 int8_t	ExtraBoardData(uint32_t *Inbuff,uint32_t *Outbuff,uint8_t ChanNum);
 void 	CAN_FrameInit(struct can_filter *candata_RD_filter,struct can_frame *candata_WR,uint8_t can_devtype);

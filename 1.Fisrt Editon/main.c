@@ -1724,20 +1724,22 @@ void *RedundancyThreadFunc(void *arg)
 void *BlvdsThreadFunc(void *arg)
 {    
     #ifdef BLVDS_READ_FUNCITON
+
+    int8_t init_ret;   
     char loginfo[LOG_INFO_LENG]={0};
 
+    init_ret = BLVDS_Init_Func() ;
+
     while (g_LifeFlag)
-    {              
-        pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);
+    {       
+        pthread_rwlock_wrlock(&g_PthreadLock_ST.RealDatalock);        
 
         BLVDSDataReadFunc(&Bram_Blvds_Read_Data,&g_ECUErrInfo_ST);         
         MAX10_RD_DataProc(&Bram_Blvds_Read_Data,&s_save_to_intool);/*从Bram读取MAX10_EVENT数据,以便于记录*/
-
-        #ifdef REDUNDANCY_FUNCTION
+        #if 1
         MAX10_WR_DataProc(&Bram_Blvds_Write_Data);
-        BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);    
+        BLVDSDataWriteFunc(&Bram_Blvds_Write_Data);        
         #endif
-
         pthread_rwlock_unlock(&g_PthreadLock_ST.RealDatalock);
         
     }
@@ -1745,5 +1747,7 @@ void *BlvdsThreadFunc(void *arg)
     snprintf(loginfo, sizeof(loginfo)-1, "Exit BlvdsThreadFunc!");
     WRITELOGFILE(LOG_ERROR_1,loginfo);
     pthread_exit(NULL);
+
     #endif
+    
 }

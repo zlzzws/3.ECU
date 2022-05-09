@@ -40,17 +40,18 @@
  
 
 /*the A9 Read block data section*/
-#define BRAM_A9_RD_A_TMS_BLOCK0    	  0x40000000     /*the block for A TMSTMS communicate with 4~7 board */
+#define BRAM_A9_RD_A_TMS_BLOCK0    	  0x40000000    /*the block for A TMSTMS communicate with 4~7 board */
 #define BRAM_A9_RD_A_BLVDS_BLOCK0  	  0x40002000    /*the block for A blvds communicate with 0~3 board */
-#define BRAM_A9_RD_B_TMS_BLOCK0       0x40004000
+#define BRAM_A9_RD_B_TMS_BLOCK0       0x40004000	
 #define BRAM_A9_RD_B_BLVDS_BLOCK0  	  0x40006000    /*the block for B blvds communicate with 0~3 board */
-#define BRAM_A9_RD_A_TMS_SPCBLOCK0    0x40008000   /*the block for A TMSTMS write,for example feed back the update status*/
-#define BRAM_A9_RD_A_BLVDS_SPCBLOCK0  0x4000A000 /*the block for receive the  feed back update status,When update the DI DO board programe*/
+#define BRAM_A9_RD_A_TMS_SPCBLOCK0    0x40008000   	/*the block for A TMSTMS write,for example feed back the update status*/
+#define BRAM_A9_RD_A_BLVDS_SPCBLOCK0  0x4000A000 	/*the block for receive the  feed back update status,When update the DI DO board programe*/
 /*the A9 Read block flag section*/
 #define BRAM_A9_RD_A_TMS_FLAG          0x4000E000
 #define BRAM_A9_RD_A_BLVDS_FLAG        0x4000E004
 #define BRAM_A9_RD_B_BLVDS_FLAG        0x4000E00C
 #define BRAM_A9_RD_A_TMS_SPCFLAG       0x4000E010
+#define BRAM_A9_RD_A_BLVDS_SPCBLOCK0_FLAG    0x4000E014
 /*the A9 Write block data section*/
 #define BRAM_A9_WR_A_TMS_BLOCK0    	 	0x80000000
 #define BRAM_A9_WR_A_BLVDS_BLOCK0  	  	0x80002000
@@ -62,7 +63,7 @@
 #define BRAM_A9_WR_A_BLVDS_FLAG			0x8000E004
 #define BRAM_A9_WR_B_BLVDS_FLAG			0x8000E00C
 #define BRAM_A9_WR_A_TMS_SPCFLAG        0x8000E010
-
+#define BRAM_A9_WR_A_BLVDS_SPCBLOCK0_FLAG    0x8000E014
 
 #define BRAM_PCKT_LNGTH_U8 256
 #define BRAM_4BLCK_LNGTH_U8 4096 /*16 channel */
