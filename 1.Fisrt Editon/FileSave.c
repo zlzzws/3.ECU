@@ -759,8 +759,7 @@ int8_t MAX10_RD_DataProc(TMS570_BRAM_DATA *bram_data,DRIVE_FILE_DATA *Drive_ST_p
 int8_t MAX10_WR_DataProc(TMS570_BRAM_DATA *bram_data)
 {
     bram_data->buffer[0]=0x99999999;
-    bram_data->buffer[1]=0x99;
-    
+    bram_data->buffer[1]=0x99;    
 }
 /**********************************************************************
 *Name       :   int8_t MAX10_EventDataSave
